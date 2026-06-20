@@ -1501,68 +1501,79 @@ function resetCheckoutAfterSuccessfulOrder() {
 
 
       {selectedProtocol && (
-        <div className="fixed inset-0 z-[70] bg-white">
-          <div className="sticky top-0 z-10 border-b border-gray-200 bg-white">
-            <div className="flex items-center justify-between px-5 py-4">
-              <div className="flex items-center gap-3">
-                <img src={logoUrl} className="h-10 w-10 object-contain" />
-                <div>
-                  <h1 className="text-xl font-bold">{siteName}</h1>
-                  <p className="text-xs text-gray-500">
-                    {selectedProtocol.name} Protocol
-                  </p>
-                </div>
-              </div>
+  <div className="fixed inset-0 z-[70] bg-white">
+    {/* Protocol Header */}
+    <div className="sticky top-0 z-10 border-b border-[#978D82] bg-[#A79B8E]">
+      <div className="flex items-center justify-between px-5 py-3">
+        <img
+          src={logoUrl}
+          alt={siteName}
+          className="h-10 w-auto object-contain"
+        />
 
-              <button
-                onClick={() => setSelectedProtocol(null)}
-                className="text-3xl text-gray-500"
-              >
-                ×
-              </button>
-            </div>
-          </div>
+        <button
+          type="button"
+          onClick={() => setSelectedProtocol(null)}
+          className="flex h-9 w-9 items-center justify-center rounded-full text-3xl font-light leading-none text-white transition-all hover:bg-white/10 active:scale-95"
+          aria-label="Close protocol"
+        >
+          ×
+        </button>
+      </div>
+    </div>
 
-          <div className="h-[calc(100vh-73px)] overflow-y-auto bg-gray-50 px-4 py-5">
-            <div className="mx-auto max-w-md overflow-hidden rounded-3xl bg-white shadow-sm">
-              <div className="px-4 pt-4">
-                {/* Tabs */}
-                <div className="mb-4 flex gap-2">
-                  <button
-                    onClick={() => setProtocolTab("protocol")}
-                    className={`rounded-full px-4 py-1 text-sm font-medium ${protocolTab === "protocol"
-                      ? "bg-black text-white"
-                      : "bg-gray-100 text-gray-600"
-                      }`}
-                  >
-                    Protocol
-                  </button>
-
-                  <button
-                    onClick={() => setProtocolTab("coa")}
-                    className={`rounded-full px-4 py-1 text-sm font-medium ${protocolTab === "coa"
-                      ? "bg-black text-white"
-                      : "bg-gray-100 text-gray-600"
-                      }`}
-                  >
-                    📑 COA
-                  </button>
-                </div>
-
-                {/* Image */}
-                <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-                  <img
-                    src={selectedProtocol.protocolImages[protocolTab]}
-                    alt="Protocol"
-                    className="w-full object-contain"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+    {/* Protocol Body */}
+    <div className="h-[calc(100vh-65px)] overflow-y-auto bg-[#F7F5F2] px-4 py-5 sm:px-6 sm:py-7">
+      <div className="mx-auto w-full max-w-md overflow-hidden rounded-[28px] border border-[#E6E0D8] bg-white p-4 shadow-xl sm:max-w-3xl sm:p-6">
+        {/* Protocol Title */}
+        <div className="mb-5 text-center">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+            Protocol Details
+          </p>
+          <h2 className="mt-1 text-xl font-bold tracking-wide text-[#5F554C] sm:text-2xl">
+            {selectedProtocol.name} Protocol
+          </h2>
         </div>
-      )}
 
+        {/* Tabs */}
+        <div className="mb-5 flex justify-center gap-2">
+          <button
+            type="button"
+            onClick={() => setProtocolTab("protocol")}
+            className={`rounded-full px-5 py-2 text-sm font-bold shadow-sm transition-all active:scale-95 ${
+              protocolTab === "protocol"
+                ? "bg-[#A79B8E] text-white"
+                : "border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] hover:bg-[#E6E0D8]"
+            }`}
+          >
+            Protocol
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setProtocolTab("coa")}
+            className={`rounded-full px-5 py-2 text-sm font-bold shadow-sm transition-all active:scale-95 ${
+              protocolTab === "coa"
+                ? "bg-[#A79B8E] text-white"
+                : "border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] hover:bg-[#E6E0D8]"
+            }`}
+          >
+            COA
+          </button>
+        </div>
+
+        {/* Image */}
+        <div className="overflow-hidden rounded-[24px] border border-[#E6E0D8] bg-[#FBFAF8] p-2 shadow-sm sm:p-4">
+          <img
+            src={selectedProtocol.protocolImages[protocolTab]}
+            alt={`${selectedProtocol.name} ${protocolTab}`}
+            className="mx-auto w-full rounded-[18px] object-contain"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
 
     </div>
