@@ -1,0 +1,393 @@
+.medPage {
+  min-height: 100vh;
+  padding: 28px 18px 90px;
+  background: #fafafa;
+  color: #111;
+  font-family: Arial, sans-serif;
+}
+
+.medHeader {
+  max-width: 860px;
+  margin: 0 auto 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: #888;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.medHeader h1 {
+  margin: 0;
+  font-size: 38px;
+  letter-spacing: -0.05em;
+}
+
+.iconButton {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 16px;
+  background: #f0f0f0;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.chartCard,
+.formCard,
+.historyCard,
+.smallCard {
+  max-width: 860px;
+  margin: 0 auto 18px;
+  background: #f2f2f2;
+  border-radius: 24px;
+  padding: 22px;
+  position: relative;
+}
+
+.chartTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.chartTitle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.syringeIcon,
+.modalTitle span {
+  color: #7b6ef6;
+  transform: rotate(-35deg);
+  display: inline-block;
+}
+
+.chartTitle h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.chartTitle p {
+  margin: 2px 0 0;
+  color: #888;
+  font-size: 13px;
+}
+
+.rangePills {
+  display: flex;
+  padding: 4px;
+  border-radius: 999px;
+  background: #e7e7e7;
+}
+
+.rangePills button {
+  border: none;
+  background: transparent;
+  padding: 7px 11px;
+  border-radius: 999px;
+  color: #888;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.rangePills button.active {
+  background: #d5d5d5;
+  color: #111;
+}
+
+.chartWrap {
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.chartSvg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.gridLine {
+  stroke: #dedede;
+  stroke-width: 1;
+}
+
+.todayLine {
+  stroke: #bdbdbd;
+  stroke-width: 2;
+  stroke-dasharray: 8 8;
+}
+
+.levelBadge {
+  position: absolute;
+  top: 76px;
+  right: 12%;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid #dedede;
+  border-radius: 18px;
+  padding: 12px 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.levelBadge strong {
+  display: block;
+  font-size: 24px;
+}
+
+.levelBadge span {
+  display: block;
+  color: #999;
+  margin-top: 3px;
+}
+
+.formCard {
+  display: grid;
+  gap: 14px;
+}
+
+.fieldRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 7px;
+}
+
+.field label {
+  color: #777;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  border: 1px solid #e1e1e1;
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px 13px;
+  font-size: 16px;
+  outline: none;
+}
+
+.primaryButton,
+.closeButton {
+  border: none;
+  border-radius: 18px;
+  background: #000;
+  color: #fff;
+  padding: 16px 20px;
+  font-size: 17px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.quickGrid {
+  max-width: 860px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.smallCard {
+  margin: 0;
+  min-height: 130px;
+}
+
+.smallCard p {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.smallCard h3 {
+  margin: 0;
+  font-size: 26px;
+  letter-spacing: -0.04em;
+}
+
+.smallCard span {
+  display: block;
+  color: #aaa;
+  margin-top: 6px;
+  font-size: 14px;
+}
+
+.ringCard {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.ring {
+  width: 86px;
+  height: 86px;
+  border: 10px solid;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.historyCard h2 {
+  margin: 0 0 14px;
+}
+
+.emptyText {
+  color: #888;
+}
+
+.historyList {
+  display: grid;
+  gap: 10px;
+}
+
+.historyItem {
+  background: #fff;
+  border-radius: 16px;
+  padding: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.historyItem strong {
+  display: block;
+  font-size: 17px;
+}
+
+.historyItem span {
+  display: block;
+  color: #999;
+  margin-top: 3px;
+  font-size: 13px;
+}
+
+.historyItem button {
+  border: none;
+  background: #ffe9e9;
+  color: #b42318;
+  border-radius: 12px;
+  padding: 9px 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.48);
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  z-index: 50;
+}
+
+.infoModal {
+  width: min(680px, 100%);
+  background: #fff;
+  border-radius: 28px;
+  padding: 28px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.24);
+}
+
+.modalTitle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.modalTitle h2 {
+  margin: 0;
+  font-size: 26px;
+  letter-spacing: -0.04em;
+}
+
+.infoModal p {
+  color: #333;
+  line-height: 1.35;
+}
+
+.infoModal h3 {
+  margin: 24px 0 8px;
+}
+
+.disclaimer {
+  color: #777 !important;
+  font-size: 14px;
+}
+
+.closeButton {
+  width: 100%;
+  margin-top: 14px;
+}
+
+@media (max-width: 720px) {
+  .medPage {
+    padding: 22px 14px 80px;
+  }
+
+  .medHeader h1 {
+    font-size: 34px;
+  }
+
+  .chartCard,
+  .formCard,
+  .historyCard,
+  .smallCard {
+    border-radius: 22px;
+    padding: 18px;
+  }
+
+  .chartTop {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .rangePills {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .rangePills button {
+    flex: 1;
+  }
+
+  .levelBadge {
+    top: 92px;
+    right: 22px;
+    padding: 10px 13px;
+  }
+
+  .levelBadge strong {
+    font-size: 21px;
+  }
+
+  .fieldRow {
+    grid-template-columns: 1fr;
+  }
+
+  .quickGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .infoModal {
+    padding: 24px;
+    border-radius: 26px;
+  }
+}
