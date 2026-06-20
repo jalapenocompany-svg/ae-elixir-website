@@ -154,7 +154,7 @@ export default function SiteHeader({
               <img
                 src={menuLogoUrl}
                 alt={siteName}
-                className="h-11 w-auto object-contain"
+                className="h-10 w-auto object-contain"
               />
             </a>
             <button
