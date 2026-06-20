@@ -247,12 +247,19 @@ function SalesChart({ orders }: { orders: Order[] }) {
             );
           })}
 
-          <path d={areaPath} fill="#dbeafe" opacity="0.75" />
-          <path d={linePath} fill="none" stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+<path d={areaPath} fill="#F0ECE6" opacity="0.9" />
+<path
+  d={linePath}
+  fill="none"
+  stroke="#A79B8E"
+  strokeWidth="3"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+/>
 
           {points.map((point) => (
             <g key={`${point.label}-${point.x}`}>
-              <circle cx={point.x} cy={point.y} r="4" fill="#3b82f6" />
+              <circle cx={point.x} cy={point.y} r="4.5" fill="#A79B8E" />
               <text x={point.x} y={height - 10} fontSize="11" fill="#64748b" textAnchor="middle">
                 {point.label}
               </text>
@@ -938,23 +945,24 @@ export default function MasterAdminClient() {
           <h1 className="text-2xl font-bold">Admin Dashboard</h1>
         </div>
 
-        <div className="mb-6 border-b border-gray-200 pb-4">
-          <div className="grid grid-cols-4 gap-3">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center justify-center gap-2 rounded-2xl border px-2 py-3 text-sm font-semibold transition ${activeTab === tab.id
-                  ? "border-black bg-black text-white shadow-sm"
-                  : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
-                  }`}
-              >
-                {tab.icon}
-                <span className="hidden sm:inline">{tab.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+<div className="mb-6 border-b border-[#E6E0D8] pb-4">
+  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+    {tabs.map((tab) => (
+      <button
+        key={tab.id}
+        onClick={() => setActiveTab(tab.id)}
+        className={`flex items-center justify-center gap-2 rounded-2xl border px-2 py-3 text-sm font-semibold shadow-sm transition-all active:scale-95 ${
+          activeTab === tab.id
+            ? "border-[#A79B8E] bg-[#A79B8E] text-white"
+            : "border-[#D8D1C8] bg-white text-[#5F554C] hover:bg-[#F6F3EF] hover:text-[#A79B8E]"
+        }`}
+      >
+        {tab.icon}
+        <span className="hidden sm:inline">{tab.label}</span>
+      </button>
+    ))}
+  </div>
+</div>
 
         {activeTab === "dashboard" && (
           <div className="space-y-5">
