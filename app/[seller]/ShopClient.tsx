@@ -1417,28 +1417,6 @@ async function deductInventory() {
   </div>
 )}
 
-            {whatsAppUrl ? (
-              <a
-                href={whatsAppUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={resetAfterOrder}
-                className="block w-full rounded-full bg-green-600 py-3 font-semibold text-white"
-              >
-                Open WhatsApp
-              </a>
-            ) : (
-              <button
-                onClick={resetAfterOrder}
-                className="w-full rounded-full bg-black py-3 font-semibold text-white"
-              >
-                Close
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
       {selectedKit && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 px-5">
           <div className="w-full max-w-sm rounded-3xl bg-white p-5 shadow-xl">
