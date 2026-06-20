@@ -116,7 +116,7 @@ export default function LookupClient() {
             <button
               onClick={handleLookup}
               disabled={loading}
-              className="w-full rounded-full bg-black py-3 font-semibold text-white disabled:bg-gray-400"
+              className="w-full rounded-full bg-[#A79B8E] py-3 font-semibold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
             >
               {loading ? "Searching..." : "Search Order"}
             </button>
