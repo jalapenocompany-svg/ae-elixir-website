@@ -1332,7 +1332,7 @@ export default function ShopClient({ seller }: { seller?: string }) {
 
               <button
                 onClick={() => setCheckoutOpen(false)}
-                className="w-full border rounded-full py-3"
+                className="w-full rounded-full border border-[#D8D1C8] bg-white py-3 text-sm font-bold text-[#A79B8E] shadow-sm transition-all hover:bg-[#F3F0EC] active:scale-95"
               >
                 Back to Cart
               </button>
