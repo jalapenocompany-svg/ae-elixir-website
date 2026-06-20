@@ -729,7 +729,7 @@ setPriceZone("zone1");
                             product.variants[selectedVariantIndex]?.label || "";
 
                           const sizePillWidth =
-                            selectedLabel.length >= 6 ? "w-[98px]" : "w-[82px]";
+                            selectedLabel.length >= 5 ? "w-[98px]" : "w-[82px]";
 
                           return (
                             <select
@@ -757,7 +757,7 @@ setPriceZone("zone1");
                             .trim();
 
                           const sizePillWidth =
-                            productSpec.length >= 6 ? "w-[98px]" : "w-[82px]";
+                            productSpec.length >= 5 ? "w-[98px]" : "w-[82px]";
 
                           return (
                             <div
