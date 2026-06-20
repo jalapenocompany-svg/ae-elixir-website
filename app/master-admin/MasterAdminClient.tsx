@@ -959,8 +959,8 @@ export default function MasterAdminClient() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center justify-center gap-2 rounded-2xl border px-2 py-3 text-sm font-semibold shadow-sm transition-all active:scale-95 ${activeTab === tab.id
-                    ? "border-[#A79B8E] bg-[#A79B8E] text-white"
-                    : "border-[#D8D1C8] bg-white text-[#5F554C] hover:bg-[#F6F3EF] hover:text-[#A79B8E]"
+                  ? "border-[#A79B8E] bg-[#A79B8E] text-white"
+                  : "border-[#D8D1C8] bg-white text-[#5F554C] hover:bg-[#F6F3EF] hover:text-[#A79B8E]"
                   }`}
               >
                 {tab.icon}
@@ -1221,31 +1221,34 @@ export default function MasterAdminClient() {
 
         {activeTab === "products" && (
           <div className="space-y-4">
-            <div className="rounded-2xl bg-white p-4 shadow-sm">
-              <div className="flex items-center justify-between gap-3">
+            <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h2 className="text-lg font-bold">Products</h2>
-                  <p className="text-sm text-gray-500">
+                  <h2 className="text-xl font-bold text-[#5F554C]">Products</h2>
+                  <p className="mt-1 max-w-md text-sm leading-6 text-[#6F655C]">
                     Manage products, variants, prices, stock, images, protocols, and kit details.
                   </p>
                 </div>
 
-                <button
-                  onClick={() => setShowAddProduct((value) => !value)}
-                  className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-black px-4 text-sm font-semibold text-white transition-all active:scale-95"
-                >
-                  <span className="text-lg">＋</span>
-                  Add Product
-                </button>
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+                  <button
+                    onClick={() => setShowAddProduct((value) => !value)}
+                    className="flex h-11 items-center justify-center gap-2 rounded-full bg-[#A79B8E] px-4 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95 sm:min-w-[150px]"
+                  >
+                    <span className="text-xl leading-none">＋</span>
+                    <span className="hidden sm:inline">Add Product</span>
+                    <span className="sm:hidden">Product</span>
+                  </button>
 
-                <button
-                  onClick={() => setShowAddVariant((value) => !value)}
-                  className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-black px-4 text-sm font-semibold text-white transition-all active:scale-95"
-                >
-                  <span className="text-lg">＋</span>
-                  Add Variant
-                </button>
-
+                  <button
+                    onClick={() => setShowAddVariant((value) => !value)}
+                    className="flex h-11 items-center justify-center gap-2 rounded-full bg-[#A79B8E] px-4 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95 sm:min-w-[150px]"
+                  >
+                    <span className="text-xl leading-none">＋</span>
+                    <span className="hidden sm:inline">Add Variant</span>
+                    <span className="sm:hidden">Variant</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1494,31 +1497,36 @@ export default function MasterAdminClient() {
                 return (
                   <div
                     key={variant.id}
-                    className={`rounded-2xl bg-white p-4 shadow-sm ${!variant.active ? "opacity-50" : ""
-                      }`}
+className={`rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm ${!variant.active ? "opacity-50" : ""
+  }`}
                   >
-                    <div className="mb-4 grid grid-cols-[80px_1fr_120px_120px] items-center gap-4">
-                      {variant.image_url && (
+                    <div className="mb-4 grid grid-cols-[72px_1fr] gap-4 sm:grid-cols-[80px_1fr_auto_auto] sm:items-center">
+                      {variant.image_url ? (
                         <img
                           src={variant.image_url}
-                          className="h-20 w-20 rounded-xl bg-gray-50 object-contain"
+                          className="h-[72px] w-[72px] rounded-2xl bg-[#F6F3EF] object-contain sm:h-20 sm:w-20"
+                          alt={variant.product_name}
                         />
+                      ) : (
+                        <div className="h-[72px] w-[72px] rounded-2xl bg-[#F6F3EF] sm:h-20 sm:w-20" />
                       )}
 
-                      <div>
-                        <p className="font-bold">
+                      <div className="min-w-0">
+                        <p className="break-words text-base font-bold leading-tight text-[#1F1A17] sm:text-lg">
                           {variant.product_name} {variant.label}
                         </p>
-                        <p className="text-xs text-gray-400">{variant.product_code}</p>
+                        <p className="mt-1 break-words text-xs leading-5 text-[#9A9188]">
+                          {variant.product_code}
+                        </p>
                       </div>
 
-                      <div className="flex justify-center">
+                      <div className="col-span-2 flex justify-start sm:col-span-1 sm:justify-center">
                         <span
-                          className={`rounded-full px-3 py-1 text-xs font-semibold ${isOut
-                            ? "bg-red-100 text-red-700"
-                            : isLow
-                              ? "bg-orange-100 text-orange-700"
-                              : "bg-black text-white"
+                          className={`rounded-full px-4 py-1.5 text-xs font-bold shadow-sm ${isOut
+                              ? "bg-red-100 text-red-700"
+                              : isLow
+                                ? "bg-[#F8E8D8] text-[#9A5A1E]"
+                                : "bg-[#A79B8E] text-white"
                             }`}
                         >
                           {isOut ? "Out" : isLow ? "Low" : "In Stock"}
@@ -1527,10 +1535,10 @@ export default function MasterAdminClient() {
 
                       <button
                         onClick={() => toggleVariantExpanded(variant.id)}
-                        className="flex h-9 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition-all active:scale-95 hover:bg-gray-50"
+                        className="col-span-2 flex h-10 w-full items-center justify-center gap-2 rounded-full border border-[#D8D1C8] bg-white px-4 text-sm font-bold text-[#5F554C] shadow-sm transition-all hover:bg-[#F6F3EF] active:scale-95 sm:col-span-1 sm:w-[132px]"
                       >
                         <span>{isOut ? "Out" : isLow ? "Low" : "In Stock"}</span>
-                        <span className="text-blue-700">
+                        <span className="text-[#A79B8E]">
                           {expandedVariants[variant.id] ? "▲" : "▼"}
                         </span>
                       </button>
