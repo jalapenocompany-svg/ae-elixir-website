@@ -47,7 +47,7 @@ export default function SiteFooter() {
           <a
             href={cleanWhatsApp ? `https://wa.me/${cleanWhatsApp}` : "#"}
             target="_blank"
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-green-50 text-green-600"
+            className="flex h-12 w-12 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
               <path
@@ -64,7 +64,7 @@ export default function SiteFooter() {
                 ? `mailto:${settings.contact_email}`
                 : "#"
             }
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-gray-600"
+            className="flex h-12 w-12 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
               <path
@@ -83,7 +83,7 @@ export default function SiteFooter() {
           <a
             href={settings?.tiktok_url || "#"}
             target="_blank"
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-black"
+            className="flex h-12 w-12 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
               <path
