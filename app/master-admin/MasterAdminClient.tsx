@@ -933,7 +933,7 @@ export default function MasterAdminClient() {
 
           <button
             onClick={handleLogin}
-            className="w-full rounded-full bg-black py-3 font-semibold text-white"
+            className="w-full rounded-full bg-[#A79B8E] py-3 font-semibold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
           >
             Login
           </button>
