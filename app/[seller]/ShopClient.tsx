@@ -1425,74 +1425,79 @@ function resetCheckoutAfterSuccessfulOrder() {
   </div>
 )}
 
-      {selectedKit && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 px-5">
-          <div className="w-full max-w-sm rounded-3xl bg-white p-5 shadow-xl">
-            <div className="mb-4 flex items-center justify-between border-b pb-3">
-              <div>
-                <p className="text-xs font-semibold text-blue-600">Kit Includes</p>
-                <h2 className="text-xl font-bold">{selectedKit.name}</h2>
+{selectedKit && (
+  <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 px-5 backdrop-blur-[2px]">
+    <div className="w-full max-w-sm rounded-[28px] border border-[#E6E0D8] bg-white p-5 shadow-2xl">
+      <div className="mb-4 flex items-start justify-between border-b border-[#E6E0D8] pb-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+            Kit Includes
+          </p>
+          <h2 className="mt-1 text-xl font-bold tracking-wide text-[#5F554C]">
+            {selectedKit.name}
+          </h2>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setSelectedKit(null)}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-xl leading-none text-[#7F756B] transition-all hover:bg-[#F6F3EF] active:scale-95"
+          aria-label="Close kit details"
+        >
+          ×
+        </button>
+      </div>
+
+      <div className="mb-5 flex justify-center">
+        <div className="rounded-3xl border border-[#E6E0D8] bg-[#F6F3EF] p-3 shadow-sm">
+          <img
+            src={selectedKit.image}
+            alt={selectedKit.name}
+            className="h-36 w-36 rounded-2xl object-contain"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {/* Description Section */}
+        <div className="rounded-3xl border border-[#D8D1C8] bg-[#FBFAF8] p-4 shadow-sm">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+            Product Description
+          </p>
+          <p className="text-sm leading-6 text-[#6F655C]">
+            {selectedKit.description}
+          </p>
+        </div>
+
+        {/* Kit Items Section */}
+        <div className="rounded-3xl border border-[#D8D1C8] bg-[#FBFAF8] p-4 shadow-sm">
+          <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+            Kit Includes
+          </p>
+
+          <div className="space-y-2 text-sm text-[#6F655C]">
+            {selectedKit.kitItems.map((item, index) => (
+              <div key={index} className="flex gap-2 leading-6">
+                <span className="min-w-5 font-bold text-[#A79B8E]">
+                  {index + 1}.
+                </span>
+                <span>{item}</span>
               </div>
-
-              <button
-                onClick={() => setSelectedKit(null)}
-                className="text-2xl text-gray-500"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="mb-5 flex justify-center">
-              <img
-                src={selectedKit.image}
-                alt={selectedKit.name}
-                className="h-36 rounded-2xl object-contain"
-              />
-            </div>
-
-            <div className="space-y-4">
-              {/* Description Section */}
-              <div
-                className={`rounded-3xl border p-4 ${selectedKit.theme.light} ${selectedKit.theme.border}`}
-              >
-                <p className={`mb-2 text-xs font-bold uppercase tracking-wide ${selectedKit.theme.text}`}>
-                  Peptide Description
-                </p>
-                <p className="text-sm leading-relaxed text-gray-700">
-                  {selectedKit.description}
-                </p>
-              </div>
-
-              {/* Kit Items Section */}
-              <div
-                className={`rounded-3xl border p-4 ${selectedKit.theme.light} ${selectedKit.theme.border}`}
-              >
-                <p className={`mb-3 text-xs font-bold uppercase tracking-wide ${selectedKit.theme.text}`}>
-                  Kit Includes
-                </p>
-
-                <div className="space-y-2 text-sm text-gray-700">
-                  {selectedKit.kitItems.map((item, index) => (
-                    <div key={index} className="flex gap-2">
-                      <span className={`font-bold ${selectedKit.theme.text}`}>
-                        {index + 1}.
-                      </span>
-                      <span>{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setSelectedKit(null)}
-              className="mt-5 w-full rounded-full bg-black py-3 font-semibold text-white"
-            >
-              Close
-            </button>
+            ))}
           </div>
         </div>
-      )}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setSelectedKit(null)}
+        className="mt-5 w-full rounded-full bg-[#A79B8E] py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
+      >
+        Close
+      </button>
+    </div>
+  </div>
+)}
 
 
       {selectedProtocol && (
