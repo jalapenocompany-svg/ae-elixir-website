@@ -61,7 +61,7 @@ export default function SiteHeader({
     <>
       <header className="sticky top-0 z-40 border-b border-transparent bg-[#A79B8E]">
         <div className="flex items-center justify-between px-5 py-2">
-          <a href={shopUrl} className="flex items-center gap-3">
+          <a href={shopUrl} className="flex -ml-2 items-center gap-3">
             <img src={logoUrl} className="h-12 w-60 object-contain" />
             <h1 className="text-2xl font-bold text-white">{siteName}</h1>
           </a>
