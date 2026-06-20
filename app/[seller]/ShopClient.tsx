@@ -1325,7 +1325,7 @@ export default function ShopClient({ seller }: { seller?: string }) {
               <button
                 onClick={handleOrderSubmit}
                 disabled={isSubmitting}
-                className="w-full bg-black text-white rounded-full py-3 font-semibold disabled:bg-gray-400"
+                className="w-full rounded-full bg-[#A79B8E] py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95 disabled:opacity-50"
               >
                 {isSubmitting ? "Saving Order..." : "Send Order"}
               </button>
