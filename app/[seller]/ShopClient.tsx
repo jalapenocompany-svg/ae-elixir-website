@@ -1351,51 +1351,71 @@ async function deductInventory() {
 
 
       </div>
-      {orderNotice && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-5">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl">
-            <h2 className="mb-3 text-xl font-bold">Order Received</h2>
+{orderNotice && (
+  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/45 px-5 backdrop-blur-[2px]">
+    <div className="w-full max-w-sm rounded-[28px] border border-[#E6E0D8] bg-white p-6 text-center shadow-2xl">
+      <h2 className="mb-3 text-2xl font-bold text-[#5F554C]">
+        Order Received
+      </h2>
 
-            {orderNumber && (
-              <div className="mb-4 rounded-xl bg-gray-100 p-3">
-                <p className="text-xs text-gray-500">Order Number</p>
-                <p className="text-lg font-bold tracking-wide">
-                  #{orderNumber}
-                </p>
-              </div>
-            )}
+      {orderNumber && (
+        <div className="mb-5 rounded-2xl border border-[#E6E0D8] bg-[#F6F3EF] p-4">
+          <p className="text-xs font-medium tracking-wide text-[#7F756B]">
+            Order Number
+          </p>
+          <p className="text-lg font-bold tracking-wide text-[#5F554C]">
+            #{orderNumber}
+          </p>
+        </div>
+      )}
 
-            <p className="mb-5 text-sm text-gray-600">{orderNotice}</p>
+      <p className="mb-5 text-sm leading-6 text-[#6F655C]">
+        {orderNotice}
+      </p>
 
+      {selectedPaymentMethod && (
+        <div className="mb-5 rounded-2xl border border-[#D8D1C8] bg-[#FBFAF8] p-5 text-sm text-[#6F655C] shadow-sm">
+          <p className="mb-3 font-bold text-[#5F554C]">
+            {selectedPaymentMethod.display_label} Payment
+          </p>
 
-            {selectedPaymentMethod && (
-              <div
-                className={`mb-4 rounded-2xl border p-4 text-sm ${selectedPaymentMethod.theme_light || "bg-gray-50"
-                  } ${selectedPaymentMethod.theme_border || "border-gray-200"} ${selectedPaymentMethod.theme_text || "text-gray-700"
-                  }`}
-              >
-                <p className="mb-2 font-bold">
-                  {selectedPaymentMethod.display_label} Payment
-                </p>
+          {selectedPaymentMethod.account_value && (
+            <p className="leading-6">
+              Send payment to:{" "}
+              <span className="font-bold text-[#5F554C]">
+                {selectedPaymentMethod.account_value}
+              </span>
+            </p>
+          )}
 
-                {selectedPaymentMethod.account_value && (
-                  <p>
-                    Send payment to:{" "}
-                    <span className="font-bold">
-                      {selectedPaymentMethod.account_value}
-                    </span>
-                  </p>
-                )}
+          <p className="mt-3 leading-6">
+            {selectedPaymentMethod.instructions ||
+              "Complete your payment using the selected method."}
+          </p>
 
-                <p className="mt-3">
-                  {selectedPaymentMethod.instructions ||
-                    "Complete your payment using the selected method."}
-                </p>
+          <p className="mt-3 leading-6">
+            Include your order number:
+          </p>
 
-                <p className="mt-3">Include your order number:</p>
-                <p className="mt-1 font-bold">#{orderNumber}</p>
-              </div>
-            )}
+          <p className="mt-1 font-bold tracking-wide text-[#5F554C]">
+            #{orderNumber}
+          </p>
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={() => {
+          setOrderNotice("");
+          setOrderNumber("");
+        }}
+        className="w-full rounded-full bg-[#A79B8E] py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
+      >
+        Close
+      </button>
+    </div>
+  </div>
+)}
 
             {whatsAppUrl ? (
               <a
