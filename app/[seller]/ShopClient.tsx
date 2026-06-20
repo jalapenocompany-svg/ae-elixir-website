@@ -616,18 +616,26 @@ async function deductInventory() {
     setOrderNotice(
       "Order saved. Payment instructions will be sent to your email."
     );
+    resetCheckoutAfterSuccessfulOrder();
     setIsSubmitting(false);
   }
 
-  function resetAfterOrder() {
-    setCart([]);
-    localStorage.removeItem("pepmistry_cart");
-    setCheckoutOpen(false);
-    setCartOpen(false);
-    setOrderNotice("");
-    setWhatsAppUrl("");
-    setOrderNumber("");
-  }
+function resetCheckoutAfterSuccessfulOrder() {
+  setCart([]);
+  localStorage.removeItem("pepmistry_cart");
+
+  setForm({
+    fullName: "",
+    address: "",
+    email: "",
+    phone: "",
+    paymentMethod: "",
+  });
+
+  setAddressSuggestions([]);
+  setCheckoutOpen(false);
+  setCartOpen(false);
+}
 
   const defaultSellerCode = siteSettings?.default_seller_code || "";
   const cleanWhatsApp = (siteSettings?.whatsapp_number || "").replace(/\D/g, "");
