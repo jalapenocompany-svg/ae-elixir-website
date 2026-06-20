@@ -445,30 +445,38 @@ export default function ShopClient({ seller }: { seller?: string }) {
   }
 
 
-  async function deductInventory() {
-    for (const item of cart) {
-      const { data, error } = await supabase
-        .from("inventory")
-        .select("stock_quantity")
-        .eq("product_code", item.product_code)
-        .single();
+async function deductInventory() {
+  for (const item of cart) {
+    const { data, error } = await supabase
+      .from("product_variants")
+      .select("stock_quantity")
+      .eq("product_code", item.product_code)
+      .single();
 
-      if (error || !data) {
-        throw new Error(`Inventory item not found: ${item.name}`);
-      }
+    if (error || !data) {
+      throw new Error(`Product variant not found: ${item.name}`);
+    }
 
-      const newStock = Math.max(0, Number(data.stock_quantity || 0) - item.quantity);
+    const currentStock = Number(data.stock_quantity || 0);
 
-      const { error: updateError } = await supabase
-        .from("inventory")
-        .update({ stock_quantity: newStock })
-        .eq("product_code", item.product_code);
+    if (item.quantity > currentStock) {
+      throw new Error(
+        `Only ${currentStock} available for ${item.name}. Please update your cart.`
+      );
+    }
 
-      if (updateError) {
-        throw new Error(`Could not update stock for ${item.name}`);
-      }
+    const newStock = currentStock - item.quantity;
+
+    const { error: updateError } = await supabase
+      .from("product_variants")
+      .update({ stock_quantity: newStock })
+      .eq("product_code", item.product_code);
+
+    if (updateError) {
+      throw new Error(`Could not update stock for ${item.name}`);
     }
   }
+}
 
   async function searchAddressSuggestions(value: string) {
     setForm({ ...form, address: value });
