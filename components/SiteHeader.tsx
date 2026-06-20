@@ -50,6 +50,7 @@ export default function SiteHeader({
   const shopUrl = "/";
   const siteName = settings?.site_name || "";
   const logoUrl = settings?.logo_url || "/logo.png";
+  const menuLogoUrl = "/color-logo.png";
   const contactEmail = settings?.contact_email || "";
   const whatsappNumber = settings?.whatsapp_number || "";
   const tiktokUrl = settings?.tiktok_url || "";
@@ -149,11 +150,13 @@ export default function SiteHeader({
         {/* Drawer Header */}
         <div className="border-b border-gray-100 px-7 py-6">
           <div className="flex items-center justify-between">
-            <a href={shopUrl} className="flex items-center gap-3">
-              <img src={logoUrl} className="h-11 w-11 object-contain" />
-              <h2 className="text-2xl font-bold">{siteName}</h2>
-            </a>
-
+<a href={shopUrl} className="flex items-center gap-3">
+  <img
+    src={menuLogoUrl}
+    alt={siteName}
+    className="h-12 w-auto object-contain"
+  />
+</a>
             <button
               onClick={() => setMenuOpen(false)}
               className="text-4xl font-light text-gray-400"
