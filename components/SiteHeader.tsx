@@ -224,7 +224,7 @@ export default function SiteHeader({
                 href={cleanWhatsApp ? `https://wa.me/${cleanWhatsApp}` : "#"}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-12 w-12 items-center justify-center rounded-full bg-green-50 text-green-600"
+                className="flex h-12 w-12 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
                 title="WhatsApp"
               >
                 <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none">
@@ -246,7 +246,7 @@ export default function SiteHeader({
 
               <a
                 href={contactEmail ? `mailto:${contactEmail}` : "#"}
-                className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-600"
+                className="flex h-12 w-12 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
                 title="Email"
               >
                 <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none">
@@ -269,7 +269,7 @@ export default function SiteHeader({
                 href={tiktokUrl || "#"}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-black"
+                className="flex h-12 w-12 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
                 title="TikTok"
               >
                 <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none">
