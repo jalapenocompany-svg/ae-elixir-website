@@ -225,9 +225,9 @@ function SalesChart({ orders }: { orders: Order[] }) {
   const gridLines = [0, 0.25, 0.5, 0.75, 1];
 
   return (
-    <div className="rounded-2xl bg-white p-5 shadow-sm">
-      <h2 className="text-lg font-bold">Last 5 Months Sales</h2>
-      <p className="mb-5 text-sm text-gray-500">
+    <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-5 shadow-sm">
+      <h2 className="text-lg font-bold text-[#5F554C]">Last 5 Months Sales</h2>
+      <p className="mb-5 text-sm text-[#6F655C]">
         Based on non-cancelled orders.
       </p>
 
@@ -239,28 +239,35 @@ function SalesChart({ orders }: { orders: Order[] }) {
 
             return (
               <g key={line}>
-                <line x1={leftPadding} y1={y} x2={width - rightPadding} y2={y} stroke="#e5e7eb" strokeWidth="1" />
-                <text x="8" y={y + 4} fontSize="11" fill="#64748b">
+                <line
+                  x1={leftPadding}
+                  y1={y}
+                  x2={width - rightPadding}
+                  y2={y}
+                  stroke="#E6E0D8"
+                  strokeWidth="1"
+                />
+                <text x="8" y={y + 4} fontSize="11" fill="#7F756B">
                   ${Math.round(value)}
                 </text>
               </g>
             );
           })}
 
-<path d={areaPath} fill="#F0ECE6" opacity="0.9" />
-<path
-  d={linePath}
-  fill="none"
-  stroke="#A79B8E"
-  strokeWidth="3"
-  strokeLinecap="round"
-  strokeLinejoin="round"
-/>
+          <path d={areaPath} fill="#F0ECE6" opacity="0.9" />
+          <path
+            d={linePath}
+            fill="none"
+            stroke="#A79B8E"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
 
           {points.map((point) => (
             <g key={`${point.label}-${point.x}`}>
               <circle cx={point.x} cy={point.y} r="4.5" fill="#A79B8E" />
-              <text x={point.x} y={height - 10} fontSize="11" fill="#64748b" textAnchor="middle">
+              <text x={point.x} y={height - 10} fontSize="11" fill="#7F756B" textAnchor="middle">
                 {point.label}
               </text>
             </g>
@@ -945,24 +952,23 @@ export default function MasterAdminClient() {
           <h1 className="text-2xl font-bold">Admin Dashboard</h1>
         </div>
 
-<div className="mb-6 border-b border-[#E6E0D8] pb-4">
-  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-    {tabs.map((tab) => (
-      <button
-        key={tab.id}
-        onClick={() => setActiveTab(tab.id)}
-        className={`flex items-center justify-center gap-2 rounded-2xl border px-2 py-3 text-sm font-semibold shadow-sm transition-all active:scale-95 ${
-          activeTab === tab.id
-            ? "border-[#A79B8E] bg-[#A79B8E] text-white"
-            : "border-[#D8D1C8] bg-white text-[#5F554C] hover:bg-[#F6F3EF] hover:text-[#A79B8E]"
-        }`}
-      >
-        {tab.icon}
-        <span className="hidden sm:inline">{tab.label}</span>
-      </button>
-    ))}
-  </div>
-</div>
+        <div className="mb-6 border-b border-[#E6E0D8] pb-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center justify-center gap-2 rounded-2xl border px-2 py-3 text-sm font-semibold shadow-sm transition-all active:scale-95 ${activeTab === tab.id
+                    ? "border-[#A79B8E] bg-[#A79B8E] text-white"
+                    : "border-[#D8D1C8] bg-white text-[#5F554C] hover:bg-[#F6F3EF] hover:text-[#A79B8E]"
+                  }`}
+              >
+                {tab.icon}
+                <span className="hidden sm:inline">{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
         {activeTab === "dashboard" && (
           <div className="space-y-5">
