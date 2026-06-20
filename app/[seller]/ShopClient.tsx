@@ -213,7 +213,7 @@ export default function ShopClient({ seller }: { seller?: string }) {
 
   useEffect(() => {
     async function loadInitialData() {
-      
+
 
       const { data: settingsData } = await supabase
         .from("site_settings")
@@ -240,9 +240,9 @@ export default function ShopClient({ seller }: { seller?: string }) {
       }
 
 
-setValidSellerCode(STORE_REFERENCE_CODE);
-setShowReferenceCode(false);
-setPriceZone("zone1");
+      setValidSellerCode(STORE_REFERENCE_CODE);
+      setShowReferenceCode(false);
+      setPriceZone("zone1");
 
       const { data: inventoryData, error: inventoryError } = await supabase
         .from("inventory")
@@ -356,16 +356,37 @@ setPriceZone("zone1");
   }, []);
 
   function addToCart(product: Product & { price: number }) {
+    const availableStock = Number(product.stock_quantity ?? 0);
+
+    if (availableStock <= 0) {
+      alert("This item is currently out of stock.");
+      return;
+    }
+
     setCart((current) => {
       const existing = current.find((item) => item.id === product.id);
+
       if (existing) {
+        if (existing.quantity >= availableStock) {
+          alert(`Only ${availableStock} available in stock.`);
+          return current;
+        }
+
         return current.map((item) =>
           item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: Math.min(item.quantity + 1, availableStock) }
             : item
         );
       }
-      return [...current, { ...product, quantity: 1 }];
+
+      return [
+        ...current,
+        {
+          ...product,
+          stock_quantity: availableStock,
+          quantity: 1,
+        },
+      ];
     });
 
     setCartOpen(true);
@@ -378,11 +399,22 @@ setPriceZone("zone1");
   function changeQuantity(productId: number, amount: number) {
     setCart((current) =>
       current
-        .map((item) =>
-          item.id === productId
-            ? { ...item, quantity: item.quantity + amount }
-            : item
-        )
+        .map((item) => {
+          if (item.id !== productId) return item;
+
+          const availableStock = Number(item.stock_quantity ?? 0);
+          const nextQuantity = item.quantity + amount;
+
+          if (nextQuantity > availableStock) {
+            alert(`Only ${availableStock} available in stock.`);
+            return item;
+          }
+
+          return {
+            ...item,
+            quantity: nextQuantity,
+          };
+        })
         .filter((item) => item.quantity > 0)
     );
   }
@@ -601,7 +633,7 @@ setPriceZone("zone1");
   return (
     <div className="min-h-screen bg-gray-50 text-black">
       <SiteHeader
-        
+
         showCart={true}
         cartCount={cartCount}
         onCartClick={() => setCartOpen(true)}
@@ -784,171 +816,171 @@ setPriceZone("zone1");
 
                   </div>
 
-{/* Action Buttons */}
-<div className="flex items-center gap-2">
-  {/* Protocol */}
-  <button
-    type="button"
-    onClick={() => {
-      setSelectedProtocol(product);
-      setProtocolTab("protocol");
-    }}
-    className="flex h-10 w-10 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
-    title="Protocol"
-  >
-    <svg
-      className="h-[19px] w-[19px]"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M7 3.75h7.25L18 7.5v12.75H7V3.75Z"
-        stroke="currentColor"
-        strokeWidth="1.55"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M14.25 3.75V7.5H18"
-        stroke="currentColor"
-        strokeWidth="1.55"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M9.5 11h6"
-        stroke="currentColor"
-        strokeWidth="1.55"
-        strokeLinecap="round"
-      />
-      <path
-        d="M9.5 14h6"
-        stroke="currentColor"
-        strokeWidth="1.55"
-        strokeLinecap="round"
-      />
-      <path
-        d="M9.5 17h3.75"
-        stroke="currentColor"
-        strokeWidth="1.55"
-        strokeLinecap="round"
-      />
-    </svg>
-  </button>
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2">
+                    {/* Protocol */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedProtocol(product);
+                        setProtocolTab("protocol");
+                      }}
+                      className="flex h-10 w-10 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
+                      title="Protocol"
+                    >
+                      <svg
+                        className="h-[19px] w-[19px]"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M7 3.75h7.25L18 7.5v12.75H7V3.75Z"
+                          stroke="currentColor"
+                          strokeWidth="1.55"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M14.25 3.75V7.5H18"
+                          stroke="currentColor"
+                          strokeWidth="1.55"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M9.5 11h6"
+                          stroke="currentColor"
+                          strokeWidth="1.55"
+                          strokeLinecap="round"
+                        />
+                        <path
+                          d="M9.5 14h6"
+                          stroke="currentColor"
+                          strokeWidth="1.55"
+                          strokeLinecap="round"
+                        />
+                        <path
+                          d="M9.5 17h3.75"
+                          stroke="currentColor"
+                          strokeWidth="1.55"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </button>
 
-  {/* Kit */}
-  <button
-    type="button"
-    onClick={() =>
-      setSelectedKit({
-        ...product,
-        image: activeVariant?.image || displayImage,
-        product_code: activeVariant?.product_code || displayCode,
-        prices: {
-          zone1: displayPrice,
-          zone2: displayPrice,
-        },
-        name: activeVariant
-          ? `${product.name} ${activeVariant.label}`
-          : product.name,
-        theme: activeVariant?.theme || product.theme,
-        description: activeVariant?.description || product.description,
-        kitItems: activeVariant?.kitItems || product.kitItems,
-      })
-    }
-    className="flex h-10 w-10 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
-    title="Kit"
-  >
-    <svg
-      className="h-[20px] w-[20px]"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M12 3.75 19 7.75v8.5l-7 4-7-4v-8.5l7-4Z"
-        stroke="currentColor"
-        strokeWidth="1.55"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M5.35 8 12 11.85 18.65 8"
-        stroke="currentColor"
-        strokeWidth="1.55"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M12 11.85v8.1"
-        stroke="currentColor"
-        strokeWidth="1.55"
-        strokeLinecap="round"
-      />
-    </svg>
-  </button>
+                    {/* Kit */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSelectedKit({
+                          ...product,
+                          image: activeVariant?.image || displayImage,
+                          product_code: activeVariant?.product_code || displayCode,
+                          prices: {
+                            zone1: displayPrice,
+                            zone2: displayPrice,
+                          },
+                          name: activeVariant
+                            ? `${product.name} ${activeVariant.label}`
+                            : product.name,
+                          theme: activeVariant?.theme || product.theme,
+                          description: activeVariant?.description || product.description,
+                          kitItems: activeVariant?.kitItems || product.kitItems,
+                        })
+                      }
+                      className="flex h-10 w-10 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
+                      title="Kit"
+                    >
+                      <svg
+                        className="h-[20px] w-[20px]"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M12 3.75 19 7.75v8.5l-7 4-7-4v-8.5l7-4Z"
+                          stroke="currentColor"
+                          strokeWidth="1.55"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M5.35 8 12 11.85 18.65 8"
+                          stroke="currentColor"
+                          strokeWidth="1.55"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M12 11.85v8.1"
+                          stroke="currentColor"
+                          strokeWidth="1.55"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </button>
 
-  {/* Add to Cart */}
-  <button
-    onClick={() =>
-      addToCart({
-        ...product,
-        id: product.variants
-          ? Number(`${product.id}${selectedVariantIndex}`)
-          : product.id,
-        product_code: displayCode,
-        image: displayImage,
-        price: displayPrice,
-        name: product.variants
-          ? `${product.name} ${activeVariant?.label ?? ""}`
-          : product.name,
-      })
-    }
-    disabled={isOutOfStock}
-    className={`flex h-10 flex-1 items-center justify-center gap-3 rounded-full border px-3 text-sm font-bold shadow-sm transition-all active:scale-95 ${
-      isOutOfStock
-        ? "border-gray-300 bg-gray-100 text-gray-400"
-        : "border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] hover:bg-[#E6E0D8]"
-    }`}
-  >
-<svg
-  className="h-[20px] w-[20px]"
-  viewBox="0 0 24 24"
-  fill="none"
-  aria-hidden="true"
->
-  <path
-    d="M6 6h15l-2 8H8L6 6Z"
-    stroke="currentColor"
-    strokeWidth="1.55"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  />
-  <path
-    d="M6 6 5 3H2"
-    stroke="currentColor"
-    strokeWidth="1.55"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  />
-  <circle
-    cx="9"
-    cy="20"
-    r="1.35"
-    fill="currentColor"
-  />
-  <circle
-    cx="18"
-    cy="20"
-    r="1.35"
-    fill="currentColor"
-  />
-</svg>
+                    {/* Add to Cart */}
+                    <button
+                      onClick={() =>
+                        addToCart({
+                          ...product,
+                          id: product.variants
+                            ? Number(`${product.id}${selectedVariantIndex}`)
+                            : product.id,
+                          product_code: displayCode,
+                          image: displayImage,
+                          price: displayPrice,
+                          stock_quantity: stock,
+                          name: product.variants
+                            ? `${product.name} ${activeVariant?.label ?? ""}`
+                            : product.name,
+                        })
+                      }
+                      disabled={isOutOfStock}
+                      className={`flex h-10 flex-1 items-center justify-center gap-3 rounded-full border px-3 text-sm font-bold shadow-sm transition-all active:scale-95 ${isOutOfStock
+                          ? "border-gray-300 bg-gray-100 text-gray-400"
+                          : "border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] hover:bg-[#E6E0D8]"
+                        }`}
+                    >
+                      <svg
+                        className="h-[20px] w-[20px]"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M6 6h15l-2 8H8L6 6Z"
+                          stroke="currentColor"
+                          strokeWidth="1.55"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M6 6 5 3H2"
+                          stroke="currentColor"
+                          strokeWidth="1.55"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <circle
+                          cx="9"
+                          cy="20"
+                          r="1.35"
+                          fill="currentColor"
+                        />
+                        <circle
+                          cx="18"
+                          cy="20"
+                          r="1.35"
+                          fill="currentColor"
+                        />
+                      </svg>
 
-    <span className="text-base leading-none">+</span>
-  </button>
-</div>
+                      <span className="text-base leading-none">+</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -1148,12 +1180,17 @@ setPriceZone("zone1");
                               -
                             </button>
                             <span className="text-sm">{item.quantity}</span>
-                            <button
-                              onClick={() => changeQuantity(item.id, 1)}
-                              className="h-7 w-7 rounded-full border"
-                            >
-                              +
-                            </button>
+<button
+  onClick={() => changeQuantity(item.id, 1)}
+  disabled={item.quantity >= Number(item.stock_quantity ?? 0)}
+  className={`h-7 w-7 rounded-full border ${
+    item.quantity >= Number(item.stock_quantity ?? 0)
+      ? "cursor-not-allowed opacity-40"
+      : ""
+  }`}
+>
+  +
+</button>
                           </div>
                         </div>
 
