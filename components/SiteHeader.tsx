@@ -150,13 +150,13 @@ export default function SiteHeader({
         {/* Drawer Header */}
         <div className="border-b border-gray-100 px-7 py-6">
           <div className="flex items-center justify-between">
-<a href={shopUrl} className="flex items-center gap-3">
-  <img
-    src={menuLogoUrl}
-    alt={siteName}
-    className="h-12 w-auto object-contain"
-  />
-</a>
+            <a href={shopUrl} className="flex items-center gap-3">
+              <img
+                src={menuLogoUrl}
+                alt={siteName}
+                className="h-11 w-auto object-contain"
+              />
+            </a>
             <button
               onClick={() => setMenuOpen(false)}
               className="text-4xl font-light text-gray-400"
