@@ -940,8 +940,8 @@ export default function ShopClient({ seller }: { seller?: string }) {
                       }
                       disabled={isOutOfStock}
                       className={`flex h-10 flex-1 items-center justify-center gap-3 rounded-full border px-3 text-sm font-bold shadow-sm transition-all active:scale-95 ${isOutOfStock
-                          ? "border-gray-300 bg-gray-100 text-gray-400"
-                          : "border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] hover:bg-[#E6E0D8]"
+                        ? "border-gray-300 bg-gray-100 text-gray-400"
+                        : "border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] hover:bg-[#E6E0D8]"
                         }`}
                     >
                       <svg
@@ -1180,17 +1180,16 @@ export default function ShopClient({ seller }: { seller?: string }) {
                               -
                             </button>
                             <span className="text-sm">{item.quantity}</span>
-<button
-  onClick={() => changeQuantity(item.id, 1)}
-  disabled={item.quantity >= Number(item.stock_quantity ?? 0)}
-  className={`h-7 w-7 rounded-full border ${
-    item.quantity >= Number(item.stock_quantity ?? 0)
-      ? "cursor-not-allowed opacity-40"
-      : ""
-  }`}
->
-  +
-</button>
+                            <button
+                              onClick={() => changeQuantity(item.id, 1)}
+                              disabled={item.quantity >= Number(item.stock_quantity ?? 0)}
+                              className={`h-7 w-7 rounded-full border ${item.quantity >= Number(item.stock_quantity ?? 0)
+                                  ? "cursor-not-allowed opacity-40"
+                                  : ""
+                                }`}
+                            >
+                              +
+                            </button>
                           </div>
                         </div>
 
@@ -1215,7 +1214,7 @@ export default function ShopClient({ seller }: { seller?: string }) {
                 <button
                   disabled={cart.length === 0}
                   onClick={() => setCheckoutOpen(true)}
-                  className="w-full bg-black text-white rounded-full py-3 font-semibold disabled:bg-gray-300"
+                    className="w-full rounded-full bg-[#A79B8E] py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95 disabled:opacity-50"
                 >
                   Checkout
                 </button>
