@@ -35,6 +35,10 @@ type Product = {
     stock_quantity?: number;
     low_stock_threshold?: number;
     visible_when_out_of_stock?: boolean;
+    protocolImages?: {
+      protocol: string;
+      coa: string;
+    };
   }[];
 
   kitItems: string[];
@@ -315,7 +319,13 @@ export default function ShopClient({ seller }: { seller?: string }) {
               kitItems: Array.isArray(variant.kit_items) ? variant.kit_items : [],
               stock_quantity: Number(variant.stock_quantity || 0),
               low_stock_threshold: Number(variant.low_stock_threshold || 5),
-              visible_when_out_of_stock: Boolean(variant.visible_when_out_of_stock),
+              visible_when_out_of_stock: Boolean(
+                variant.visible_when_out_of_stock
+              ),
+              protocolImages: {
+                protocol: variant.protocol_image_url || "",
+                coa: variant.coa_image_url || "",
+              },
             })),
 
             protocolImages: {
@@ -445,38 +455,38 @@ export default function ShopClient({ seller }: { seller?: string }) {
   }
 
 
-async function deductInventory() {
-  for (const item of cart) {
-    const { data, error } = await supabase
-      .from("product_variants")
-      .select("stock_quantity")
-      .eq("product_code", item.product_code)
-      .single();
+  async function deductInventory() {
+    for (const item of cart) {
+      const { data, error } = await supabase
+        .from("product_variants")
+        .select("stock_quantity")
+        .eq("product_code", item.product_code)
+        .single();
 
-    if (error || !data) {
-      throw new Error(`Product variant not found: ${item.name}`);
-    }
+      if (error || !data) {
+        throw new Error(`Product variant not found: ${item.name}`);
+      }
 
-    const currentStock = Number(data.stock_quantity || 0);
+      const currentStock = Number(data.stock_quantity || 0);
 
-    if (item.quantity > currentStock) {
-      throw new Error(
-        `Only ${currentStock} available for ${item.name}. Please update your cart.`
-      );
-    }
+      if (item.quantity > currentStock) {
+        throw new Error(
+          `Only ${currentStock} available for ${item.name}. Please update your cart.`
+        );
+      }
 
-    const newStock = currentStock - item.quantity;
+      const newStock = currentStock - item.quantity;
 
-    const { error: updateError } = await supabase
-      .from("product_variants")
-      .update({ stock_quantity: newStock })
-      .eq("product_code", item.product_code);
+      const { error: updateError } = await supabase
+        .from("product_variants")
+        .update({ stock_quantity: newStock })
+        .eq("product_code", item.product_code);
 
-    if (updateError) {
-      throw new Error(`Could not update stock for ${item.name}`);
+      if (updateError) {
+        throw new Error(`Could not update stock for ${item.name}`);
+      }
     }
   }
-}
 
   async function searchAddressSuggestions(value: string) {
     setForm({ ...form, address: value });
@@ -620,22 +630,22 @@ async function deductInventory() {
     setIsSubmitting(false);
   }
 
-function resetCheckoutAfterSuccessfulOrder() {
-  setCart([]);
-  localStorage.removeItem("pepmistry_cart");
+  function resetCheckoutAfterSuccessfulOrder() {
+    setCart([]);
+    localStorage.removeItem("pepmistry_cart");
 
-  setForm({
-    fullName: "",
-    address: "",
-    email: "",
-    phone: "",
-    paymentMethod: "",
-  });
+    setForm({
+      fullName: "",
+      address: "",
+      email: "",
+      phone: "",
+      paymentMethod: "",
+    });
 
-  setAddressSuggestions([]);
-  setCheckoutOpen(false);
-  setCartOpen(false);
-}
+    setAddressSuggestions([]);
+    setCheckoutOpen(false);
+    setCartOpen(false);
+  }
 
   const defaultSellerCode = siteSettings?.default_seller_code || "";
   const cleanWhatsApp = (siteSettings?.whatsapp_number || "").replace(/\D/g, "");
@@ -838,7 +848,19 @@ function resetCheckoutAfterSuccessfulOrder() {
                     <button
                       type="button"
                       onClick={() => {
-                        setSelectedProtocol(product);
+                        setSelectedProtocol({
+                          ...product,
+                          product_code:
+                            activeVariant?.product_code || product.product_code,
+                          image: activeVariant?.image || product.image,
+                          name: activeVariant
+                            ? `${product.name} ${activeVariant.label}`
+                            : product.name,
+                          protocolImages:
+                            activeVariant?.protocolImages ||
+                            product.protocolImages,
+                        });
+
                         setProtocolTab("protocol");
                       }}
                       className="flex h-10 w-10 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
@@ -1200,8 +1222,8 @@ function resetCheckoutAfterSuccessfulOrder() {
                               onClick={() => changeQuantity(item.id, 1)}
                               disabled={item.quantity >= Number(item.stock_quantity ?? 0)}
                               className={`h-7 w-7 rounded-full border ${item.quantity >= Number(item.stock_quantity ?? 0)
-                                  ? "cursor-not-allowed opacity-40"
-                                  : ""
+                                ? "cursor-not-allowed opacity-40"
+                                : ""
                                 }`}
                             >
                               +
@@ -1230,7 +1252,7 @@ function resetCheckoutAfterSuccessfulOrder() {
                 <button
                   disabled={cart.length === 0}
                   onClick={() => setCheckoutOpen(true)}
-                    className="w-full rounded-full bg-[#A79B8E] py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95 disabled:opacity-50"
+                  className="w-full rounded-full bg-[#A79B8E] py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95 disabled:opacity-50"
                 >
                   Checkout
                 </button>
@@ -1359,221 +1381,219 @@ function resetCheckoutAfterSuccessfulOrder() {
 
 
       </div>
-{orderNotice && (
-  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/45 px-5 backdrop-blur-[2px]">
-    <div className="w-full max-w-sm rounded-[28px] border border-[#E6E0D8] bg-white p-6 text-center shadow-2xl">
-      <h2 className="mb-3 text-2xl font-bold text-[#5F554C]">
-        Order Received
-      </h2>
+      {orderNotice && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/45 px-5 backdrop-blur-[2px]">
+          <div className="w-full max-w-sm rounded-[28px] border border-[#E6E0D8] bg-white p-6 text-center shadow-2xl">
+            <h2 className="mb-3 text-2xl font-bold text-[#5F554C]">
+              Order Received
+            </h2>
 
-      {orderNumber && (
-        <div className="mb-5 rounded-2xl border border-[#E6E0D8] bg-[#F6F3EF] p-4">
-          <p className="text-xs font-medium tracking-wide text-[#7F756B]">
-            Order Number
-          </p>
-          <p className="text-lg font-bold tracking-wide text-[#5F554C]">
-            #{orderNumber}
-          </p>
-        </div>
-      )}
-
-      <p className="mb-5 text-sm leading-6 text-[#6F655C]">
-        {orderNotice}
-      </p>
-
-      {selectedPaymentMethod && (
-        <div className="mb-5 rounded-2xl border border-[#D8D1C8] bg-[#FBFAF8] p-5 text-sm text-[#6F655C] shadow-sm">
-          <p className="mb-3 font-bold text-[#5F554C]">
-            {selectedPaymentMethod.display_label} Payment
-          </p>
-
-          {selectedPaymentMethod.account_value && (
-            <p className="leading-6">
-              Send payment to:{" "}
-              <span className="font-bold text-[#5F554C]">
-                {selectedPaymentMethod.account_value}
-              </span>
-            </p>
-          )}
-
-          <p className="mt-3 leading-6">
-            {selectedPaymentMethod.instructions ||
-              "Complete your payment using the selected method."}
-          </p>
-
-          <p className="mt-3 leading-6">
-            Include your order number:
-          </p>
-
-          <p className="mt-1 font-bold tracking-wide text-[#5F554C]">
-            #{orderNumber}
-          </p>
-        </div>
-      )}
-
-      <button
-        type="button"
-        onClick={() => {
-          setOrderNotice("");
-          setOrderNumber("");
-        }}
-        className="w-full rounded-full bg-[#A79B8E] py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
-      >
-        Close
-      </button>
-    </div>
-  </div>
-)}
-
-{selectedKit && (
-  <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 px-5 backdrop-blur-[2px]">
-    <div className="w-full max-w-sm rounded-[28px] border border-[#E6E0D8] bg-white p-5 shadow-2xl">
-      <div className="mb-4 flex items-start justify-between border-b border-[#E6E0D8] pb-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
-            Kit Includes
-          </p>
-          <h2 className="mt-1 text-xl font-bold tracking-wide text-[#5F554C]">
-            {selectedKit.name}
-          </h2>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setSelectedKit(null)}
-          className="flex h-8 w-8 items-center justify-center rounded-full text-xl leading-none text-[#7F756B] transition-all hover:bg-[#F6F3EF] active:scale-95"
-          aria-label="Close kit details"
-        >
-          ×
-        </button>
-      </div>
-
-      <div className="mb-5 flex justify-center">
-        <div className="rounded-3xl border border-[#E6E0D8] bg-[#F6F3EF] p-3 shadow-sm">
-          <img
-            src={selectedKit.image}
-            alt={selectedKit.name}
-            className="h-36 w-36 rounded-2xl object-contain"
-          />
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        {/* Description Section */}
-        <div className="rounded-3xl border border-[#D8D1C8] bg-[#FBFAF8] p-4 shadow-sm">
-          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
-            Product Description
-          </p>
-          <p className="text-sm leading-6 text-[#6F655C]">
-            {selectedKit.description}
-          </p>
-        </div>
-
-        {/* Kit Items Section */}
-        <div className="rounded-3xl border border-[#D8D1C8] bg-[#FBFAF8] p-4 shadow-sm">
-          <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
-            Kit Includes
-          </p>
-
-          <div className="space-y-2 text-sm text-[#6F655C]">
-            {selectedKit.kitItems.map((item, index) => (
-              <div key={index} className="flex gap-2 leading-6">
-                <span className="min-w-5 font-bold text-[#A79B8E]">
-                  {index + 1}.
-                </span>
-                <span>{item}</span>
+            {orderNumber && (
+              <div className="mb-5 rounded-2xl border border-[#E6E0D8] bg-[#F6F3EF] p-4">
+                <p className="text-xs font-medium tracking-wide text-[#7F756B]">
+                  Order Number
+                </p>
+                <p className="text-lg font-bold tracking-wide text-[#5F554C]">
+                  #{orderNumber}
+                </p>
               </div>
-            ))}
+            )}
+
+            <p className="mb-5 text-sm leading-6 text-[#6F655C]">
+              {orderNotice}
+            </p>
+
+            {selectedPaymentMethod && (
+              <div className="mb-5 rounded-2xl border border-[#D8D1C8] bg-[#FBFAF8] p-5 text-sm text-[#6F655C] shadow-sm">
+                <p className="mb-3 font-bold text-[#5F554C]">
+                  {selectedPaymentMethod.display_label} Payment
+                </p>
+
+                {selectedPaymentMethod.account_value && (
+                  <p className="leading-6">
+                    Send payment to:{" "}
+                    <span className="font-bold text-[#5F554C]">
+                      {selectedPaymentMethod.account_value}
+                    </span>
+                  </p>
+                )}
+
+                <p className="mt-3 leading-6">
+                  {selectedPaymentMethod.instructions ||
+                    "Complete your payment using the selected method."}
+                </p>
+
+                <p className="mt-3 leading-6">
+                  Include your order number:
+                </p>
+
+                <p className="mt-1 font-bold tracking-wide text-[#5F554C]">
+                  #{orderNumber}
+                </p>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                setOrderNotice("");
+                setOrderNumber("");
+              }}
+              className="w-full rounded-full bg-[#A79B8E] py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
+            >
+              Close
+            </button>
           </div>
         </div>
-      </div>
+      )}
 
-      <button
-        type="button"
-        onClick={() => setSelectedKit(null)}
-        className="mt-5 w-full rounded-full bg-[#A79B8E] py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
-      >
-        Close
-      </button>
-    </div>
-  </div>
-)}
+      {selectedKit && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 px-5 backdrop-blur-[2px]">
+          <div className="w-full max-w-sm rounded-[28px] border border-[#E6E0D8] bg-white p-5 shadow-2xl">
+            <div className="mb-4 flex items-start justify-between border-b border-[#E6E0D8] pb-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                  Kit Includes
+                </p>
+                <h2 className="mt-1 text-xl font-bold tracking-wide text-[#5F554C]">
+                  {selectedKit.name}
+                </h2>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedKit(null)}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-xl leading-none text-[#7F756B] transition-all hover:bg-[#F6F3EF] active:scale-95"
+                aria-label="Close kit details"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="mb-5 flex justify-center">
+              <div className="rounded-3xl border border-[#E6E0D8] bg-[#F6F3EF] p-3 shadow-sm">
+                <img
+                  src={selectedKit.image}
+                  alt={selectedKit.name}
+                  className="h-36 w-36 rounded-2xl object-contain"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {/* Description Section */}
+              <div className="rounded-3xl border border-[#D8D1C8] bg-[#FBFAF8] p-4 shadow-sm">
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                  Product Description
+                </p>
+                <p className="text-sm leading-6 text-[#6F655C]">
+                  {selectedKit.description}
+                </p>
+              </div>
+
+              {/* Kit Items Section */}
+              <div className="rounded-3xl border border-[#D8D1C8] bg-[#FBFAF8] p-4 shadow-sm">
+                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                  Kit Includes
+                </p>
+
+                <div className="space-y-2 text-sm text-[#6F655C]">
+                  {selectedKit.kitItems.map((item, index) => (
+                    <div key={index} className="flex gap-2 leading-6">
+                      <span className="min-w-5 font-bold text-[#A79B8E]">
+                        {index + 1}.
+                      </span>
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setSelectedKit(null)}
+              className="mt-5 w-full rounded-full bg-[#A79B8E] py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
 
       {selectedProtocol && (
-  <div className="fixed inset-0 z-[70] bg-white">
-    {/* Protocol Header */}
-    <div className="sticky top-0 z-10 border-b border-[#978D82] bg-[#A79B8E]">
-      <div className="flex items-center justify-between px-5 py-3">
-        <img
-          src={logoUrl}
-          alt={siteName}
-          className="h-10 w-auto object-contain"
-        />
+        <div className="fixed inset-0 z-[70] bg-white">
+          {/* Protocol Header */}
+          <div className="sticky top-0 z-10 border-b border-[#978D82] bg-[#A79B8E]">
+            <div className="flex items-center justify-between px-5 py-3">
+              <img
+                src={logoUrl}
+                alt={siteName}
+                className="h-10 w-auto object-contain"
+              />
 
-        <button
-          type="button"
-          onClick={() => setSelectedProtocol(null)}
-          className="flex h-9 w-9 items-center justify-center rounded-full text-3xl font-light leading-none text-white transition-all hover:bg-white/10 active:scale-95"
-          aria-label="Close protocol"
-        >
-          ×
-        </button>
-      </div>
-    </div>
+              <button
+                type="button"
+                onClick={() => setSelectedProtocol(null)}
+                className="flex h-9 w-9 items-center justify-center rounded-full text-3xl font-light leading-none text-white transition-all hover:bg-white/10 active:scale-95"
+                aria-label="Close protocol"
+              >
+                ×
+              </button>
+            </div>
+          </div>
 
-    {/* Protocol Body */}
-    <div className="h-[calc(100vh-65px)] overflow-y-auto bg-[#F7F5F2] px-4 py-5 sm:px-6 sm:py-7">
-      <div className="mx-auto w-full max-w-md overflow-hidden rounded-[28px] border border-[#E6E0D8] bg-white p-4 shadow-xl sm:max-w-3xl sm:p-6">
-        {/* Protocol Title */}
-        <div className="mb-5 text-center">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
-            Protocol Details
-          </p>
-          <h2 className="mt-1 text-xl font-bold tracking-wide text-[#5F554C] sm:text-2xl">
-            {selectedProtocol.name} Protocol
-          </h2>
+          {/* Protocol Body */}
+          <div className="h-[calc(100vh-65px)] overflow-y-auto bg-[#F7F5F2] px-4 py-5 sm:px-6 sm:py-7">
+            <div className="mx-auto w-full max-w-md overflow-hidden rounded-[28px] border border-[#E6E0D8] bg-white p-4 shadow-xl sm:max-w-3xl sm:p-6">
+              {/* Protocol Title */}
+              <div className="mb-5 text-center">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                  Protocol Details
+                </p>
+                <h2 className="mt-1 text-xl font-bold tracking-wide text-[#5F554C] sm:text-2xl">
+                  {selectedProtocol.name} Protocol
+                </h2>
+              </div>
+
+              {/* Tabs */}
+              <div className="mb-5 flex justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setProtocolTab("protocol")}
+                  className={`rounded-full px-5 py-2 text-sm font-bold shadow-sm transition-all active:scale-95 ${protocolTab === "protocol"
+                    ? "bg-[#A79B8E] text-white"
+                    : "border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] hover:bg-[#E6E0D8]"
+                    }`}
+                >
+                  Protocol
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setProtocolTab("coa")}
+                  className={`rounded-full px-5 py-2 text-sm font-bold shadow-sm transition-all active:scale-95 ${protocolTab === "coa"
+                    ? "bg-[#A79B8E] text-white"
+                    : "border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] hover:bg-[#E6E0D8]"
+                    }`}
+                >
+                  COA
+                </button>
+              </div>
+
+              {/* Image */}
+              <div className="overflow-hidden rounded-[24px] border border-[#E6E0D8] bg-[#FBFAF8] p-2 shadow-sm sm:p-4">
+                <img
+                  src={selectedProtocol.protocolImages[protocolTab]}
+                  alt={`${selectedProtocol.name} ${protocolTab}`}
+                  className="mx-auto w-full rounded-[18px] object-contain"
+                />
+              </div>
+            </div>
+          </div>
         </div>
-
-        {/* Tabs */}
-        <div className="mb-5 flex justify-center gap-2">
-          <button
-            type="button"
-            onClick={() => setProtocolTab("protocol")}
-            className={`rounded-full px-5 py-2 text-sm font-bold shadow-sm transition-all active:scale-95 ${
-              protocolTab === "protocol"
-                ? "bg-[#A79B8E] text-white"
-                : "border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] hover:bg-[#E6E0D8]"
-            }`}
-          >
-            Protocol
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setProtocolTab("coa")}
-            className={`rounded-full px-5 py-2 text-sm font-bold shadow-sm transition-all active:scale-95 ${
-              protocolTab === "coa"
-                ? "bg-[#A79B8E] text-white"
-                : "border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] hover:bg-[#E6E0D8]"
-            }`}
-          >
-            COA
-          </button>
-        </div>
-
-        {/* Image */}
-        <div className="overflow-hidden rounded-[24px] border border-[#E6E0D8] bg-[#FBFAF8] p-2 shadow-sm sm:p-4">
-          <img
-            src={selectedProtocol.protocolImages[protocolTab]}
-            alt={`${selectedProtocol.name} ${protocolTab}`}
-            className="mx-auto w-full rounded-[18px] object-contain"
-          />
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+      )}
 
 
     </div>
