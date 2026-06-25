@@ -22,22 +22,62 @@ function escapeHtml(value: unknown) {
 
 export async function POST(req: Request) {
   try {
-    const {
-      orderNumber,
-      customerName,
-      customerEmail,
-      trackingNumber,
-    } = await req.json();
+const body = await req.json();
 
-    if (!orderNumber || !customerEmail || !trackingNumber) {
-      return Response.json(
-        {
-          error:
-            "Missing order number, customer email, or tracking number.",
-        },
-        { status: 400 }
-      );
-    }
+console.log("Tracking email request received:", {
+  orderNumber: body.orderNumber ?? body.order_number,
+  customerName: body.customerName ?? body.customer_name,
+  customerEmail: body.customerEmail ?? body.customer_email,
+  trackingNumber: body.trackingNumber ?? body.tracking_number,
+});
+
+const orderNumber = String(
+  body.orderNumber ??
+    body.order_number ??
+    body.id ??
+    ""
+).trim();
+
+const customerName = String(
+  body.customerName ??
+    body.customer_name ??
+    ""
+).trim();
+
+const customerEmail = String(
+  body.customerEmail ??
+    body.customer_email ??
+    body.email ??
+    ""
+).trim();
+
+const trackingNumber = String(
+  body.trackingNumber ??
+    body.tracking_number ??
+    body.tracking ??
+    ""
+).trim();
+
+const missingFields: string[] = [];
+
+if (!orderNumber) missingFields.push("orderNumber");
+if (!customerEmail) missingFields.push("customerEmail");
+if (!trackingNumber) missingFields.push("trackingNumber");
+
+if (missingFields.length > 0) {
+  console.error("Tracking email missing fields:", {
+    missingFields,
+    receivedKeys: Object.keys(body),
+  });
+
+  return Response.json(
+    {
+      error: `Missing required fields: ${missingFields.join(", ")}`,
+      receivedKeys: Object.keys(body),
+    },
+    { status: 400 }
+  );
+}
 
     const siteUrl =
       process.env.NEXT_PUBLIC_SITE_URL ||
