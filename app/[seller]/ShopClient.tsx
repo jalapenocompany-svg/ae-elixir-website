@@ -11,6 +11,9 @@ type Product = {
   stock_quantity?: number;
   low_stock_threshold?: number;
   visible_when_out_of_stock?: boolean;
+  show_protocol_button?: boolean;
+  show_coa_button?: boolean;
+  show_kit_button?: boolean;
   prices: {
     zone1: number;
     zone2: number;
@@ -296,6 +299,9 @@ export default function ShopClient({ seller }: { seller?: string }) {
             id: Number(product.sort_order || index + 1),
             product_code: firstVariant.product_code,
             name: product.name,
+            show_protocol_button: product.show_protocol_button !== false,
+            show_coa_button: product.show_coa_button !== false,
+            show_kit_button: product.show_kit_button !== false,
             prices: {
               zone1: Number(firstVariant.price_zone1 || 0),
               zone2: Number(firstVariant.price_zone2 || 0),
@@ -844,120 +850,130 @@ export default function ShopClient({ seller }: { seller?: string }) {
 
                   {/* Action Buttons */}
                   <div className="flex items-center gap-2">
-                    {/* Protocol */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedProtocol({
-                          ...product,
-                          product_code:
-                            activeVariant?.product_code || product.product_code,
-                          image: activeVariant?.image || product.image,
-                          name: activeVariant
-                            ? `${product.name} ${activeVariant.label}`
-                            : product.name,
-                          protocolImages:
-                            activeVariant?.protocolImages ||
-                            product.protocolImages,
-                        });
+                    {/* Protocol / COA */}
+                    {(product.show_protocol_button || product.show_coa_button) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedProtocol({
+                            ...product,
+                            product_code:
+                              activeVariant?.product_code || product.product_code,
+                            image: activeVariant?.image || product.image,
+                            name: activeVariant
+                              ? `${product.name} ${activeVariant.label}`
+                              : product.name,
+                            protocolImages:
+                              activeVariant?.protocolImages ||
+                              product.protocolImages,
+                          });
 
-                        setProtocolTab("protocol");
-                      }}
-                      className="flex h-10 w-10 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
-                      title="Protocol"
-                    >
-                      <svg
-                        className="h-[19px] w-[19px]"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        aria-hidden="true"
+                          setProtocolTab(
+                            product.show_protocol_button ? "protocol" : "coa"
+                          );
+                        }}
+                        className="flex h-10 w-10 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
+                        title={
+                          product.show_protocol_button ? "Protocol" : "COA"
+                        }
                       >
-                        <path
-                          d="M7 3.75h7.25L18 7.5v12.75H7V3.75Z"
-                          stroke="currentColor"
-                          strokeWidth="1.55"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M14.25 3.75V7.5H18"
-                          stroke="currentColor"
-                          strokeWidth="1.55"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M9.5 11h6"
-                          stroke="currentColor"
-                          strokeWidth="1.55"
-                          strokeLinecap="round"
-                        />
-                        <path
-                          d="M9.5 14h6"
-                          stroke="currentColor"
-                          strokeWidth="1.55"
-                          strokeLinecap="round"
-                        />
-                        <path
-                          d="M9.5 17h3.75"
-                          stroke="currentColor"
-                          strokeWidth="1.55"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                    </button>
+                        <svg
+                          className="h-[20px] w-[20px]"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M7 3.75h7.25L18 7.5v12.75H7V3.75Z"
+                            stroke="currentColor"
+                            strokeWidth="1.55"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M14.25 3.75V7.5H18"
+                            stroke="currentColor"
+                            strokeWidth="1.55"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M9.5 11h6"
+                            stroke="currentColor"
+                            strokeWidth="1.55"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M9.5 14h6"
+                            stroke="currentColor"
+                            strokeWidth="1.55"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M9.5 17h3.75"
+                            stroke="currentColor"
+                            strokeWidth="1.55"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </button>
+                    )}
 
                     {/* Kit */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSelectedKit({
-                          ...product,
-                          image: activeVariant?.image || displayImage,
-                          product_code: activeVariant?.product_code || displayCode,
-                          prices: {
-                            zone1: displayPrice,
-                            zone2: displayPrice,
-                          },
-                          name: activeVariant
-                            ? `${product.name} ${activeVariant.label}`
-                            : product.name,
-                          theme: activeVariant?.theme || product.theme,
-                          description: activeVariant?.description || product.description,
-                          kitItems: activeVariant?.kitItems || product.kitItems,
-                        })
-                      }
-                      className="flex h-10 w-10 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
-                      title="Kit"
-                    >
-                      <svg
-                        className="h-[20px] w-[20px]"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        aria-hidden="true"
+                    {product.show_kit_button && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedKit({
+                            ...product,
+                            image: activeVariant?.image || displayImage,
+                            product_code: activeVariant?.product_code || displayCode,
+                            prices: {
+                              zone1: displayPrice,
+                              zone2: displayPrice,
+                            },
+                            name: activeVariant
+                              ? `${product.name} ${activeVariant.label}`
+                              : product.name,
+                            theme: activeVariant?.theme || product.theme,
+                            description:
+                              activeVariant?.description || product.description,
+                            kitItems:
+                              activeVariant?.kitItems || product.kitItems,
+                          })
+                        }
+                        className="flex h-10 w-10 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
+                        title="Kit"
                       >
-                        <path
-                          d="M12 3.75 19 7.75v8.5l-7 4-7-4v-8.5l7-4Z"
-                          stroke="currentColor"
-                          strokeWidth="1.55"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M5.35 8 12 11.85 18.65 8"
-                          stroke="currentColor"
-                          strokeWidth="1.55"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M12 11.85v8.1"
-                          stroke="currentColor"
-                          strokeWidth="1.55"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                    </button>
+                        <svg
+                          className="h-[20px] w-[20px]"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M12 3.75 19 7.75v8.5l-7 4-7-4v-8.5l7-4Z"
+                            stroke="currentColor"
+                            strokeWidth="1.55"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M5.35 8 12 11.85 18.65 8"
+                            stroke="currentColor"
+                            strokeWidth="1.55"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M12 11.85v8.1"
+                            stroke="currentColor"
+                            strokeWidth="1.55"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </button>
+                    )}
 
                     {/* Add to Cart */}
                     <button
@@ -1558,29 +1574,33 @@ export default function ShopClient({ seller }: { seller?: string }) {
               </div>
 
               {/* Tabs */}
-              <div className="mb-5 flex justify-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setProtocolTab("protocol")}
-                  className={`rounded-full px-5 py-2 text-sm font-bold shadow-sm transition-all active:scale-95 ${protocolTab === "protocol"
-                    ? "bg-[#A79B8E] text-white"
-                    : "border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] hover:bg-[#E6E0D8]"
-                    }`}
-                >
-                  Protocol
-                </button>
+              {selectedProtocol.show_protocol_button && (
+                <div className="mb-5 flex justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setProtocolTab("protocol")}
+                    className={`rounded-full px-5 py-2 text-sm font-bold shadow-sm transition-all active:scale-95 ${protocolTab === "protocol"
+                      ? "bg-[#A79B8E] text-white"
+                      : "border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] hover:bg-[#E6E0D8]"
+                      }`}
+                  >
+                    Protocol
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => setProtocolTab("coa")}
-                  className={`rounded-full px-5 py-2 text-sm font-bold shadow-sm transition-all active:scale-95 ${protocolTab === "coa"
-                    ? "bg-[#A79B8E] text-white"
-                    : "border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] hover:bg-[#E6E0D8]"
-                    }`}
-                >
-                  COA
-                </button>
-              </div>
+                  {selectedProtocol.show_coa_button && (
+                    <button
+                      type="button"
+                      onClick={() => setProtocolTab("coa")}
+                      className={`rounded-full px-5 py-2 text-sm font-bold shadow-sm transition-all active:scale-95 ${protocolTab === "coa"
+                        ? "bg-[#A79B8E] text-white"
+                        : "border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] hover:bg-[#E6E0D8]"
+                        }`}
+                    >
+                      COA
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Image */}
               <div className="overflow-hidden rounded-[24px] border border-[#E6E0D8] bg-[#FBFAF8] p-2 shadow-sm sm:p-4">

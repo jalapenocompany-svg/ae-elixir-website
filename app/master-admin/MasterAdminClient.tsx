@@ -684,6 +684,36 @@ export default function MasterAdminClient() {
     }));
   }
 
+  async function updateProductButtonSetting(
+    productId: string,
+    field:
+      | "show_protocol_button"
+      | "show_coa_button"
+      | "show_kit_button",
+    value: boolean
+  ) {
+    const { error } = await supabase
+      .from("products")
+      .update({ [field]: value })
+      .eq("id", productId);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    setAdminProducts((current) =>
+      current.map((product) =>
+        product.id === productId
+          ? {
+            ...product,
+            [field]: value,
+          }
+          : product
+      )
+    );
+  }
+
   async function saveProductVariant(variantId: string) {
     const updates = variantDrafts[variantId];
 
@@ -1480,6 +1510,10 @@ export default function MasterAdminClient() {
             ) : (
               productVariants.map((variant) => {
                 const draft = variantDrafts[variant.id] || {};
+
+                const parentProduct = adminProducts.find(
+                  (product) => product.id === variant.product_id
+                );
                 const currentStock = draft.stock_quantity ?? variant.stock_quantity;
                 const currentLowStock =
                   draft.low_stock_threshold ?? variant.low_stock_threshold;
@@ -1497,8 +1531,8 @@ export default function MasterAdminClient() {
                 return (
                   <div
                     key={variant.id}
-className={`rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm ${!variant.active ? "opacity-50" : ""
-  }`}
+                    className={`rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm ${!variant.active ? "opacity-50" : ""
+                      }`}
                   >
                     <div className="mb-4 grid grid-cols-[72px_1fr] gap-4 sm:grid-cols-[80px_1fr_auto_auto] sm:items-center">
                       {variant.image_url ? (
@@ -1523,10 +1557,10 @@ className={`rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm ${!var
                       <div className="col-span-2 flex justify-start sm:col-span-1 sm:justify-center">
                         <span
                           className={`rounded-full px-4 py-1.5 text-xs font-bold shadow-sm ${isOut
-                              ? "bg-red-100 text-red-700"
-                              : isLow
-                                ? "bg-[#F8E8D8] text-[#9A5A1E]"
-                                : "bg-[#A79B8E] text-white"
+                            ? "bg-red-100 text-red-700"
+                            : isLow
+                              ? "bg-[#F8E8D8] text-[#9A5A1E]"
+                              : "bg-[#A79B8E] text-white"
                             }`}
                         >
                           {isOut ? "Out" : isLow ? "Low" : "In Stock"}
@@ -1691,6 +1725,80 @@ className={`rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm ${!var
                             />
                           </label>
                         </div>
+
+                        {parentProduct && (
+                          <div className="col-span-2 rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] p-4">
+                            <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#7F756B]">
+                              Product Card Buttons
+                            </p>
+
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateProductButtonSetting(
+                                    parentProduct.id,
+                                    "show_protocol_button",
+                                    !(parentProduct.show_protocol_button !== false)
+                                  )
+                                }
+                                className={`rounded-full border px-4 py-2 text-sm font-semibold transition-all active:scale-95 ${parentProduct.show_protocol_button !== false
+                                    ? "border-[#A79B8E] bg-[#A79B8E] text-white"
+                                    : "border-[#D8D1C8] bg-white text-[#7F756B]"
+                                  }`}
+                              >
+                                Protocol:{" "}
+                                {parentProduct.show_protocol_button !== false
+                                  ? "Shown"
+                                  : "Hidden"}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateProductButtonSetting(
+                                    parentProduct.id,
+                                    "show_coa_button",
+                                    !(parentProduct.show_coa_button !== false)
+                                  )
+                                }
+                                className={`rounded-full border px-4 py-2 text-sm font-semibold transition-all active:scale-95 ${parentProduct.show_coa_button !== false
+                                    ? "border-[#A79B8E] bg-[#A79B8E] text-white"
+                                    : "border-[#D8D1C8] bg-white text-[#7F756B]"
+                                  }`}
+                              >
+                                COA:{" "}
+                                {parentProduct.show_coa_button !== false
+                                  ? "Shown"
+                                  : "Hidden"}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateProductButtonSetting(
+                                    parentProduct.id,
+                                    "show_kit_button",
+                                    !(parentProduct.show_kit_button !== false)
+                                  )
+                                }
+                                className={`rounded-full border px-4 py-2 text-sm font-semibold transition-all active:scale-95 ${parentProduct.show_kit_button !== false
+                                    ? "border-[#A79B8E] bg-[#A79B8E] text-white"
+                                    : "border-[#D8D1C8] bg-white text-[#7F756B]"
+                                  }`}
+                              >
+                                Kit:{" "}
+                                {parentProduct.show_kit_button !== false
+                                  ? "Shown"
+                                  : "Hidden"}
+                              </button>
+                            </div>
+
+                            <p className="mt-3 text-xs leading-5 text-[#9A9188]">
+                              These settings apply to every variant under this product.
+                            </p>
+                          </div>
+                        )}
 
                         <div className="col-span-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
                           <label className="cursor-pointer rounded-2xl border border-gray-200 bg-white p-4 text-sm font-semibold text-gray-700 shadow-sm transition active:scale-95">
