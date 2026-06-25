@@ -193,7 +193,7 @@ export async function POST(req: Request) {
 
     
 const heroImage = `${siteUrl}/order-received.png`;
-const logoUrl = `${siteUrl}/email-logo.png`;
+const logoUrl = `${siteUrl}/order-received.png`;
 
     const trackingUrl = `${siteUrl}/order-lookup?order=${encodeURIComponent(
       orderNumber
