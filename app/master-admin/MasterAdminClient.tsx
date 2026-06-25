@@ -107,7 +107,14 @@ type ProductVariant = {
   product_name?: string;
 };
 
-type TabName = "dashboard" | "orders" | "earnings" | "products" | "settings" | "payments";
+type TabName =
+  | "dashboard"
+  | "orders"
+  | "earnings"
+  | "products"
+  | "settings"
+  | "payments"
+  | "inventory-margins";
 
 const MASTER_PASSWORD = "admin123";
 
@@ -155,6 +162,140 @@ function InventoryIcon() {
     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none">
       <path d="M4 7h16M6 7v13h12V7M9 11h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M8 7V4h8v3" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function SettingsIcon() {
+  return (
+    <svg
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="3"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21H9.6v-.1a1.7 1.7 0 0 0-1.4-1.7 1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 3.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H2V9.6h.1A1.7 1.7 0 0 0 3.8 8.2a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 8.2 3.8a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V2h4v.1A1.7 1.7 0 0 0 15 3.8a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 20.2 8.2a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4h.1v4h-.1a1.7 1.7 0 0 0-1.7 1.4Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function PaymentsIcon() {
+  return (
+    <svg
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <rect
+        x="3"
+        y="5"
+        width="18"
+        height="14"
+        rx="2"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M3 9h18"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M7 15h4"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function AffiliatesIcon() {
+  return (
+    <svg
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle
+        cx="9"
+        cy="8"
+        r="3"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <circle
+        cx="17"
+        cy="9"
+        r="2.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M3.5 19c.5-3.4 2.5-5.2 5.5-5.2s5 1.8 5.5 5.2"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M14.5 14.5c2.9-.5 5.2 1 6 4"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function MarginsIcon() {
+  return (
+    <svg
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M4 19V5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M4 19h16"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="m7 15 4-4 3 2 5-6"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M16 7h3v3"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -981,14 +1122,47 @@ if (
     };
   });
 
-  const tabs: { id: TabName; label: string; icon: React.ReactNode }[] = [
-    { id: "dashboard", label: "Dashboard", icon: <DashboardIcon /> },
-    { id: "orders", label: "Orders", icon: <OrdersIcon /> },
-    { id: "earnings", label: "Earnings", icon: <EarningsIcon /> },
-    { id: "products", label: "Products", icon: <InventoryIcon /> },
-    { id: "settings", label: "Settings", icon: <DashboardIcon /> },
-    { id: "payments", label: "Payments", icon: <DashboardIcon /> },
-  ];
+const tabs: {
+  id: TabName;
+  label: string;
+  icon: React.ReactNode;
+}[] = [
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    icon: <DashboardIcon />,
+  },
+  {
+    id: "orders",
+    label: "Orders",
+    icon: <OrdersIcon />,
+  },
+  {
+    id: "earnings",
+    label: "Affiliates",
+    icon: <AffiliatesIcon />,
+  },
+  {
+    id: "products",
+    label: "Products",
+    icon: <InventoryIcon />,
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    icon: <SettingsIcon />,
+  },
+  {
+    id: "payments",
+    label: "Payments",
+    icon: <PaymentsIcon />,
+  },
+  {
+    id: "inventory-margins",
+    label: "Inventory Margins",
+    icon: <MarginsIcon />,
+  },
+];
 
 if (!loggedIn) {
   return (
@@ -1045,7 +1219,7 @@ if (!loggedIn) {
         </div>
 
         <div className="mb-6 border-b border-[#E6E0D8] pb-4">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -1056,7 +1230,7 @@ if (!loggedIn) {
                   }`}
               >
                 {tab.icon}
-                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="text-xs sm:text-sm">{tab.label}</span>
               </button>
             ))}
           </div>
@@ -1310,6 +1484,43 @@ if (!loggedIn) {
             )}
           </div>
         )}
+
+
+
+
+        {activeTab === "inventory-margins" && (
+  <div className="space-y-5">
+    <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-5 shadow-sm">
+      <div className="mb-5">
+        <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+          Profit Analysis
+        </p>
+
+        <h2 className="mt-1 text-xl font-bold text-[#5F554C]">
+          Inventory Margins & Earnings
+        </h2>
+
+        <p className="mt-2 text-sm leading-6 text-[#6F655C]">
+          Track product costs, sale prices, profit margins, and estimated
+          earnings by product.
+        </p>
+      </div>
+
+      <div className="rounded-2xl border border-dashed border-[#D8D1C8] bg-[#FBFAF8] p-6 text-center">
+        <MarginsIcon />
+
+        <p className="mt-3 font-semibold text-[#5F554C]">
+          Margin dashboard coming next
+        </p>
+
+        <p className="mt-2 text-sm leading-6 text-[#7F756B]">
+          We will add product cost, packaging cost, sale price, net profit,
+          and margin percentage here.
+        </p>
+      </div>
+    </div>
+  </div>
+)}
 
         {activeTab === "products" && (
           <div className="space-y-4">
