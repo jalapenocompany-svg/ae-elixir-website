@@ -191,7 +191,9 @@ export async function POST(req: Request) {
       process.env.NEXT_PUBLIC_SITE_URL ||
       "https://ae-elixir-website.vercel.app";
 
-    const logoUrl = `${siteUrl}/email-logo.png`;
+    
+const heroImage = `${siteUrl}/order-received.png`;
+const logoUrl = `${siteUrl}/email-logo.png`;
 
     const trackingUrl = `${siteUrl}/order-lookup?order=${encodeURIComponent(
       orderNumber
@@ -253,24 +255,24 @@ export async function POST(req: Request) {
           border-radius:24px;
           box-shadow:0 10px 30px rgba(95,85,76,0.08);
         ">
-          <div style="
-            padding:28px 24px 24px;
-            text-align:center;
-            background:${BRAND_COLOR};
-          ">
-            <img
-              src="${logoUrl}"
-              alt="${BRAND_NAME}"
-              width="190"
-              style="
-                display:block;
-                width:190px;
-                max-width:80%;
-                height:auto;
-                margin:0 auto;
-              "
-            />
-          </div>
+<div style="
+  background:#ffffff;
+  text-align:center;
+">
+  <img
+    src="${heroImage}"
+    alt="${BRAND_NAME} order received"
+    width="580"
+    style="
+      display:block;
+      width:100%;
+      max-width:580px;
+      height:auto;
+      margin:0 auto;
+      border:0;
+    "
+  />
+</div>
 
           <div style="padding:28px 24px;">
             <div style="text-align:center;margin-bottom:24px;">
