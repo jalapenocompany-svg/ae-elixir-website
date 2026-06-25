@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import SiteHeader from "@/components/SiteHeader";
 
@@ -281,6 +281,16 @@ function SalesChart({ orders }: { orders: Order[] }) {
 export default function MasterAdminClient() {
   const [password, setPassword] = useState("");
   const [loggedIn, setLoggedIn] = useState(false);
+  useEffect(() => {
+  const savedAdminSession = sessionStorage.getItem(
+    "ae_elixir_admin_logged_in"
+  );
+
+  if (savedAdminSession === "true") {
+    setLoggedIn(true);
+    loadData();
+  }
+}, []);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [paymentDrafts, setPaymentDrafts] = useState<
     Record<string, Partial<PaymentMethod>>
@@ -418,15 +428,21 @@ export default function MasterAdminClient() {
     setLoading(false);
   }
 
-  async function handleLogin() {
-    if (password !== MASTER_PASSWORD) {
-      alert("Invalid password.");
-      return;
-    }
-
-    setLoggedIn(true);
-    await loadData();
+async function handleLogin() {
+  if (password !== MASTER_PASSWORD) {
+    alert("Invalid password.");
+    return;
   }
+
+  sessionStorage.setItem(
+    "ae_elixir_admin_logged_in",
+    "true"
+  );
+
+  setLoggedIn(true);
+  setPassword("");
+  await loadData();
+}
 
 
   function updatePaymentDraft(
@@ -968,36 +984,49 @@ if (
     { id: "payments", label: "Payments", icon: <DashboardIcon /> },
   ];
 
-  if (!loggedIn) {
-    return (
-      <div className="min-h-screen bg-gray-50 px-5 py-8 text-black">
-        <div className="mx-auto max-w-sm rounded-2xl bg-white p-6 shadow-sm">
-          <div className="mb-5 flex flex-col items-center text-center">
-            <img src="/logo-icon.png" className="mb-3 h-16 w-16 object-contain" />
-            <h1 className="text-2xl font-bold">Master Admin</h1>
-            <p className="text-sm text-gray-500">
-              Enter master password to continue.
-            </p>
-          </div>
-
-          <input
-            type="password"
-            placeholder="Master Password"
-            className="mb-4 w-full rounded-xl border p-3"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+if (!loggedIn) {
+  return (
+    <div className="flex min-h-[calc(100dvh-220px)] items-center justify-center bg-gray-50 px-5 py-8 text-black">
+      <div className="w-full max-w-sm rounded-[24px] border border-[#E6E0D8] bg-white p-6 shadow-sm">
+        <div className="mb-5 flex flex-col items-center text-center">
+          <img
+            src="/logo-icon.png"
+            alt="AE Elixir"
+            className="mb-3 h-16 w-16 object-contain"
           />
 
-          <button
-            onClick={handleLogin}
-            className="w-full rounded-full bg-[#A79B8E] py-3 font-semibold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
-          >
-            Login
-          </button>
+          <h1 className="text-2xl font-bold text-[#5F554C]">
+            Master Admin
+          </h1>
+
+          <p className="mt-1 text-sm text-[#6F655C]">
+            Enter master password to continue.
+          </p>
         </div>
+
+        <input
+          type="password"
+          placeholder="Master Password"
+          className="mb-4 w-full rounded-xl border border-[#D8D1C8] bg-white p-3 text-black outline-none transition focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleLogin();
+            }
+          }}
+        />
+
+        <button
+          onClick={handleLogin}
+          className="w-full rounded-full bg-[#A79B8E] py-3 font-semibold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
+        >
+          Login
+        </button>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <div className="min-h-screen bg-gray-50 text-black">
