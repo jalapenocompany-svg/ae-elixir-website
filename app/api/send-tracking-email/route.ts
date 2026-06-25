@@ -2,6 +2,24 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+const BRAND_NAME = "AE Elixir";
+const BRAND_COLOR = "#A79B8E";
+const BRAND_COLOR_DARK = "#8F8276";
+const DARK_TEXT = "#5F554C";
+const BODY_TEXT = "#6F655C";
+const SOFT_BACKGROUND = "#F6F3EF";
+const BORDER_COLOR = "#E6E0D8";
+const SUPPORT_EMAIL = "support@aeelixir.com";
+
+function escapeHtml(value: unknown) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 export async function POST(req: Request) {
   try {
     const {
@@ -11,77 +29,269 @@ export async function POST(req: Request) {
       trackingNumber,
     } = await req.json();
 
-    if (!customerEmail || !trackingNumber) {
+    if (!orderNumber || !customerEmail || !trackingNumber) {
       return Response.json(
-        { error: "Missing customer email or tracking number" },
+        {
+          error:
+            "Missing order number, customer email, or tracking number.",
+        },
         { status: 400 }
       );
     }
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://yourdomain.com";
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      "https://ae-elixir-website.vercel.app";
 
-    const trackingUrl = `https://tools.usps.com/go/TrackConfirmAction?tLabels=${trackingNumber}`;
+    const shippedImageUrl = `${siteUrl}/email-shipped.png`;
+
+    const trackingUrl =
+      `https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(
+        trackingNumber
+      )}`;
+
+    const safeOrderNumber = escapeHtml(orderNumber);
+    const safeCustomerName = escapeHtml(customerName || "there");
+    const safeTrackingNumber = escapeHtml(trackingNumber);
+
+    const fromEmail =
+      process.env.ORDER_FROM_EMAIL ||
+      `${BRAND_NAME} <support@aeelixir.com>`;
 
     const html = `
-      <div style="font-family:Arial,sans-serif;background:#f6f7f9;padding:24px;">
-        <div style="max-width:560px;margin:0 auto;background:white;border-radius:22px;overflow:hidden;">
-          <div style="padding:24px;text-align:center;border-bottom:1px solid #eee;">
-            <img
-              src="${siteUrl}/email-logo.png"
-              width="56"
-              style="margin-bottom:10px;border-radius:14px;display:block;margin-left:auto;margin-right:auto;"
-            />
-            <h1 style="margin:0;font-size:26px;">Order Shipped</h1>
-            <p style="color:#666;margin:8px 0 0;">Your package is on the way</p>
-          </div>
+      <!doctype html>
+      <html lang="en">
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <title>Order Shipped</title>
+        </head>
 
-          <div style="padding:24px;">
-            <h2 style="margin:0 0 8px;">Hi ${customerName || "there"},</h2>
+        <body style="
+          margin:0;
+          padding:0;
+          background:${SOFT_BACKGROUND};
+          font-family:Arial,Helvetica,sans-serif;
+        ">
+          <div style="
+            width:100%;
+            padding:24px 12px;
+            background:${SOFT_BACKGROUND};
+            box-sizing:border-box;
+          ">
+            <div style="
+              max-width:580px;
+              margin:0 auto;
+              overflow:hidden;
+              background:#ffffff;
+              border:1px solid ${BORDER_COLOR};
+              border-radius:24px;
+              box-shadow:0 10px 30px rgba(95,85,76,0.08);
+            ">
+              <div style="
+                background:#ffffff;
+                text-align:center;
+              ">
+                <img
+                  src="${shippedImageUrl}"
+                  alt="${BRAND_NAME} order shipped"
+                  width="580"
+                  style="
+                    display:block;
+                    width:100%;
+                    max-width:580px;
+                    height:auto;
+                    margin:0 auto;
+                    border:0;
+                  "
+                />
+              </div>
 
-            <p style="color:#555;line-height:1.5;margin:0 0 18px;">
-              Your order has been updated with a tracking number.
-            </p>
+              <div style="padding:28px 24px 30px;">
+                <div style="text-align:center;margin-bottom:24px;">
+                  <h1 style="
+                    margin:0;
+                    color:${DARK_TEXT};
+                    font-size:26px;
+                    line-height:1.25;
+                    font-weight:700;
+                  ">
+                    Your Order Is On the Way
+                  </h1>
 
-            <div style="background:#f3f4f6;border-radius:16px;padding:16px;margin-bottom:18px;">
-              <p style="margin:0;color:#777;font-size:13px;">Order Number</p>
-              <p style="margin:4px 0 0;font-size:22px;font-weight:bold;">#${orderNumber}</p>
+                  <p style="
+                    margin:10px 0 0;
+                    color:${BODY_TEXT};
+                    font-size:14px;
+                    line-height:1.7;
+                  ">
+                    Hi ${safeCustomerName}, your AE Elixir order has shipped.
+                  </p>
+                </div>
+
+                <div style="
+                  margin-bottom:16px;
+                  padding:18px;
+                  text-align:center;
+                  background:${SOFT_BACKGROUND};
+                  border:1px solid ${BORDER_COLOR};
+                  border-radius:18px;
+                ">
+                  <p style="
+                    margin:0;
+                    color:${BRAND_COLOR_DARK};
+                    font-size:12px;
+                    font-weight:600;
+                    letter-spacing:0.6px;
+                    text-transform:uppercase;
+                  ">
+                    Order Number
+                  </p>
+
+                  <p style="
+                    margin:6px 0 0;
+                    color:${DARK_TEXT};
+                    font-size:21px;
+                    font-weight:700;
+                    letter-spacing:0.4px;
+                  ">
+                    #${safeOrderNumber}
+                  </p>
+                </div>
+
+                <div style="
+                  margin-bottom:22px;
+                  padding:18px;
+                  text-align:center;
+                  background:#FBFAF8;
+                  border:1px solid ${BORDER_COLOR};
+                  border-radius:18px;
+                ">
+                  <p style="
+                    margin:0;
+                    color:${BRAND_COLOR_DARK};
+                    font-size:12px;
+                    font-weight:600;
+                    letter-spacing:0.6px;
+                    text-transform:uppercase;
+                  ">
+                    USPS Tracking Number
+                  </p>
+
+                  <p style="
+                    margin:8px 0 0;
+                    color:${DARK_TEXT};
+                    font-size:18px;
+                    font-weight:700;
+                    line-height:1.4;
+                    word-break:break-all;
+                  ">
+                    ${safeTrackingNumber}
+                  </p>
+                </div>
+
+                <p style="
+                  margin:0 0 22px;
+                  color:${BODY_TEXT};
+                  font-size:14px;
+                  line-height:1.7;
+                  text-align:center;
+                ">
+                  Tracking updates may take several hours to appear after the
+                  shipping label is created.
+                </p>
+
+                <div style="text-align:center;">
+                  <a
+                    href="${trackingUrl}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style="
+                      display:inline-block;
+                      min-width:190px;
+                      padding:14px 26px;
+                      color:#ffffff;
+                      background:${BRAND_COLOR};
+                      border-radius:999px;
+                      text-decoration:none;
+                      font-size:14px;
+                      font-weight:700;
+                      box-shadow:0 5px 14px rgba(167,155,142,0.28);
+                    "
+                  >
+                    Track Package
+                  </a>
+                </div>
+
+                <p style="
+                  margin:26px 0 0;
+                  text-align:center;
+                  color:${BODY_TEXT};
+                  font-size:12px;
+                  line-height:1.7;
+                ">
+                  Need help with your order?
+                  <br />
+                  Email us at
+                  <a
+                    href="mailto:${SUPPORT_EMAIL}"
+                    style="
+                      color:${BRAND_COLOR_DARK};
+                      font-weight:700;
+                      text-decoration:none;
+                    "
+                  >
+                    ${SUPPORT_EMAIL}
+                  </a>
+                </p>
+              </div>
+
+              <div style="
+                padding:18px;
+                text-align:center;
+                color:#8F8276;
+                background:#FBFAF8;
+                border-top:1px solid ${BORDER_COLOR};
+                font-size:11px;
+                line-height:1.6;
+              ">
+                © 2026 ${BRAND_NAME}. All rights reserved.
+              </div>
             </div>
-
-            <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;padding:16px;margin-bottom:22px;">
-              <p style="margin:0;color:#777;font-size:13px;">USPS Tracking</p>
-              <p style="margin:6px 0 0;font-size:18px;font-weight:bold;">${trackingNumber}</p>
-            </div>
-
-            <div style="text-align:center;margin-top:24px;">
-              <a
-                href="${trackingUrl}"
-                style="display:inline-block;background:#000;color:#fff;text-decoration:none;padding:14px 26px;border-radius:999px;font-weight:bold;"
-              >
-                Track Package
-              </a>
-            </div>
           </div>
-
-          <div style="padding:18px;text-align:center;color:#999;font-size:12px;border-top:1px solid #eee;">
-            Thank you for your order.
-          </div>
-        </div>
-      </div>
+        </body>
+      </html>
     `;
 
     const { data, error } = await resend.emails.send({
-      from: process.env.ORDER_FROM_EMAIL || "Store <support@yourdomain.com>",
+      from: fromEmail,
       to: [customerEmail],
-      subject: `Tracking Added for Order #${orderNumber}`,
+      replyTo: SUPPORT_EMAIL,
+      subject: `${BRAND_NAME} Order #${orderNumber} Has Shipped`,
       html,
     });
 
     if (error) {
-      return Response.json({ error }, { status: 500 });
+      console.error("Shipped email error:", error);
+
+      return Response.json(
+        { error },
+        { status: 500 }
+      );
     }
 
     return Response.json({ data });
   } catch (error) {
-    return Response.json({ error }, { status: 500 });
+    console.error("Shipped email route error:", error);
+
+    return Response.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to send shipped email.",
+      },
+      { status: 500 }
+    );
   }
 }
