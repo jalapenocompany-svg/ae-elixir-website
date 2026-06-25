@@ -2,73 +2,163 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+const BRAND_NAME = "AE Elixir";
+const BRAND_COLOR = "#A79B8E";
+const BRAND_COLOR_DARK = "#8F8276";
+const DARK_TEXT = "#5F554C";
+const BODY_TEXT = "#6F655C";
+const SOFT_BACKGROUND = "#F6F3EF";
+const BORDER_COLOR = "#E6E0D8";
+const SUPPORT_EMAIL = "support@aeelixir.com";
+
 type EmailItem = {
   name: string;
   price: number;
   quantity: number;
 };
 
-function getPaymentInstructions(paymentMethod: string, orderNumber: string) {
-  if (paymentMethod === "Zelle") {
+function getPaymentInstructions(
+  paymentMethod: string,
+  orderNumber: string
+) {
+  const zelleAccount =
+    process.env.ZELLE_ACCOUNT || "Contact support@aeelixir.com";
+
+  const venmoAccount =
+    process.env.VENMO_ACCOUNT || "Contact support@aeelixir.com";
+
+  if (paymentMethod.toLowerCase() === "zelle") {
     return `
-      <div style="background:#f3e8ff;border:2px solid #7c3aed;border-radius:16px;padding:16px;">
-        <h3 style="margin:0 0 8px;color:#6d28d9;">Zelle Payment</h3>
-        <p style="margin:6px 0;color:#444;">Send payment via Zelle:</p>
+      <div style="
+        background:${SOFT_BACKGROUND};
+        border:1px solid ${BORDER_COLOR};
+        border-radius:18px;
+        padding:18px;
+        margin-top:18px;
+      ">
+        <h3 style="
+          margin:0 0 10px;
+          color:${DARK_TEXT};
+          font-size:17px;
+        ">
+          Zelle Payment
+        </h3>
 
-        <p style="margin:6px 0;"><strong>📱 856-613-6874</strong></p>
+        <p style="margin:6px 0;color:${BODY_TEXT};">
+          Send payment via Zelle to:
+        </p>
 
-        <p style="margin:10px 0 0;color:#444;">
+        <p style="
+          margin:8px 0;
+          color:${DARK_TEXT};
+          font-weight:bold;
+          font-size:16px;
+        ">
+          ${zelleAccount}
+        </p>
+
+        <p style="margin:12px 0 0;color:${BODY_TEXT};">
           Include your order number in the memo:
         </p>
 
-        <p style="margin:6px 0;font-weight:bold;">#${orderNumber}</p>
+        <p style="
+          margin:6px 0 0;
+          color:${DARK_TEXT};
+          font-weight:bold;
+          font-size:16px;
+        ">
+          #${orderNumber}
+        </p>
       </div>
     `;
   }
 
-  if (paymentMethod === "Venmo") {
+  if (paymentMethod.toLowerCase() === "venmo") {
     return `
-      <div style="background:#e0f2fe;border:2px solid #0284c7;border-radius:16px;padding:16px;">
-        <h3 style="margin:0 0 8px;color:#0369a1;">Venmo Payment</h3>
+      <div style="
+        background:${SOFT_BACKGROUND};
+        border:1px solid ${BORDER_COLOR};
+        border-radius:18px;
+        padding:18px;
+        margin-top:18px;
+      ">
+        <h3 style="
+          margin:0 0 10px;
+          color:${DARK_TEXT};
+          font-size:17px;
+        ">
+          Venmo Payment
+        </h3>
 
-        <p style="margin:6px 0;color:#444;">
+        <p style="margin:6px 0;color:${BODY_TEXT};">
           Send payment to:
         </p>
 
-        <p style="margin:6px 0;font-weight:bold;">@pepmistry</p>
-
-        <p style="margin:10px 0 0;color:#444;">
-          Include your order number in the note:
+        <p style="
+          margin:8px 0;
+          color:${DARK_TEXT};
+          font-weight:bold;
+          font-size:16px;
+        ">
+          ${venmoAccount}
         </p>
 
-        <p style="margin:6px 0;font-weight:bold;">#${orderNumber}</p>
+        <p style="margin:12px 0 0;color:${BODY_TEXT};">
+          Include your order number in the payment note:
+        </p>
+
+        <p style="
+          margin:6px 0 0;
+          color:${DARK_TEXT};
+          font-weight:bold;
+          font-size:16px;
+        ">
+          #${orderNumber}
+        </p>
       </div>
     `;
   }
 
-  // WhatsApp fallback
   return `
-    <div style="background:#dcfce7;border:2px solid #16a34a;border-radius:16px;padding:16px;">
-      <h3 style="margin:0 0 8px;color:#15803d;">WhatsApp Payment</h3>
+    <div style="
+      background:${SOFT_BACKGROUND};
+      border:1px solid ${BORDER_COLOR};
+      border-radius:18px;
+      padding:18px;
+      margin-top:18px;
+    ">
+      <h3 style="
+        margin:0 0 10px;
+        color:${DARK_TEXT};
+        font-size:17px;
+      ">
+        Payment Instructions
+      </h3>
 
-      <p style="margin:6px 0;color:#444;">
-        To complete your order, please contact us on WhatsApp.
+      <p style="margin:6px 0;color:${BODY_TEXT};line-height:1.6;">
+        Please contact us to complete payment for your order.
       </p>
 
-      <p style="margin:6px 0;font-weight:bold;">
-        📱 Message us with your order number:
+      <p style="
+        margin:10px 0 0;
+        color:${DARK_TEXT};
+        font-weight:bold;
+      ">
+        ${SUPPORT_EMAIL}
       </p>
 
-      <p style="margin:6px 0;font-weight:bold;">#${orderNumber}</p>
-
-      <p style="margin:10px 0 0;color:#444;">
-        You may also request to pay via:
+      <p style="margin:12px 0 0;color:${BODY_TEXT};">
+        Include your order number:
       </p>
 
-      <ul style="margin:6px 0;padding-left:18px;color:#444;">
-        <li>Zelle</li>
-        <li>Venmo</li>
-      </ul>
+      <p style="
+        margin:6px 0 0;
+        color:${DARK_TEXT};
+        font-weight:bold;
+        font-size:16px;
+      ">
+        #${orderNumber}
+      </p>
     </div>
   `;
 }
@@ -76,143 +166,414 @@ function getPaymentInstructions(paymentMethod: string, orderNumber: string) {
 export async function POST(req: Request) {
   try {
     const {
-    orderNumber,
-    customerName,
-    customerEmail,
-    paymentMethod,
-    items,
-    total,
+      orderNumber,
+      customerName,
+      customerEmail,
+      paymentMethod,
+      items,
+      total,
     } = await req.json();
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://pepmistry.com";
-    const trackingUrl = `${siteUrl}/order-lookup?order=${orderNumber}&email=${encodeURIComponent(
-    customerEmail
-    )}`;
+    if (
+      !orderNumber ||
+      !customerName ||
+      !customerEmail ||
+      !paymentMethod ||
+      !Array.isArray(items)
+    ) {
+      return Response.json(
+        { error: "Missing required order information." },
+        { status: 400 }
+      );
+    }
 
-    const paymentHtml = getPaymentInstructions(paymentMethod, orderNumber);
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      "https://ae-elixir-website.vercel.app";
+
+    const logoUrl = `${siteUrl}/email-logo.png`;
+
+    const trackingUrl = `${siteUrl}/order-lookup?order=${encodeURIComponent(
+      orderNumber
+    )}&email=${encodeURIComponent(customerEmail)}`;
+
+    const adminUrl = `${siteUrl}/master-admin`;
+
+    const fromEmail =
+      process.env.ORDER_FROM_EMAIL ||
+      `${BRAND_NAME} <support@aeelixir.com>`;
+
+    const paymentHtml = getPaymentInstructions(
+      paymentMethod,
+      orderNumber
+    );
 
     const itemsHtml = (items as EmailItem[])
       .map(
         (item) => `
           <tr>
-            <td style="padding:12px;border-bottom:1px solid #eee;">${item.quantity}x ${item.name}</td>
-            <td style="padding:12px;border-bottom:1px solid #eee;text-align:right;">$${(
-              item.price * item.quantity
-            ).toFixed(2)}</td>
+            <td style="
+              padding:13px 8px;
+              border-bottom:1px solid ${BORDER_COLOR};
+              color:${BODY_TEXT};
+              font-size:14px;
+            ">
+              ${item.quantity} × ${item.name}
+            </td>
+
+            <td style="
+              padding:13px 8px;
+              border-bottom:1px solid ${BORDER_COLOR};
+              text-align:right;
+              color:${DARK_TEXT};
+              font-weight:bold;
+              font-size:14px;
+              white-space:nowrap;
+            ">
+              $${(Number(item.price) * Number(item.quantity)).toFixed(2)}
+            </td>
           </tr>
         `
       )
       .join("");
 
-    const html = `
-      <div style="font-family:Arial,sans-serif;background:#f6f7f9;padding:24px;">
-        <div style="max-width:560px;margin:0 auto;background:white;border-radius:22px;overflow:hidden;">
-          <div style="padding:24px;text-align:center;border-bottom:1px solid #eee;">
+    const customerHtml = `
+      <div style="
+        margin:0;
+        padding:24px 12px;
+        background:${SOFT_BACKGROUND};
+        font-family:Arial,Helvetica,sans-serif;
+      ">
+        <div style="
+          max-width:580px;
+          margin:0 auto;
+          overflow:hidden;
+          background:#ffffff;
+          border:1px solid ${BORDER_COLOR};
+          border-radius:24px;
+          box-shadow:0 10px 30px rgba(95,85,76,0.08);
+        ">
+          <div style="
+            padding:28px 24px 24px;
+            text-align:center;
+            background:${BRAND_COLOR};
+          ">
             <img
-            src="https://pepmistry.com/email-logo.png"
-            width="56"
-            style="margin-bottom:10px;border-radius:14px;display:block;margin-left:auto;margin-right:auto;"
+              src="${logoUrl}"
+              alt="${BRAND_NAME}"
+              width="190"
+              style="
+                display:block;
+                width:190px;
+                max-width:80%;
+                height:auto;
+                margin:0 auto;
+              "
             />
-            <h1 style="margin:0;font-size:26px;">Pepmistry</h1>
-            <p style="color:#666;margin:8px 0 0;">Order Confirmation</p>
           </div>
 
-          <div style="padding:24px;">
-            <h2 style="margin:0 0 8px;">Thank you, ${customerName}</h2>
-            <p style="color:#555;margin:0 0 18px;">
-              Your order has been received.
-            </p>
+          <div style="padding:28px 24px;">
+            <div style="text-align:center;margin-bottom:24px;">
+              <h1 style="
+                margin:0;
+                color:${DARK_TEXT};
+                font-size:26px;
+                line-height:1.25;
+              ">
+                Order Received
+              </h1>
 
-            <div style="background:#f3f4f6;border-radius:16px;padding:16px;margin-bottom:20px;">
-              <p style="margin:0;color:#777;font-size:13px;">Order Number</p>
-              <p style="margin:4px 0 0;font-size:22px;font-weight:bold;">#${orderNumber}</p>
+              <p style="
+                margin:8px 0 0;
+                color:${BODY_TEXT};
+                font-size:14px;
+                line-height:1.6;
+              ">
+                Thank you, ${customerName}. Your order has been received.
+              </p>
             </div>
 
-            <h3 style="margin:0 0 10px;">Kits Ordered</h3>
-            <table style="width:100%;border-collapse:collapse;margin-bottom:18px;">
+            <div style="
+              margin-bottom:24px;
+              padding:18px;
+              text-align:center;
+              background:${SOFT_BACKGROUND};
+              border:1px solid ${BORDER_COLOR};
+              border-radius:18px;
+            ">
+              <p style="
+                margin:0;
+                color:#8F8276;
+                font-size:12px;
+                letter-spacing:0.5px;
+                text-transform:uppercase;
+              ">
+                Order Number
+              </p>
+
+              <p style="
+                margin:6px 0 0;
+                color:${DARK_TEXT};
+                font-size:22px;
+                font-weight:bold;
+                letter-spacing:0.5px;
+              ">
+                #${orderNumber}
+              </p>
+            </div>
+
+            <h2 style="
+              margin:0 0 10px;
+              color:${DARK_TEXT};
+              font-size:17px;
+            ">
+              Order Summary
+            </h2>
+
+            <table style="
+              width:100%;
+              margin-bottom:18px;
+              border-collapse:collapse;
+            ">
               ${itemsHtml}
+
               <tr>
-                <td style="padding:14px;font-weight:bold;">Total</td>
-                <td style="padding:14px;text-align:right;font-weight:bold;">$${Number(total).toFixed(2)}</td>
+                <td style="
+                  padding:16px 8px 8px;
+                  color:${DARK_TEXT};
+                  font-size:16px;
+                  font-weight:bold;
+                ">
+                  Total
+                </td>
+
+                <td style="
+                  padding:16px 8px 8px;
+                  text-align:right;
+                  color:${DARK_TEXT};
+                  font-size:18px;
+                  font-weight:bold;
+                ">
+                  $${Number(total).toFixed(2)}
+                </td>
               </tr>
             </table>
 
-              ${paymentHtml}
+            ${paymentHtml}
 
-            <div style="text-align:center;margin-top:24px;">
-                <a
-                    href="${trackingUrl}"
-                    style="display:inline-block;background:#000;color:#fff;text-decoration:none;padding:14px 26px;border-radius:999px;font-weight:bold;"
-                >
-                    Track Your Order
-                </a>
+            <div style="margin-top:26px;text-align:center;">
+              <a
+                href="${trackingUrl}"
+                style="
+                  display:inline-block;
+                  min-width:190px;
+                  padding:14px 24px;
+                  color:#ffffff;
+                  background:${BRAND_COLOR};
+                  border-radius:999px;
+                  text-decoration:none;
+                  font-size:14px;
+                  font-weight:bold;
+                "
+              >
+                View Your Order
+              </a>
             </div>
+
+            <p style="
+              margin:24px 0 0;
+              text-align:center;
+              color:${BODY_TEXT};
+              font-size:12px;
+              line-height:1.6;
+            ">
+              Need help? Contact us at
+              <a
+                href="mailto:${SUPPORT_EMAIL}"
+                style="color:${BRAND_COLOR_DARK};font-weight:bold;text-decoration:none;"
+              >
+                ${SUPPORT_EMAIL}
+              </a>
+            </p>
           </div>
 
-          <div style="padding:18px;text-align:center;color:#999;font-size:12px;border-top:1px solid #eee;">
-            © 2026 ❤️ Pepmistry. All rights reserved.
+          <div style="
+            padding:18px;
+            text-align:center;
+            color:#8F8276;
+            background:#FBFAF8;
+            border-top:1px solid ${BORDER_COLOR};
+            font-size:11px;
+          ">
+            © 2026 ${BRAND_NAME}. All rights reserved.
           </div>
         </div>
       </div>
     `;
-const { data, error } = await resend.emails.send({
-  from: process.env.ORDER_FROM_EMAIL || "Pepmistry <support@pepmistry.com>",
-  to: [customerEmail],
-  subject: `Pepmistry Order Confirmation #${orderNumber}`,
-  html,
-});
 
-if (error) {
-  return Response.json({ error }, { status: 500 });
-}
-
-const adminEmail = process.env.ADMIN_ORDER_EMAIL;
-
-if (adminEmail) {
-  await resend.emails.send({
-    from: process.env.ORDER_FROM_EMAIL || "Pepmistry <support@pepmistry.com>",
-    to: [adminEmail],
-    subject: `New Pepmistry Order #${orderNumber} - $${Number(total).toFixed(2)}`,
-    html: `
-      <div style="font-family:Arial,sans-serif;background:#f6f7f9;padding:24px;">
-        <div style="max-width:560px;margin:0 auto;background:white;border-radius:20px;padding:24px;">
-          <h1 style="margin:0 0 8px;">New Order Received</h1>
-          <p style="margin:0 0 18px;color:#555;">Order #${orderNumber}</p>
-
-          <div style="background:#f3f4f6;border-radius:14px;padding:14px;margin-bottom:16px;">
-            <p><strong>Customer:</strong> ${customerName}</p>
-            <p><strong>Email:</strong> ${customerEmail}</p>
-            <p><strong>Payment:</strong> ${paymentMethod}</p>
-            <p><strong>Total:</strong> $${Number(total).toFixed(2)}</p>
-          </div>
-
-          <h3>Kits Ordered</h3>
-          <table style="width:100%;border-collapse:collapse;">
-            ${itemsHtml}
-          </table>
-
-          <div style="text-align:center;margin-top:24px;">
-            <a
-              href="${process.env.NEXT_PUBLIC_SITE_URL || "https://www.pepmistry.com"}/master-admin"
-              style="display:inline-block;background:#000;color:#fff;text-decoration:none;padding:14px 24px;border-radius:999px;font-weight:bold;"
-            >
-              Open Master Admin
-            </a>
-          </div>
-        </div>
-      </div>
-    `,
-  });
-}
-
-return Response.json({ data });
+    const { data, error } = await resend.emails.send({
+      from: fromEmail,
+      to: [customerEmail],
+      replyTo: SUPPORT_EMAIL,
+      subject: `${BRAND_NAME} Order Confirmation #${orderNumber}`,
+      html: customerHtml,
+    });
 
     if (error) {
-      return Response.json({ error }, { status: 500 });
+      console.error("Customer email error:", error);
+
+      return Response.json(
+        { error },
+        { status: 500 }
+      );
+    }
+
+    const adminEmail = process.env.ADMIN_ORDER_EMAIL;
+
+    if (adminEmail) {
+      const adminHtml = `
+        <div style="
+          margin:0;
+          padding:24px 12px;
+          background:${SOFT_BACKGROUND};
+          font-family:Arial,Helvetica,sans-serif;
+        ">
+          <div style="
+            max-width:580px;
+            margin:0 auto;
+            overflow:hidden;
+            background:#ffffff;
+            border:1px solid ${BORDER_COLOR};
+            border-radius:24px;
+          ">
+            <div style="
+              padding:24px;
+              text-align:center;
+              background:${BRAND_COLOR};
+            ">
+              <img
+                src="${logoUrl}"
+                alt="${BRAND_NAME}"
+                width="180"
+                style="
+                  display:block;
+                  width:180px;
+                  max-width:80%;
+                  height:auto;
+                  margin:0 auto;
+                "
+              />
+            </div>
+
+            <div style="padding:26px 24px;">
+              <h1 style="
+                margin:0 0 6px;
+                color:${DARK_TEXT};
+                font-size:24px;
+              ">
+                New Order Received
+              </h1>
+
+              <p style="
+                margin:0 0 20px;
+                color:${BODY_TEXT};
+              ">
+                Order #${orderNumber}
+              </p>
+
+              <div style="
+                padding:16px;
+                margin-bottom:20px;
+                background:${SOFT_BACKGROUND};
+                border:1px solid ${BORDER_COLOR};
+                border-radius:16px;
+              ">
+                <p style="margin:5px 0;color:${BODY_TEXT};">
+                  <strong style="color:${DARK_TEXT};">Customer:</strong>
+                  ${customerName}
+                </p>
+
+                <p style="margin:5px 0;color:${BODY_TEXT};">
+                  <strong style="color:${DARK_TEXT};">Email:</strong>
+                  ${customerEmail}
+                </p>
+
+                <p style="margin:5px 0;color:${BODY_TEXT};">
+                  <strong style="color:${DARK_TEXT};">Payment:</strong>
+                  ${paymentMethod}
+                </p>
+
+                <p style="margin:5px 0;color:${BODY_TEXT};">
+                  <strong style="color:${DARK_TEXT};">Total:</strong>
+                  $${Number(total).toFixed(2)}
+                </p>
+              </div>
+
+              <h2 style="
+                margin:0 0 10px;
+                color:${DARK_TEXT};
+                font-size:17px;
+              ">
+                Items Ordered
+              </h2>
+
+              <table style="
+                width:100%;
+                border-collapse:collapse;
+              ">
+                ${itemsHtml}
+              </table>
+
+              <div style="margin-top:26px;text-align:center;">
+                <a
+                  href="${adminUrl}"
+                  style="
+                    display:inline-block;
+                    padding:14px 24px;
+                    color:#ffffff;
+                    background:${BRAND_COLOR};
+                    border-radius:999px;
+                    text-decoration:none;
+                    font-size:14px;
+                    font-weight:bold;
+                  "
+                >
+                  Open Master Admin
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const { error: adminEmailError } =
+        await resend.emails.send({
+          from: fromEmail,
+          to: [adminEmail],
+          replyTo: SUPPORT_EMAIL,
+          subject: `New ${BRAND_NAME} Order #${orderNumber} — $${Number(
+            total
+          ).toFixed(2)}`,
+          html: adminHtml,
+        });
+
+      if (adminEmailError) {
+        console.error("Admin email error:", adminEmailError);
+      }
     }
 
     return Response.json({ data });
   } catch (error) {
-    return Response.json({ error }, { status: 500 });
+    console.error("Order email route error:", error);
+
+    return Response.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to send order email.",
+      },
+      { status: 500 }
+    );
   }
 }
