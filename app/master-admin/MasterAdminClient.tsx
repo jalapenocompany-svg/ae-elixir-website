@@ -526,24 +526,51 @@ export default function MasterAdminClient() {
     const newTrackingNumber = updates.tracking_number;
     const oldTrackingNumber = order?.tracking_number;
 
-    if (
-      newTrackingNumber &&
-      newTrackingNumber !== oldTrackingNumber &&
-      order?.customer_email
-    ) {
-      await fetch("/api/send-tracking-email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          orderNumber: order.order_number,
-          customerName: order.customer_name,
-          customerEmail: order.customer_email,
-          trackingNumber: newTrackingNumber,
-        }),
-      });
+if (
+  newTrackingNumber &&
+  newTrackingNumber !== oldTrackingNumber &&
+  order?.customer_email
+) {
+  const displayOrderNumber = order.id
+    .slice(0, 8)
+    .toUpperCase();
+
+  const trackingEmailResponse = await fetch(
+    "/api/send-tracking-email",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        orderNumber: displayOrderNumber,
+        customerName: order.customer_name || "",
+        customerEmail: order.customer_email,
+        trackingNumber: newTrackingNumber,
+      }),
     }
+  );
+
+  const trackingEmailResult =
+    await trackingEmailResponse.json();
+
+  if (!trackingEmailResponse.ok) {
+    console.error(
+      "Tracking email failed:",
+      trackingEmailResult
+    );
+
+    alert(
+      trackingEmailResult?.error ||
+        "Order saved, but the tracking email could not be sent."
+    );
+  } else {
+    console.log(
+      "Tracking email sent successfully:",
+      trackingEmailResult
+    );
+  }
+}
 
     setOrderDrafts((current) => {
       const copy = { ...current };
