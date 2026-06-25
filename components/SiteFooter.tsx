@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 type FooterSettings = {
@@ -11,8 +12,16 @@ type FooterSettings = {
   footer_text: string | null;
 };
 
+const ADMIN_SESSION_KEY = "ae_elixir_admin_logged_in";
+const ADMIN_AUTH_EVENT = "ae-admin-auth-change";
+
 export default function SiteFooter() {
-  const [settings, setSettings] = useState<FooterSettings | null>(null);
+  const pathname = usePathname();
+
+  const [settings, setSettings] =
+    useState<FooterSettings | null>(null);
+
+  const [showFooter, setShowFooter] = useState(false);
 
   useEffect(() => {
     async function loadSettings() {
@@ -32,6 +41,42 @@ export default function SiteFooter() {
     loadSettings();
   }, []);
 
+  useEffect(() => {
+    function updateFooterVisibility() {
+      const isMasterAdminPage =
+        pathname === "/master-admin" ||
+        pathname.startsWith("/master-admin/");
+
+      if (!isMasterAdminPage) {
+        setShowFooter(true);
+        return;
+      }
+
+      const adminLoggedIn =
+        sessionStorage.getItem(ADMIN_SESSION_KEY) === "true";
+
+      setShowFooter(adminLoggedIn);
+    }
+
+    updateFooterVisibility();
+
+    window.addEventListener(
+      ADMIN_AUTH_EVENT,
+      updateFooterVisibility
+    );
+
+    return () => {
+      window.removeEventListener(
+        ADMIN_AUTH_EVENT,
+        updateFooterVisibility
+      );
+    };
+  }, [pathname]);
+
+  if (!showFooter) {
+    return null;
+  }
+
   const cleanWhatsApp = (
     settings?.whatsapp_number || ""
   ).replace(/\D/g, "");
@@ -45,11 +90,21 @@ export default function SiteFooter() {
 
         <div className="mb-6 flex justify-center gap-5">
           <a
-            href={cleanWhatsApp ? `https://wa.me/${cleanWhatsApp}` : "#"}
+            href={
+              cleanWhatsApp
+                ? `https://wa.me/${cleanWhatsApp}`
+                : "#"
+            }
             target="_blank"
+            rel="noopener noreferrer"
             className="flex h-12 w-12 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
           >
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
+            <svg
+              className="h-5 w-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
               <path
                 d="M5 19l1.2-3.6A7.7 7.7 0 1 1 9 18.2L5 19Z"
                 stroke="currentColor"
@@ -66,7 +121,12 @@ export default function SiteFooter() {
             }
             className="flex h-12 w-12 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
           >
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
+            <svg
+              className="h-5 w-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
               <path
                 d="M4 6h16v12H4V6Z"
                 stroke="currentColor"
@@ -83,9 +143,15 @@ export default function SiteFooter() {
           <a
             href={settings?.tiktok_url || "#"}
             target="_blank"
+            rel="noopener noreferrer"
             className="flex h-12 w-12 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
           >
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
+            <svg
+              className="h-5 w-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
               <path
                 d="M14 4v9.2a4.2 4.2 0 1 1-4.2-4.2"
                 stroke="currentColor"
@@ -103,7 +169,7 @@ export default function SiteFooter() {
         <p className="text-xs text-gray-400">
           {settings?.footer_text ||
             `© ${new Date().getFullYear()} ${
-              settings?.site_name || "Peptide Shop"
+              settings?.site_name || "AE Elixir"
             }. All rights reserved.`}
         </p>
       </div>

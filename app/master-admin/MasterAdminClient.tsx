@@ -438,8 +438,14 @@ async function handleLogin() {
     "ae_elixir_admin_logged_in",
     "true"
   );
+  
+  window.dispatchEvent(
+  new Event("ae-admin-auth-change")
+);
 
   setLoggedIn(true);
+
+  
   setPassword("");
   await loadData();
 }
