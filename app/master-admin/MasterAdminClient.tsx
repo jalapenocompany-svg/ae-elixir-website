@@ -1268,7 +1268,7 @@ if (!loggedIn) {
           <div className="space-y-4">
             {sellerSummaries.length === 0 ? (
               <div className="rounded-2xl bg-white p-4 text-sm text-gray-500 shadow-sm">
-                No sellers found.
+                No sellers / affiliates found.
               </div>
             ) : (
               sellerSummaries.map((summary) => (
