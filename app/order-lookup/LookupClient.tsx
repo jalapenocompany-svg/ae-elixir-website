@@ -92,18 +92,24 @@ export default function LookupClient() {
     <SiteHeader />
 
 <main className="px-4 py-6 sm:px-6 sm:py-8">
-  <div className="mx-auto w-full max-w-3xl">
+
     {/* Order Lookup Hero Image */}
-    <div className="mb-6 overflow-hidden rounded-[24px] border border-[#E6E0D8] bg-white shadow-sm">
+
+
+<div className="mx-auto w-full max-w-3xl">
+  {/* Single Combined Card */}
+  <div className="mb-6 overflow-hidden rounded-[24px] border border-[#E6E0D8] bg-white shadow-sm">
+    {/* Top Image */}
+    <div className="border-b border-[#EEE7DE] p-4 sm:p-6">
       <img
         src="/order-lookup.png"
         alt="AE Elixir Order Lookup"
-        className="block h-auto w-full object-contain"
+        className="mx-auto block h-auto w-full max-w-2xl object-contain"
       />
     </div>
 
-    {/* Lookup Form */}
-    <div className="mb-6 rounded-[24px] border border-[#E6E0D8] bg-white p-5 shadow-sm sm:p-6">
+    {/* Form Section */}
+    <div className="p-5 sm:p-6">
       <div className="mb-5 text-center">
         <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
           Order Status
@@ -148,6 +154,9 @@ export default function LookupClient() {
         </button>
       </div>
     </div>
+  </div>
+
+
 
     {/* No Order Found */}
     {searched && !order && (
