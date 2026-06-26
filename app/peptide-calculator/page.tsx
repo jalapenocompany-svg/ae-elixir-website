@@ -178,7 +178,7 @@ export default function PeptideCalculatorPage() {
   }
 
   // Shared style for quick-pick buttons
-  const qpActive = "border-blue-400 bg-blue-50 text-blue-700";
+  const qpActive = "border-[#CFC6BC] bg-[#F3EFEA] text-[#7C6F63]";
   const qpInactive = "border-gray-200 bg-white text-gray-600";
 
   return (
@@ -186,7 +186,7 @@ export default function PeptideCalculatorPage() {
       <SiteHeader />
 
       <main className="px-5 py-6">
-        <div className="mx-auto w-full max-w-5xl">
+        <div className="mx-auto w-full max-w-4xl">
           <div className="mb-6">
 
             <h1 className="text-3xl font-bold">Peptide Dose Calculator</h1>
@@ -324,21 +324,21 @@ export default function PeptideCalculatorPage() {
               </div>
 
               {/* Results under syringe — "Pull to" as whole number */}
-              <div className="mt-3 grid grid-cols-3 overflow-hidden rounded-2xl border border-blue-100 bg-blue-50">
-                <div className="border-r border-blue-100 p-3 text-center">
-                  <p className="text-xs text-gray-500">Pull to</p>
+              <div className="mt-3 grid grid-cols-3 overflow-hidden rounded-2xl border border-[#E6E0D8] bg-[#F8F5F1]">
+                <div className="border-r border-[#E6E0D8] p-3 text-center">
+                  <p className="text-xs text-[#7C6F63]">Pull to</p>
                   <p className="text-xl font-bold text-blue-700">{pullToUnits}</p>
-                  <p className="text-xs font-semibold text-gray-500">units</p>
+                  <p className="text-xs font-semibold text-[#7C6F63]">units</p>
                 </div>
-                <div className="border-r border-blue-100 p-3 text-center">
-                  <p className="text-xs text-gray-500">Dose Vol</p>
+                <div className="border-r border-[#E6E0D8] p-3 text-center">
+                  <p className="text-xs text-[#7C6F63]">Dose Vol</p>
                   <p className="text-xl font-bold text-blue-700">{doseMl.toFixed(3)}</p>
-                  <p className="text-xs font-semibold text-gray-500">mL</p>
+                  <p className="text-xs font-semibold text-[#7C6F63]">mL</p>
                 </div>
                 <div className="p-3 text-center">
-                  <p className="text-xs text-gray-500">Desired Dose</p>
+                  <p className="text-xs text-[#7C6F63]">Desired Dose</p>
                   <p className="text-xl font-bold text-blue-700">{desiredDoseDisplay}</p>
-                  <p className="text-xs font-semibold text-gray-500">{doseUnit}</p>
+                  <p className="text-xs font-semibold text-[#7C6F63]">{doseUnit}</p>
                 </div>
               </div>
 
