@@ -451,6 +451,7 @@ export default function PeptideCalculatorPage() {
                   </div>
                 </div>
 
+
                 {/* Desired Dose */}
                 <div>
                   <div className="mb-2 flex items-center justify-between gap-3">
@@ -466,6 +467,7 @@ export default function PeptideCalculatorPage() {
                       <option value="mcg">mcg</option>
                     </select>
                   </div>
+
                   <div className="flex flex-wrap gap-2">
                     {doseQuickPicks[doseUnit].map((v) => (
                       <button
@@ -478,6 +480,7 @@ export default function PeptideCalculatorPage() {
                         {v}{doseUnit}
                       </button>
                     ))}
+
                     <input
                       type="number"
                       placeholder="Other"
@@ -490,45 +493,60 @@ export default function PeptideCalculatorPage() {
                       }}
                       className="w-20 rounded-xl border border-gray-200 px-3 py-2 text-sm font-semibold placeholder-gray-300"
                     />
-                    <span className="self-center text-sm font-semibold text-gray-400">{doseUnit}</span>
+
+                    <span className="self-center text-sm font-semibold text-gray-400">
+                      {doseUnit}
+                    </span>
                   </div>
                 </div>
 
               </div>
             </section>
 
-            {/* ── Result ── unchanged from original */}
-            <section className="rounded-3xl bg-black p-5 text-white shadow-sm">
-              <h2 className="mb-4 text-xl font-bold">Result</h2>
+            {/* ── Result ── */}
+            <section className="rounded-3xl border border-[#D8D1C8] bg-[#F8F5F1] p-5 shadow-sm">
+              <h2 className="mb-4 text-xl font-bold text-[#5F554C]">
+                Result
+              </h2>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-2xl bg-white/10 p-4">
-                  <p className="text-xs text-gray-300">Pull to</p>
-                  <p className="text-3xl font-bold">{pullToUnits}</p>
-                  <p className="text-sm text-gray-300">units</p>
+                <div className="rounded-2xl border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                  <p className="text-xs text-[#7C6F63]">Pull to</p>
+                  <p className="text-3xl font-bold text-[#5F554C]">
+                    {pullToUnits}
+                  </p>
+                  <p className="text-sm text-[#7C6F63]">units</p>
                 </div>
 
-                <div className="rounded-2xl bg-white/10 p-4">
-                  <p className="text-xs text-gray-300">Dose volume</p>
-                  <p className="text-3xl font-bold">{doseMl.toFixed(3)}</p>
-                  <p className="text-sm text-gray-300">mL</p>
+                <div className="rounded-2xl border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                  <p className="text-xs text-[#7C6F63]">Dose volume</p>
+                  <p className="text-3xl font-bold text-[#5F554C]">
+                    {doseMl.toFixed(3)}
+                  </p>
+                  <p className="text-sm text-[#7C6F63]">mL</p>
                 </div>
 
-                <div className="rounded-2xl bg-white/10 p-4">
-                  <p className="text-xs text-gray-300">Concentration</p>
-                  <p className="text-xl font-bold">{concentrationMcgPerMl.toFixed(0)}</p>
-                  <p className="text-sm text-gray-300">mcg / mL</p>
+                <div className="rounded-2xl border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                  <p className="text-xs text-[#7C6F63]">Concentration</p>
+                  <p className="text-xl font-bold text-[#5F554C]">
+                    {concentrationMcgPerMl.toFixed(0)}
+                  </p>
+                  <p className="text-sm text-[#7C6F63]">mcg / mL</p>
                 </div>
 
-                <div className="rounded-2xl bg-white/10 p-4">
-                  <p className="text-xs text-gray-300">Syringe</p>
-                  <p className="text-xl font-bold">{syringeMl} mL</p>
-                  <p className="text-sm text-gray-300">{maxUnits} units max</p>
+                <div className="rounded-2xl border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                  <p className="text-xs text-[#7C6F63]">Syringe</p>
+                  <p className="text-xl font-bold text-[#5F554C]">
+                    {syringeMl} mL
+                  </p>
+                  <p className="text-sm text-[#7C6F63]">
+                    {maxUnits} units max
+                  </p>
                 </div>
               </div>
 
               {units > maxUnits && (
-                <p className="mt-4 rounded-2xl bg-red-500/20 p-3 text-sm text-red-100">
+                <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
                   This dose exceeds the selected syringe size. Choose a larger syringe or adjust dose.
                 </p>
               )}
