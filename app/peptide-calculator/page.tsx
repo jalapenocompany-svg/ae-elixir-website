@@ -451,54 +451,57 @@ export default function PeptideCalculatorPage() {
                   </div>
                 </div>
 
+{/* Desired Dose */}
+<div>
+  <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-gray-600">
+    <DoseIcon /> Desired Dose
+  </p>
 
-                {/* Desired Dose */}
-                <div>
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <p className="flex items-center gap-1.5 text-sm font-semibold text-gray-600">
-                      <DoseIcon /> Desired Dose
-                    </p>
-                    <select
-                      value={doseUnit}
-                      onChange={(e) => changeDoseUnit(e.target.value as DoseUnit)}
-                      className="rounded-xl border border-gray-200 bg-white px-2 py-1 text-xs font-bold text-gray-600"
-                    >
-                      <option value="mg">mg</option>
-                      <option value="mcg">mcg</option>
-                    </select>
-                  </div>
+  <div className="flex flex-wrap items-center gap-2">
+    {doseQuickPicks[doseUnit].map((v) => (
+      <button
+        key={v}
+        type="button"
+        onClick={() => pickDose(v)}
+        className={`rounded-xl border px-4 py-2 text-sm font-semibold ${
+          doseMcg === v && customDose === ""
+            ? qpActive
+            : qpInactive
+        }`}
+      >
+        {v}
+        {doseUnit}
+      </button>
+    ))}
 
-                  <div className="flex flex-wrap gap-2">
-                    {doseQuickPicks[doseUnit].map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        onClick={() => pickDose(v)}
-                        className={`rounded-xl border px-4 py-2 text-sm font-semibold ${doseMcg === v && customDose === "" ? qpActive : qpInactive
-                          }`}
-                      >
-                        {v}{doseUnit}
-                      </button>
-                    ))}
+    <div className="flex overflow-hidden rounded-xl border border-gray-200 bg-white">
+      <input
+        type="number"
+        placeholder="Other"
+        value={customDose}
+        inputMode="decimal"
+        onChange={(e) => {
+          setCustomDose(e.target.value);
+          setDoseMcg(toNumber(e.target.value));
+          keepPresetColor();
+        }}
+        className="w-20 border-0 px-3 py-2 text-sm font-semibold outline-none placeholder-gray-300"
+      />
 
-                    <input
-                      type="number"
-                      placeholder="Other"
-                      value={customDose}
-                      inputMode="decimal"
-                      onChange={(e) => {
-                        setCustomDose(e.target.value);
-                        setDoseMcg(toNumber(e.target.value));
-                        keepPresetColor();
-                      }}
-                      className="w-20 rounded-xl border border-gray-200 px-3 py-2 text-sm font-semibold placeholder-gray-300"
-                    />
-
-                    <span className="self-center text-sm font-semibold text-gray-400">
-                      {doseUnit}
-                    </span>
-                  </div>
-                </div>
+      <select
+        value={doseUnit}
+        onChange={(e) =>
+          changeDoseUnit(e.target.value as DoseUnit)
+        }
+        className="border-l border-gray-200 bg-[#F8F5F1] px-3 py-2 text-sm font-bold text-[#7C6F63] outline-none"
+        aria-label="Dose unit"
+      >
+        <option value="mg">mg</option>
+        <option value="mcg">mcg</option>
+      </select>
+    </div>
+  </div>
+</div>
 
               </div>
             </section>
