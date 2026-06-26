@@ -204,7 +204,7 @@ export default function PeptideCalculatorPage() {
                   <h2 className="text-xl font-bold">Visual Syringe</h2>
 
                 </div>
-                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                <span className="rounded-full border-[#E6E0D8] px-3 py-1 text-xs font-semibold text-[#7C6F63]">
                   {syringeMl} mL / {maxUnits} units
                 </span>
               </div>
@@ -327,17 +327,17 @@ export default function PeptideCalculatorPage() {
               <div className="mt-3 grid grid-cols-3 overflow-hidden rounded-2xl border border-[#E6E0D8] bg-[#F8F5F1]">
                 <div className="border-r border-[#E6E0D8] p-3 text-center">
                   <p className="text-xs text-[#7C6F63]">Pull to</p>
-                  <p className="text-xl font-bold text-blue-700">{pullToUnits}</p>
+                  <p className="text-xl font-bold text-[#7C6F63]">{pullToUnits}</p>
                   <p className="text-xs font-semibold text-[#7C6F63]">units</p>
                 </div>
                 <div className="border-r border-[#E6E0D8] p-3 text-center">
                   <p className="text-xs text-[#7C6F63]">Dose Vol</p>
-                  <p className="text-xl font-bold text-blue-700">{doseMl.toFixed(3)}</p>
+                  <p className="text-xl font-bold text-[#7C6F63]">{doseMl.toFixed(3)}</p>
                   <p className="text-xs font-semibold text-[#7C6F63]">mL</p>
                 </div>
                 <div className="p-3 text-center">
                   <p className="text-xs text-[#7C6F63]">Desired Dose</p>
-                  <p className="text-xl font-bold text-blue-700">{desiredDoseDisplay}</p>
+                  <p className="text-xl font-bold text-[#7C6F63]">{desiredDoseDisplay}</p>
                   <p className="text-xs font-semibold text-[#7C6F63]">{doseUnit}</p>
                 </div>
               </div>
