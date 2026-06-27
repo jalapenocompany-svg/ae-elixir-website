@@ -1223,283 +1223,320 @@ Total: $${cartTotal.toFixed(2)}`
       )}
 
 
-      <div
-        className={`fixed inset-0 z-50 transition ${cartOpen ? "pointer-events-auto" : "pointer-events-none"
-          }`}
-      >
-        <div
-          className={`absolute inset-0 bg-black/40 transition-opacity duration-300 ${cartOpen ? "opacity-100" : "opacity-0"
-            }`}
+<div
+  className={`fixed inset-0 z-50 transition ${
+    cartOpen ? "pointer-events-auto" : "pointer-events-none"
+  }`}
+>
+  <div
+    className={`absolute inset-0 bg-black/40 transition-opacity duration-300 ${
+      cartOpen ? "opacity-100" : "opacity-0"
+    }`}
+    onClick={() => setCartOpen(false)}
+  />
+
+  <div
+    className={`absolute right-0 top-0 flex h-[100dvh] w-[90%] max-w-md flex-col overflow-hidden bg-white shadow-xl transition-transform duration-300 ease-out ${
+      cartOpen ? "translate-x-0" : "translate-x-full"
+    }`}
+  >
+    {/* Drawer Header */}
+    <div className="shrink-0 px-5 pb-4 pt-5">
+      <div className="flex items-center justify-between border-b border-[#E6E0D8] pb-4">
+        <h2 className="text-2xl font-bold tracking-tight text-[#1F1A17]">
+          {checkoutOpen ? "Checkout" : "Your Cart"}
+        </h2>
+
+        <button
+          type="button"
           onClick={() => setCartOpen(false)}
-        />
-
-        <div
-          className={`absolute right-0 top-0 flex h-[100dvh] w-[88%] max-w-sm flex-col overflow-hidden bg-white shadow-xl transition-transform duration-300 ease-out ${cartOpen ? "translate-x-0" : "translate-x-full"
-            }`}
+          className="flex h-9 w-9 items-center justify-center rounded-full text-2xl leading-none text-[#7F756B] transition-all hover:bg-[#F6F3EF] active:scale-95"
+          aria-label="Close cart"
         >
-          <div className="flex items-center justify-between border-b pb-4">
-            <h2 className="text-xl font-bold">
-              {checkoutOpen ? "Checkout" : "Your Cart"}
-            </h2>
-            <button
-              onClick={() => setCartOpen(false)}
-              className="text-2xl text-gray-500"
-            >
-              ×
-            </button>
-          </div>
+          ×
+        </button>
+      </div>
+    </div>
 
-          {!checkoutOpen ? (
-            <>
-              <div className="flex-1 overflow-y-auto py-4">
-                {cart.length === 0 ? (
-                  <p className="text-gray-500 text-sm">
-                    Your cart is empty.
-                  </p>
-                ) : (
-                  <div className="space-y-4">
-                    {cart.map((item) => (
-                      <div key={item.id} className="flex gap-3 border-b pb-4">
-                        <img
-                          src={item.image}
-                          className="h-16 w-16 object-contain rounded-lg bg-gray-50"
-                        />
+    {!checkoutOpen ? (
+      <>
+        {/* Cart Items */}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
+          {cart.length === 0 ? (
+            <div className="rounded-[24px] border border-[#E6E0D8] bg-[#FBFAF8] p-5 text-center">
+              <p className="text-sm font-semibold text-[#6F655C]">
+                Your cart is empty.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {cart.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-[22px] border border-[#E6E0D8] bg-white p-3 shadow-sm"
+                >
+                  <div className="flex gap-3">
+                    <img
+                      src={item.image}
+                      className="h-16 w-16 shrink-0 rounded-xl border border-[#E6E0D8] bg-[#F8F5F1] object-contain"
+                      alt={item.name}
+                    />
 
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-sm">
-                            {item.name}
-                          </h3>
-                          <p className="text-sm text-gray-500">
-                            ${item.price}
-                          </p>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="line-clamp-2 text-sm font-bold leading-5 text-[#1F1A17]">
+                        {item.name}
+                      </h3>
 
-                          <div className="flex items-center gap-2 mt-2">
-                            <button
-                              onClick={() => changeQuantity(item.id, -1)}
-                              className="h-7 w-7 rounded-full border"
-                            >
-                              -
-                            </button>
-                            <span className="text-sm">{item.quantity}</span>
-                            <button
-                              onClick={() => changeQuantity(item.id, 1)}
-                              disabled={item.quantity >= Number(item.stock_quantity ?? 0)}
-                              className={`h-7 w-7 rounded-full border ${item.quantity >= Number(item.stock_quantity ?? 0)
-                                ? "cursor-not-allowed opacity-40"
-                                : ""
-                                }`}
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
+                      <p className="mt-1 text-sm font-semibold text-[#6F655C]">
+                        ${item.price}
+                      </p>
+
+                      <div className="mt-3 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => changeQuantity(item.id, -1)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full border border-[#D8D1C8] bg-white text-lg font-bold text-[#5F554C] shadow-sm transition-all active:scale-95"
+                        >
+                          -
+                        </button>
+
+                        <span className="min-w-5 text-center text-sm font-bold text-[#5F554C]">
+                          {item.quantity}
+                        </span>
 
                         <button
-                          onClick={() => removeFromCart(item.id)}
-                          className="text-sm text-red-500"
+                          type="button"
+                          onClick={() => changeQuantity(item.id, 1)}
+                          disabled={
+                            item.quantity >=
+                            Number(item.stock_quantity ?? 0)
+                          }
+                          className={`flex h-8 w-8 items-center justify-center rounded-full border border-[#D8D1C8] bg-white text-lg font-bold text-[#5F554C] shadow-sm transition-all active:scale-95 ${
+                            item.quantity >=
+                            Number(item.stock_quantity ?? 0)
+                              ? "cursor-not-allowed opacity-40"
+                              : ""
+                          }`}
                         >
-                          Remove
+                          +
                         </button>
                       </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => removeFromCart(item.id)}
+                      className="self-start rounded-full px-2 py-1 text-xs font-bold text-red-500 transition hover:bg-red-50"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Cart Footer */}
+        <div className="shrink-0 border-t border-[#E6E0D8] bg-white px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-4 shadow-[0_-8px_20px_rgba(0,0,0,0.04)]">
+          <div className="mb-4 flex items-center justify-between text-lg font-bold text-[#1F1A17]">
+            <span>Total</span>
+            <span>${cartTotal.toFixed(2)}</span>
+          </div>
+
+          <button
+            type="button"
+            disabled={cart.length === 0}
+            onClick={() => setCheckoutOpen(true)}
+            className="w-full rounded-full bg-[#A79B8E] py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95 disabled:opacity-50"
+          >
+            Checkout
+          </button>
+        </div>
+      </>
+    ) : (
+      /* Checkout Content */
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-2">
+        <div className="space-y-4">
+          <div className="rounded-[24px] border border-[#E6E0D8] bg-[#FBFAF8] p-4 shadow-sm">
+            <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+              Customer Details
+            </p>
+
+            <div className="space-y-3">
+              <input
+                className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                placeholder="Full Name"
+                value={form.fullName}
+                onChange={(e) =>
+                  setForm({ ...form, fullName: e.target.value })
+                }
+              />
+
+              <div className="relative">
+                <textarea
+                  placeholder="Shipping Address"
+                  className="min-h-[88px] w-full resize-none rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold leading-6 text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                  value={form.address}
+                  onChange={(e) =>
+                    searchAddressSuggestions(e.target.value)
+                  }
+                />
+
+                {addressSuggestions.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-56 overflow-y-auto rounded-2xl border border-[#E6E0D8] bg-white shadow-lg">
+                    {addressSuggestions.map((suggestion) => (
+                      <button
+                        key={suggestion.properties.place_id}
+                        type="button"
+                        onClick={() => {
+                          setForm({
+                            ...form,
+                            address: suggestion.properties.formatted,
+                          });
+                          setAddressSuggestions([]);
+                        }}
+                        className="w-full border-b border-[#F0ECE6] px-4 py-3 text-left text-sm leading-5 text-[#5F554C] last:border-b-0 hover:bg-[#F8F5F1]"
+                      >
+                        {suggestion.properties.formatted}
+                      </button>
                     ))}
                   </div>
                 )}
-              </div>
 
-              <div className="shrink-0 border-t border-gray-200 px-5 pb-5 pt-4">
-                <div className="flex justify-between font-bold mb-4">
-                  <span>Total</span>
-                  <span>${cartTotal.toFixed(2)}</span>
-                </div>
-
-                <button
-                  disabled={cart.length === 0}
-                  onClick={() => setCheckoutOpen(true)}
-                  className="w-full rounded-full bg-[#A79B8E] py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95 disabled:opacity-50"
-                >
-                  Checkout
-                </button>
-              </div>
-            </>
-          ) : (
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-2 overscroll-contain">
-              <div className="space-y-4">
-                <div className="rounded-[24px] border border-[#E6E0D8] bg-[#FBFAF8] p-4 shadow-sm">
-                  <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
-                    Customer Details
+                {addressLoading && (
+                  <p className="mt-1 text-xs text-[#9A9188]">
+                    Searching addresses...
                   </p>
-
-                  <div className="space-y-3">
-                    <input
-                      className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
-                      placeholder="Full Name"
-                      value={form.fullName}
-                      onChange={(e) =>
-                        setForm({ ...form, fullName: e.target.value })
-                      }
-                    />
-
-                    <div className="relative">
-                      <textarea
-                        placeholder="Shipping Address"
-                        className="min-h-[88px] w-full resize-none rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold leading-6 text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
-                        value={form.address}
-                        onChange={(e) => searchAddressSuggestions(e.target.value)}
-                      />
-
-                      {addressSuggestions.length > 0 && (
-                        <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-56 overflow-y-auto rounded-2xl border border-[#E6E0D8] bg-white shadow-lg">
-                          {addressSuggestions.map((suggestion) => (
-                            <button
-                              key={suggestion.properties.place_id}
-                              type="button"
-                              onClick={() => {
-                                setForm({
-                                  ...form,
-                                  address: suggestion.properties.formatted,
-                                });
-                                setAddressSuggestions([]);
-                              }}
-                              className="w-full border-b border-[#F0ECE6] px-4 py-3 text-left text-sm leading-5 text-[#5F554C] last:border-b-0 hover:bg-[#F8F5F1]"
-                            >
-                              {suggestion.properties.formatted}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-
-                      {addressLoading && (
-                        <p className="mt-1 text-xs text-[#9A9188]">
-                          Searching addresses...
-                        </p>
-                      )}
-                    </div>
-
-                    <input
-                      className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
-                      placeholder="Email"
-                      value={form.email}
-                      onChange={(e) =>
-                        setForm({ ...form, email: e.target.value })
-                      }
-                    />
-
-                    <input
-                      className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
-                      placeholder="Phone"
-                      value={form.phone}
-                      onChange={(e) =>
-                        setForm({ ...form, phone: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
-                  <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
-                    Payment Method
-                  </p>
-
-                  <select
-                    className={`w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold outline-none transition focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20 ${form.paymentMethod ? "text-[#5F554C]" : "text-[#B6ADA4]"
-                      }`}
-                    value={form.paymentMethod}
-                    onChange={(e) =>
-                      setForm({ ...form, paymentMethod: e.target.value })
-                    }
-                  >
-                    <option value="" disabled>
-                      Select Payment
-                    </option>
-                    {paymentMethods.map((method) => (
-                      <option key={method.id} value={method.name}>
-                        {method.display_label}
-                      </option>
-                    ))}
-                  </select>
-
-                  {selectedPaymentMethod && (
-                    <div className="mt-4 rounded-2xl border border-[#D8D1C8] bg-[#F8F5F1] p-4 text-sm text-[#6F655C] shadow-sm">
-                      <div className="mb-3 flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#A79B8E] shadow-sm">
-                          <svg
-                            className="h-4 w-4"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            aria-hidden="true"
-                          >
-                            <rect
-                              x="3"
-                              y="5"
-                              width="18"
-                              height="14"
-                              rx="2"
-                              stroke="currentColor"
-                              strokeWidth="1.7"
-                            />
-                            <path
-                              d="M3 9h18"
-                              stroke="currentColor"
-                              strokeWidth="1.7"
-                            />
-                            <path
-                              d="M7 15h4"
-                              stroke="currentColor"
-                              strokeWidth="1.7"
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                        </div>
-
-                        <p className="font-bold text-[#5F554C]">
-                          {selectedPaymentMethod.display_label} Payment
-                        </p>
-                      </div>
-
-                      {selectedPaymentMethod.account_value && (
-                        <div className="mb-3 rounded-xl border border-[#E6E0D8] bg-white px-3 py-2">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-[#9A9188]">
-                            Payment Info
-                          </p>
-                          <p className="mt-1 font-bold text-[#5F554C]">
-                            {selectedPaymentMethod.account_value}
-                          </p>
-                        </div>
-                      )}
-
-                      <p className="leading-6 text-[#6F655C]">
-                        {selectedPaymentMethod.instructions ||
-                          "Complete your payment using the selected method and include your order number."}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-
-
-
-                <button
-                  onClick={handleOrderSubmit}
-                  disabled={isSubmitting}
-                  className="w-full rounded-full bg-[#A79B8E] py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95 disabled:opacity-50"
-                >
-                  {isSubmitting ? "Saving Order..." : "Send Order"}
-                </button>
-
-                <button
-                  onClick={() => setCheckoutOpen(false)}
-                  className="w-full rounded-full border border-[#D8D1C8] bg-white py-3 text-sm font-bold text-[#A79B8E] shadow-sm transition-all hover:bg-[#F3F0EC] active:scale-95"
-                >
-                  Back to Cart
-                </button>
+                )}
               </div>
+
+              <input
+                className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                placeholder="Email"
+                value={form.email}
+                onChange={(e) =>
+                  setForm({ ...form, email: e.target.value })
+                }
+              />
+
+              <input
+                className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                placeholder="Phone"
+                value={form.phone}
+                onChange={(e) =>
+                  setForm({ ...form, phone: e.target.value })
+                }
+              />
             </div>
-          )}
+          </div>
 
+          <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+            <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+              Payment Method
+            </p>
+
+            <select
+              className={`w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold outline-none transition focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20 ${
+                form.paymentMethod
+                  ? "text-[#5F554C]"
+                  : "text-[#B6ADA4]"
+              }`}
+              value={form.paymentMethod}
+              onChange={(e) =>
+                setForm({ ...form, paymentMethod: e.target.value })
+              }
+            >
+              <option value="" disabled>
+                Select Payment
+              </option>
+              {paymentMethods.map((method) => (
+                <option key={method.id} value={method.name}>
+                  {method.display_label}
+                </option>
+              ))}
+            </select>
+
+            {selectedPaymentMethod && (
+              <div className="mt-4 rounded-2xl border border-[#D8D1C8] bg-[#F8F5F1] p-4 text-sm text-[#6F655C] shadow-sm">
+                <div className="mb-3 flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#A79B8E] shadow-sm">
+                    <svg
+                      className="h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <rect
+                        x="3"
+                        y="5"
+                        width="18"
+                        height="14"
+                        rx="2"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                      />
+                      <path
+                        d="M3 9h18"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                      />
+                      <path
+                        d="M7 15h4"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </div>
+
+                  <p className="font-bold text-[#5F554C]">
+                    {selectedPaymentMethod.display_label} Payment
+                  </p>
+                </div>
+
+                {selectedPaymentMethod.account_value && (
+                  <div className="mb-3 rounded-xl border border-[#E6E0D8] bg-white px-3 py-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#9A9188]">
+                      Payment Info
+                    </p>
+                    <p className="mt-1 font-bold text-[#5F554C]">
+                      {selectedPaymentMethod.account_value}
+                    </p>
+                  </div>
+                )}
+
+                <p className="leading-6 text-[#6F655C]">
+                  {selectedPaymentMethod.instructions ||
+                    "Complete your payment using the selected method and include your order number."}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleOrderSubmit}
+            disabled={isSubmitting}
+            className="w-full rounded-full bg-[#A79B8E] py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95 disabled:opacity-50"
+          >
+            {isSubmitting ? "Saving Order..." : "Send Order"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setCheckoutOpen(false)}
+            className="w-full rounded-full border border-[#D8D1C8] bg-white py-3 text-sm font-bold text-[#A79B8E] shadow-sm transition-all hover:bg-[#F3F0EC] active:scale-95"
+          >
+            Back to Cart
+          </button>
         </div>
-
-
       </div>
+    )}
+  </div>
+</div>
+
+
       {orderNotice && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/45 px-5 backdrop-blur-[2px]">
           <div className="w-full max-w-sm rounded-[28px] border border-[#E6E0D8] bg-white p-6 text-center shadow-2xl">
