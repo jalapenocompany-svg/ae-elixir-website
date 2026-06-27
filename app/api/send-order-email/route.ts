@@ -17,107 +17,30 @@ type EmailItem = {
   quantity: number;
 };
 
-function getPaymentInstructions(
-  paymentMethod: string,
-  orderNumber: string
-) {
-  const zelleAccount =
-    process.env.ZELLE_ACCOUNT || "Contact support@aeelixir.com";
+function getPaymentInstructions({
+  paymentMethod,
+  paymentMethodLabel,
+  paymentAccountValue,
+  paymentInstructions,
+  orderNumber,
+  whatsAppUrl,
+}: {
+  paymentMethod: string;
+  paymentMethodLabel?: string;
+  paymentAccountValue?: string;
+  paymentInstructions?: string;
+  orderNumber: string;
+  whatsAppUrl?: string;
+}) {
+  const label = paymentMethodLabel || paymentMethod || "Payment";
+  const accountValue = paymentAccountValue || "";
+  const instructions =
+    paymentInstructions ||
+    "Complete your payment using the selected method.";
 
-  const venmoAccount =
-    process.env.VENMO_ACCOUNT || "Contact support@aeelixir.com";
-
-  if (paymentMethod.toLowerCase() === "zelle") {
-    return `
-      <div style="
-        background:${SOFT_BACKGROUND};
-        border:1px solid ${BORDER_COLOR};
-        border-radius:18px;
-        padding:18px;
-        margin-top:18px;
-      ">
-        <h3 style="
-          margin:0 0 10px;
-          color:${DARK_TEXT};
-          font-size:17px;
-        ">
-          Zelle Payment
-        </h3>
-
-        <p style="margin:6px 0;color:${BODY_TEXT};">
-          Send payment via Zelle to:
-        </p>
-
-        <p style="
-          margin:8px 0;
-          color:${DARK_TEXT};
-          font-weight:bold;
-          font-size:16px;
-        ">
-          ${zelleAccount}
-        </p>
-
-        <p style="margin:12px 0 0;color:${BODY_TEXT};">
-          Include your order number in the memo:
-        </p>
-
-        <p style="
-          margin:6px 0 0;
-          color:${DARK_TEXT};
-          font-weight:bold;
-          font-size:16px;
-        ">
-          #${orderNumber}
-        </p>
-      </div>
-    `;
-  }
-
-  if (paymentMethod.toLowerCase() === "venmo") {
-    return `
-      <div style="
-        background:${SOFT_BACKGROUND};
-        border:1px solid ${BORDER_COLOR};
-        border-radius:18px;
-        padding:18px;
-        margin-top:18px;
-      ">
-        <h3 style="
-          margin:0 0 10px;
-          color:${DARK_TEXT};
-          font-size:17px;
-        ">
-          Venmo Payment
-        </h3>
-
-        <p style="margin:6px 0;color:${BODY_TEXT};">
-          Send payment to:
-        </p>
-
-        <p style="
-          margin:8px 0;
-          color:${DARK_TEXT};
-          font-weight:bold;
-          font-size:16px;
-        ">
-          ${venmoAccount}
-        </p>
-
-        <p style="margin:12px 0 0;color:${BODY_TEXT};">
-          Include your order number in the payment note:
-        </p>
-
-        <p style="
-          margin:6px 0 0;
-          color:${DARK_TEXT};
-          font-weight:bold;
-          font-size:16px;
-        ">
-          #${orderNumber}
-        </p>
-      </div>
-    `;
-  }
+  const isWhatsApp =
+    paymentMethod?.toLowerCase() === "whatsapp" ||
+    label?.toLowerCase() === "whatsapp";
 
   return `
     <div style="
@@ -132,19 +55,33 @@ function getPaymentInstructions(
         color:${DARK_TEXT};
         font-size:17px;
       ">
-        Payment Instructions
+        ${label} Payment
       </h3>
 
-      <p style="margin:6px 0;color:${BODY_TEXT};line-height:1.6;">
-        Please contact us to complete payment for your order.
-      </p>
+      ${accountValue
+      ? `
+            <p style="margin:6px 0;color:${BODY_TEXT};">
+              Payment info:
+            </p>
+
+            <p style="
+              margin:8px 0;
+              color:${DARK_TEXT};
+              font-weight:bold;
+              font-size:16px;
+            ">
+              ${accountValue}
+            </p>
+          `
+      : ""
+    }
 
       <p style="
-        margin:10px 0 0;
-        color:${DARK_TEXT};
-        font-weight:bold;
+        margin:12px 0 0;
+        color:${BODY_TEXT};
+        line-height:1.6;
       ">
-        ${SUPPORT_EMAIL}
+        ${instructions}
       </p>
 
       <p style="margin:12px 0 0;color:${BODY_TEXT};">
@@ -159,6 +96,32 @@ function getPaymentInstructions(
       ">
         #${orderNumber}
       </p>
+
+      ${isWhatsApp && whatsAppUrl
+      ? `
+            <div style="margin-top:18px;text-align:center;">
+              <a
+                href="${whatsAppUrl}"
+                target="_blank"
+                rel="noopener noreferrer"
+                style="
+                  display:inline-block;
+                  min-width:190px;
+                  padding:14px 24px;
+                  color:#ffffff;
+                  background:${BRAND_COLOR};
+                  border-radius:999px;
+                  text-decoration:none;
+                  font-size:14px;
+                  font-weight:bold;
+                "
+              >
+                Send Order via WhatsApp
+              </a>
+            </div>
+          `
+      : ""
+    }
     </div>
   `;
 }
@@ -170,6 +133,10 @@ export async function POST(req: Request) {
       customerName,
       customerEmail,
       paymentMethod,
+      paymentMethodLabel,
+      paymentAccountValue,
+      paymentInstructions,
+      whatsAppUrl,
       items,
       total,
     } = await req.json();
@@ -191,9 +158,9 @@ export async function POST(req: Request) {
       process.env.NEXT_PUBLIC_SITE_URL ||
       "https://ae-elixir-website.vercel.app";
 
-    
-const heroImage = `${siteUrl}/order-received.png`;
-const logoUrl = `${siteUrl}/order-received.png`;
+
+    const heroImage = `${siteUrl}/order-received.png`;
+    const logoUrl = `${siteUrl}/order-received.png`;
 
     const trackingUrl = `${siteUrl}/order-lookup?order=${encodeURIComponent(
       orderNumber
@@ -205,10 +172,14 @@ const logoUrl = `${siteUrl}/order-received.png`;
       process.env.ORDER_FROM_EMAIL ||
       `${BRAND_NAME} <support@aeelixir.com>`;
 
-    const paymentHtml = getPaymentInstructions(
+    const paymentHtml = getPaymentInstructions({
       paymentMethod,
-      orderNumber
-    );
+      paymentMethodLabel,
+      paymentAccountValue,
+      paymentInstructions,
+      orderNumber,
+      whatsAppUrl,
+    });
 
     const itemsHtml = (items as EmailItem[])
       .map(

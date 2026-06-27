@@ -176,6 +176,8 @@ export default function ShopClient({ seller }: { seller?: string }) {
   const [orderNotice, setOrderNotice] = useState("");
   const [whatsAppUrl, setWhatsAppUrl] = useState("");
   const [orderNumber, setOrderNumber] = useState("");
+  const [submittedPaymentMethod, setSubmittedPaymentMethod] =
+    useState<PaymentMethod | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validSellerCode, setValidSellerCode] = useState("");
   const [showReferenceCode, setShowReferenceCode] = useState(false);
@@ -582,6 +584,24 @@ export default function ShopClient({ seller }: { seller?: string }) {
 
     const shortOrderNumber = data.id.slice(0, 8).toUpperCase();
     setOrderNumber(shortOrderNumber);
+    setSubmittedPaymentMethod(selectedPaymentMethod || null);
+
+    const itemsText = cart
+      .map(
+        (item) =>
+          `${item.quantity}x ${item.name} - $${(
+            item.price * item.quantity
+          ).toFixed(2)}`
+      )
+      .join("%0A");
+
+    const message = `New AE Elixir Order%0A%0AOrder: #${shortOrderNumber}%0A%0ACustomer:%0AName: ${form.fullName}%0APhone: ${form.phone}%0AEmail: ${form.email}%0AAddress: ${form.address}%0A%0APayment: ${selectedPaymentMethod?.display_label || form.paymentMethod
+      }%0A%0AItems:%0A${itemsText}%0A%0ATotal: $${cartTotal.toFixed(2)}`;
+
+    const orderWhatsAppUrl =
+      form.paymentMethod === "WhatsApp" && cleanWhatsApp
+        ? `https://wa.me/${cleanWhatsApp}?text=${message}`
+        : "";
 
     await fetch("/api/send-order-email", {
       method: "POST",
@@ -591,6 +611,13 @@ export default function ShopClient({ seller }: { seller?: string }) {
         customerName: form.fullName,
         customerEmail: form.email,
         paymentMethod: form.paymentMethod,
+        paymentMethodLabel:
+          selectedPaymentMethod?.display_label || form.paymentMethod,
+        paymentAccountValue:
+          selectedPaymentMethod?.account_value || "",
+        paymentInstructions:
+          selectedPaymentMethod?.instructions || "",
+        whatsAppUrl: orderWhatsAppUrl,
         items: cart,
         total: cartTotal,
       }),
@@ -599,31 +626,19 @@ export default function ShopClient({ seller }: { seller?: string }) {
     saveOrderLocally({
       id: data.id,
       orderNumber: shortOrderNumber,
-      seller: validSellerCode || "dx1984",
+      seller: validSellerCode || "AEELIXIR",
       total: cartTotal,
       paymentMethod: form.paymentMethod,
       createdAt: new Date().toISOString(),
       items: cart,
     });
 
-    const itemsText = cart
-      .map(
-        (item) =>
-          `${item.quantity}x ${item.name} - $${item.price * item.quantity}`
-      )
-      .join("%0A");
-
-    const message = `New Pepmistry Order%0A%0AOrder: #${shortOrderNumber}%0AReference Code: ${(validSellerCode || "dx1984").toUpperCase()}%0A%0ACustomer:%0AName: ${form.fullName}%0APhone: ${form.phone}%0AEmail: ${form.email}%0AAddress: ${form.address}%0A%0APayment: ${form.paymentMethod}%0A%0AItems:%0A${itemsText}%0A%0ATotal: $${cartTotal.toFixed(
-      2
-    )}`;
-
     if (form.paymentMethod === "WhatsApp") {
-      setWhatsAppUrl(
-        cleanWhatsApp ? `https://wa.me/${cleanWhatsApp}?text=${message}` : ""
-      );
+      setWhatsAppUrl(orderWhatsAppUrl);
       setOrderNotice(
         "Order saved. Tap below to open WhatsApp and send your order."
       );
+      resetCheckoutAfterSuccessfulOrder();
       setIsSubmitting(false);
       return;
     }
@@ -1275,158 +1290,157 @@ export default function ShopClient({ seller }: { seller?: string }) {
               </div>
             </>
           ) : (
-<div className="space-y-4 py-4">
-  <div className="rounded-[24px] border border-[#E6E0D8] bg-[#FBFAF8] p-4 shadow-sm">
-    <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
-      Customer Details
-    </p>
+            <div className="space-y-4 py-4">
+              <div className="rounded-[24px] border border-[#E6E0D8] bg-[#FBFAF8] p-4 shadow-sm">
+                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                  Customer Details
+                </p>
 
-    <div className="space-y-3">
-      <input
-        className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
-        placeholder="Full Name"
-        value={form.fullName}
-        onChange={(e) =>
-          setForm({ ...form, fullName: e.target.value })
-        }
-      />
+                <div className="space-y-3">
+                  <input
+                    className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                    placeholder="Full Name"
+                    value={form.fullName}
+                    onChange={(e) =>
+                      setForm({ ...form, fullName: e.target.value })
+                    }
+                  />
 
-      <div className="relative">
-        <textarea
-          placeholder="Shipping Address"
-          className="min-h-[88px] w-full resize-none rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold leading-6 text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
-          value={form.address}
-          onChange={(e) => searchAddressSuggestions(e.target.value)}
-        />
+                  <div className="relative">
+                    <textarea
+                      placeholder="Shipping Address"
+                      className="min-h-[88px] w-full resize-none rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold leading-6 text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                      value={form.address}
+                      onChange={(e) => searchAddressSuggestions(e.target.value)}
+                    />
 
-        {addressSuggestions.length > 0 && (
-          <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-56 overflow-y-auto rounded-2xl border border-[#E6E0D8] bg-white shadow-lg">
-            {addressSuggestions.map((suggestion) => (
-              <button
-                key={suggestion.properties.place_id}
-                type="button"
-                onClick={() => {
-                  setForm({
-                    ...form,
-                    address: suggestion.properties.formatted,
-                  });
-                  setAddressSuggestions([]);
-                }}
-                className="w-full border-b border-[#F0ECE6] px-4 py-3 text-left text-sm leading-5 text-[#5F554C] last:border-b-0 hover:bg-[#F8F5F1]"
-              >
-                {suggestion.properties.formatted}
-              </button>
-            ))}
-          </div>
-        )}
+                    {addressSuggestions.length > 0 && (
+                      <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-56 overflow-y-auto rounded-2xl border border-[#E6E0D8] bg-white shadow-lg">
+                        {addressSuggestions.map((suggestion) => (
+                          <button
+                            key={suggestion.properties.place_id}
+                            type="button"
+                            onClick={() => {
+                              setForm({
+                                ...form,
+                                address: suggestion.properties.formatted,
+                              });
+                              setAddressSuggestions([]);
+                            }}
+                            className="w-full border-b border-[#F0ECE6] px-4 py-3 text-left text-sm leading-5 text-[#5F554C] last:border-b-0 hover:bg-[#F8F5F1]"
+                          >
+                            {suggestion.properties.formatted}
+                          </button>
+                        ))}
+                      </div>
+                    )}
 
-        {addressLoading && (
-          <p className="mt-1 text-xs text-[#9A9188]">
-            Searching addresses...
-          </p>
-        )}
-      </div>
+                    {addressLoading && (
+                      <p className="mt-1 text-xs text-[#9A9188]">
+                        Searching addresses...
+                      </p>
+                    )}
+                  </div>
 
-      <input
-        className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
-        placeholder="Email"
-        value={form.email}
-        onChange={(e) =>
-          setForm({ ...form, email: e.target.value })
-        }
-      />
+                  <input
+                    className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                    placeholder="Email"
+                    value={form.email}
+                    onChange={(e) =>
+                      setForm({ ...form, email: e.target.value })
+                    }
+                  />
 
-      <input
-        className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
-        placeholder="Phone"
-        value={form.phone}
-        onChange={(e) =>
-          setForm({ ...form, phone: e.target.value })
-        }
-      />
-    </div>
-  </div>
+                  <input
+                    className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                    placeholder="Phone"
+                    value={form.phone}
+                    onChange={(e) =>
+                      setForm({ ...form, phone: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
 
-  <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
-    <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
-      Payment Method
-    </p>
+              <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                  Payment Method
+                </p>
 
-    <select
-      className={`w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold outline-none transition focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20 ${
-        form.paymentMethod ? "text-[#5F554C]" : "text-[#B6ADA4]"
-      }`}
-      value={form.paymentMethod}
-      onChange={(e) =>
-        setForm({ ...form, paymentMethod: e.target.value })
-      }
-    >
-      <option value="" disabled>
-        Select Payment
-      </option>
-      {paymentMethods.map((method) => (
-        <option key={method.id} value={method.name}>
-          {method.display_label}
-        </option>
-      ))}
-    </select>
+                <select
+                  className={`w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold outline-none transition focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20 ${form.paymentMethod ? "text-[#5F554C]" : "text-[#B6ADA4]"
+                    }`}
+                  value={form.paymentMethod}
+                  onChange={(e) =>
+                    setForm({ ...form, paymentMethod: e.target.value })
+                  }
+                >
+                  <option value="" disabled>
+                    Select Payment
+                  </option>
+                  {paymentMethods.map((method) => (
+                    <option key={method.id} value={method.name}>
+                      {method.display_label}
+                    </option>
+                  ))}
+                </select>
 
-    {selectedPaymentMethod && (
-      <div className="mt-4 rounded-2xl border border-[#D8D1C8] bg-[#F8F5F1] p-4 text-sm text-[#6F655C] shadow-sm">
-        <div className="mb-3 flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#A79B8E] shadow-sm">
-            <svg
-              className="h-4 w-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              aria-hidden="true"
-            >
-              <rect
-                x="3"
-                y="5"
-                width="18"
-                height="14"
-                rx="2"
-                stroke="currentColor"
-                strokeWidth="1.7"
-              />
-              <path
-                d="M3 9h18"
-                stroke="currentColor"
-                strokeWidth="1.7"
-              />
-              <path
-                d="M7 15h4"
-                stroke="currentColor"
-                strokeWidth="1.7"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
+                {selectedPaymentMethod && (
+                  <div className="mt-4 rounded-2xl border border-[#D8D1C8] bg-[#F8F5F1] p-4 text-sm text-[#6F655C] shadow-sm">
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#A79B8E] shadow-sm">
+                        <svg
+                          className="h-4 w-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          aria-hidden="true"
+                        >
+                          <rect
+                            x="3"
+                            y="5"
+                            width="18"
+                            height="14"
+                            rx="2"
+                            stroke="currentColor"
+                            strokeWidth="1.7"
+                          />
+                          <path
+                            d="M3 9h18"
+                            stroke="currentColor"
+                            strokeWidth="1.7"
+                          />
+                          <path
+                            d="M7 15h4"
+                            stroke="currentColor"
+                            strokeWidth="1.7"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </div>
 
-          <p className="font-bold text-[#5F554C]">
-            {selectedPaymentMethod.display_label} Payment
-          </p>
-        </div>
+                      <p className="font-bold text-[#5F554C]">
+                        {selectedPaymentMethod.display_label} Payment
+                      </p>
+                    </div>
 
-        {selectedPaymentMethod.account_value && (
-          <div className="mb-3 rounded-xl border border-[#E6E0D8] bg-white px-3 py-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#9A9188]">
-              Payment Info
-            </p>
-            <p className="mt-1 font-bold text-[#5F554C]">
-              {selectedPaymentMethod.account_value}
-            </p>
-          </div>
-        )}
+                    {selectedPaymentMethod.account_value && (
+                      <div className="mb-3 rounded-xl border border-[#E6E0D8] bg-white px-3 py-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-[#9A9188]">
+                          Payment Info
+                        </p>
+                        <p className="mt-1 font-bold text-[#5F554C]">
+                          {selectedPaymentMethod.account_value}
+                        </p>
+                      </div>
+                    )}
 
-        <p className="leading-6 text-[#6F655C]">
-          {selectedPaymentMethod.instructions ||
-            "Complete your payment using the selected method and include your order number."}
-        </p>
-      </div>
-    )}
-  </div>
+                    <p className="leading-6 text-[#6F655C]">
+                      {selectedPaymentMethod.instructions ||
+                        "Complete your payment using the selected method and include your order number."}
+                    </p>
+                  </div>
+                )}
+              </div>
 
 
 
@@ -1474,23 +1488,25 @@ export default function ShopClient({ seller }: { seller?: string }) {
               {orderNotice}
             </p>
 
-            {selectedPaymentMethod && (
+            {submittedPaymentMethod && (
               <div className="mb-5 rounded-2xl border border-[#D8D1C8] bg-[#FBFAF8] p-5 text-sm text-[#6F655C] shadow-sm">
                 <p className="mb-3 font-bold text-[#5F554C]">
-                  {selectedPaymentMethod.display_label} Payment
+                  {submittedPaymentMethod.display_label} Payment
                 </p>
 
-                {selectedPaymentMethod.account_value && (
-                  <p className="leading-6">
-                    Send payment to:{" "}
-                    <span className="font-bold text-[#5F554C]">
-                      {selectedPaymentMethod.account_value}
-                    </span>
-                  </p>
+                {submittedPaymentMethod.account_value && (
+                  <div className="mb-3 rounded-xl border border-[#E6E0D8] bg-white px-3 py-2 text-left">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#9A9188]">
+                      Payment Info
+                    </p>
+                    <p className="mt-1 font-bold text-[#5F554C]">
+                      {submittedPaymentMethod.account_value}
+                    </p>
+                  </div>
                 )}
 
-                <p className="mt-3 leading-6">
-                  {selectedPaymentMethod.instructions ||
+                <p className="leading-6">
+                  {submittedPaymentMethod.instructions ||
                     "Complete your payment using the selected method."}
                 </p>
 
@@ -1504,13 +1520,26 @@ export default function ShopClient({ seller }: { seller?: string }) {
               </div>
             )}
 
+            {whatsAppUrl && (
+              <a
+                href={whatsAppUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mb-3 block w-full rounded-full bg-[#A79B8E] py-3 text-center text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
+              >
+                Send Order via WhatsApp
+              </a>
+            )}
+
             <button
               type="button"
               onClick={() => {
                 setOrderNotice("");
                 setOrderNumber("");
+                setWhatsAppUrl("");
+                setSubmittedPaymentMethod(null);
               }}
-              className="w-full rounded-full bg-[#A79B8E] py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
+              className="w-full rounded-full border border-[#D8D1C8] bg-white py-3 text-sm font-bold text-[#A79B8E] shadow-sm transition-all hover:bg-[#F3F0EC] active:scale-95"
             >
               Close
             </button>
