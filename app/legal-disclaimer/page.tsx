@@ -229,16 +229,7 @@ export default function LegalDisclaimerPage() {
             <div className="mt-4 space-y-1 text-sm">
               <p className="font-bold text-[#5F554C]">AE Elixir</p>
 
-              <p>
-                Legal:{" "}
-                <a
-                  href="mailto:legal@aeelixir.com"
-                  className="font-semibold text-[#8F8276] underline underline-offset-2"
-                >
-                  legal@aeelixir.com
-                </a>
-              </p>
-
+              
               <p>
                 Support:{" "}
                 <a
