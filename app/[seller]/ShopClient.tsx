@@ -595,11 +595,39 @@ export default function ShopClient({ seller }: { seller?: string }) {
       )
       .join("%0A");
 
-    const message = `New AE Elixir Order%0A%0AOrder: #${shortOrderNumber}%0A%0ACustomer:%0AName: ${form.fullName}%0APhone: ${form.phone}%0AEmail: ${form.email}%0AAddress: ${form.address}%0A%0APayment: ${selectedPaymentMethod?.display_label || form.paymentMethod
-      }%0A%0AItems:%0A${itemsText}%0A%0ATotal: $${cartTotal.toFixed(2)}`;
+const message = encodeURIComponent(
+  `New AE Elixir Order
+
+Order: #${shortOrderNumber}
+
+Customer:
+Name: ${form.fullName}
+Phone: ${form.phone}
+Email: ${form.email}
+Address: ${form.address}
+
+Payment: ${selectedPaymentMethod?.display_label || form.paymentMethod}
+
+Items:
+${cart
+  .map(
+    (item) =>
+      `${item.quantity}x ${item.name} - $${(
+        item.price * item.quantity
+      ).toFixed(2)}`
+  )
+  .join("\n")}
+
+Total: $${cartTotal.toFixed(2)}`
+);
+
+    const isWhatsAppPayment =
+      form.paymentMethod.toLowerCase() === "whatsapp" ||
+      selectedPaymentMethod?.name?.toLowerCase() === "whatsapp" ||
+      selectedPaymentMethod?.display_label?.toLowerCase() === "whatsapp";
 
     const orderWhatsAppUrl =
-      form.paymentMethod === "WhatsApp" && cleanWhatsApp
+      isWhatsAppPayment && cleanWhatsApp
         ? `https://wa.me/${cleanWhatsApp}?text=${message}`
         : "";
 
@@ -633,15 +661,17 @@ export default function ShopClient({ seller }: { seller?: string }) {
       items: cart,
     });
 
-    if (form.paymentMethod === "WhatsApp") {
-      setWhatsAppUrl(orderWhatsAppUrl);
-      setOrderNotice(
-        "Order saved. Tap below to open WhatsApp and send your order."
-      );
-      resetCheckoutAfterSuccessfulOrder();
-      setIsSubmitting(false);
-      return;
-    }
+if (isWhatsAppPayment) {
+  setWhatsAppUrl(orderWhatsAppUrl);
+  setOrderNotice(
+    orderWhatsAppUrl
+      ? "Order saved. Tap below to open WhatsApp and send your order."
+      : "Order saved, but WhatsApp contact is not configured."
+  );
+  resetCheckoutAfterSuccessfulOrder();
+  setIsSubmitting(false);
+  return;
+}
 
     setWhatsAppUrl("");
     setOrderNotice(
