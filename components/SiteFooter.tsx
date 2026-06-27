@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import Link from "next/link";
 
 type FooterSettings = {
   site_name: string;
@@ -166,10 +167,32 @@ export default function SiteFooter() {
           </a>
         </div>
 
+        <div className="mb-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs">
+          <Link
+            href="/research-use-only"
+            className="font-medium text-[#8F8276] transition hover:text-[#5F554C] hover:underline"
+          >
+            Research Use Only
+          </Link>
+
+          <span
+            className="hidden text-[#D8D1C8] sm:inline"
+            aria-hidden="true"
+          >
+            •
+          </span>
+
+          <Link
+            href="/legal-disclaimer"
+            className="font-medium text-[#8F8276] transition hover:text-[#5F554C] hover:underline"
+          >
+            Legal Disclaimer
+          </Link>
+        </div>
+
         <p className="text-xs text-gray-400">
           {settings?.footer_text ||
-            `© ${new Date().getFullYear()} ${
-              settings?.site_name || "AE Elixir"
+            `© ${new Date().getFullYear()} ${settings?.site_name || "AE Elixir"
             }. All rights reserved.`}
         </p>
       </div>
