@@ -1275,103 +1275,158 @@ export default function ShopClient({ seller }: { seller?: string }) {
               </div>
             </>
           ) : (
-            <div className="py-4 space-y-3">
-              <input
-                className="w-full border rounded-xl p-3"
-                placeholder="Full Name"
-                onChange={(e) =>
-                  setForm({ ...form, fullName: e.target.value })
-                }
-              />
-              <div className="relative">
-                <textarea
-                  placeholder="Shipping Address"
-                  className="w-full rounded-xl border p-3"
-                  value={form.address}
-                  onChange={(e) => searchAddressSuggestions(e.target.value)}
-                />
+<div className="space-y-4 py-4">
+  <div className="rounded-[24px] border border-[#E6E0D8] bg-[#FBFAF8] p-4 shadow-sm">
+    <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+      Customer Details
+    </p>
 
-                {addressSuggestions.length > 0 && (
-                  <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-56 overflow-y-auto rounded-2xl border bg-white shadow-lg">
-                    {addressSuggestions.map((suggestion) => (
-                      <button
-                        key={suggestion.properties.place_id}
-                        type="button"
-                        onClick={() => {
-                          setForm({
-                            ...form,
-                            address: suggestion.properties.formatted,
-                          });
-                          setAddressSuggestions([]);
-                        }}
-                        className="w-full border-b px-4 py-3 text-left text-sm last:border-b-0 hover:bg-gray-50"
-                      >
-                        {suggestion.properties.formatted}
-                      </button>
-                    ))}
-                  </div>
-                )}
+    <div className="space-y-3">
+      <input
+        className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+        placeholder="Full Name"
+        value={form.fullName}
+        onChange={(e) =>
+          setForm({ ...form, fullName: e.target.value })
+        }
+      />
 
-                {addressLoading && (
-                  <p className="mt-1 text-xs text-gray-400">Searching addresses...</p>
-                )}
-              </div>
-              <input
-                className="w-full border rounded-xl p-3"
-                placeholder="Email"
-                onChange={(e) =>
-                  setForm({ ...form, email: e.target.value })
-                }
-              />
-              <input
-                className="w-full border rounded-xl p-3"
-                placeholder="Phone"
-                onChange={(e) =>
-                  setForm({ ...form, phone: e.target.value })
-                }
-              />
+      <div className="relative">
+        <textarea
+          placeholder="Shipping Address"
+          className="min-h-[88px] w-full resize-none rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold leading-6 text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+          value={form.address}
+          onChange={(e) => searchAddressSuggestions(e.target.value)}
+        />
 
-              <select
-                className={`w-full rounded-xl border p-3 ${form.paymentMethod ? "text-black" : "text-gray-400"
-                  }`}
-                value={form.paymentMethod}
-                onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}
+        {addressSuggestions.length > 0 && (
+          <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-56 overflow-y-auto rounded-2xl border border-[#E6E0D8] bg-white shadow-lg">
+            {addressSuggestions.map((suggestion) => (
+              <button
+                key={suggestion.properties.place_id}
+                type="button"
+                onClick={() => {
+                  setForm({
+                    ...form,
+                    address: suggestion.properties.formatted,
+                  });
+                  setAddressSuggestions([]);
+                }}
+                className="w-full border-b border-[#F0ECE6] px-4 py-3 text-left text-sm leading-5 text-[#5F554C] last:border-b-0 hover:bg-[#F8F5F1]"
               >
-                <option value="" disabled>
-                  Select Payment
-                </option>
-                {paymentMethods.map((method) => (
-                  <option key={method.id} value={method.name}>
-                    {method.display_label}
-                  </option>
-                ))}
-              </select>
+                {suggestion.properties.formatted}
+              </button>
+            ))}
+          </div>
+        )}
 
+        {addressLoading && (
+          <p className="mt-1 text-xs text-[#9A9188]">
+            Searching addresses...
+          </p>
+        )}
+      </div>
 
+      <input
+        className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+        placeholder="Email"
+        value={form.email}
+        onChange={(e) =>
+          setForm({ ...form, email: e.target.value })
+        }
+      />
 
-              {selectedPaymentMethod && (
-                <div
-                  className={`mt-3 rounded-2xl border p-4 text-sm ${selectedPaymentMethod.theme_light || "bg-gray-50"
-                    } ${selectedPaymentMethod.theme_border || "border-gray-200"} ${selectedPaymentMethod.theme_text || "text-gray-700"
-                    }`}
-                >
-                  <p className="mb-1 font-bold">
-                    {selectedPaymentMethod.display_label} Payment
-                  </p>
+      <input
+        className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+        placeholder="Phone"
+        value={form.phone}
+        onChange={(e) =>
+          setForm({ ...form, phone: e.target.value })
+        }
+      />
+    </div>
+  </div>
 
-                  {selectedPaymentMethod.account_value && (
-                    <p className="mb-2">
-                      <span className="font-semibold">Payment Info: </span>
-                      {selectedPaymentMethod.account_value}
-                    </p>
-                  )}
+  <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+    <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+      Payment Method
+    </p>
 
-                  <p className="leading-relaxed">
-                    {selectedPaymentMethod.instructions ||
-                      "Complete your payment using the selected method and include your order number."}
-                  </p>
-                </div>
-              )}
+    <select
+      className={`w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold outline-none transition focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20 ${
+        form.paymentMethod ? "text-[#5F554C]" : "text-[#B6ADA4]"
+      }`}
+      value={form.paymentMethod}
+      onChange={(e) =>
+        setForm({ ...form, paymentMethod: e.target.value })
+      }
+    >
+      <option value="" disabled>
+        Select Payment
+      </option>
+      {paymentMethods.map((method) => (
+        <option key={method.id} value={method.name}>
+          {method.display_label}
+        </option>
+      ))}
+    </select>
+
+    {selectedPaymentMethod && (
+      <div className="mt-4 rounded-2xl border border-[#D8D1C8] bg-[#F8F5F1] p-4 text-sm text-[#6F655C] shadow-sm">
+        <div className="mb-3 flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#A79B8E] shadow-sm">
+            <svg
+              className="h-4 w-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <rect
+                x="3"
+                y="5"
+                width="18"
+                height="14"
+                rx="2"
+                stroke="currentColor"
+                strokeWidth="1.7"
+              />
+              <path
+                d="M3 9h18"
+                stroke="currentColor"
+                strokeWidth="1.7"
+              />
+              <path
+                d="M7 15h4"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
+
+          <p className="font-bold text-[#5F554C]">
+            {selectedPaymentMethod.display_label} Payment
+          </p>
+        </div>
+
+        {selectedPaymentMethod.account_value && (
+          <div className="mb-3 rounded-xl border border-[#E6E0D8] bg-white px-3 py-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#9A9188]">
+              Payment Info
+            </p>
+            <p className="mt-1 font-bold text-[#5F554C]">
+              {selectedPaymentMethod.account_value}
+            </p>
+          </div>
+        )}
+
+        <p className="leading-6 text-[#6F655C]">
+          {selectedPaymentMethod.instructions ||
+            "Complete your payment using the selected method and include your order number."}
+        </p>
+      </div>
+    )}
+  </div>
 
 
 
