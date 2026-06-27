@@ -242,10 +242,7 @@ export default function LegalDisclaimerPage() {
             </div>
           </section>
 
-          <p className="mt-5 text-center text-xs leading-5 text-[#9A9188]">
-            This page is provided for general business use and should be
-            reviewed by qualified legal counsel before launch.
-          </p>
+
         </div>
       </main>
     </div>
