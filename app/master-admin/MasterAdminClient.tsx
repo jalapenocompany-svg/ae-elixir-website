@@ -1534,6 +1534,14 @@ export default function MasterAdminClient() {
             {orders.map((order) => {
               const orderNumber = order.id.slice(0, 8).toUpperCase();
 
+              const currentOrderStatus = String(
+                orderDrafts[order.id]?.order_status ??
+                order.order_status ??
+                "pending"
+              ).toLowerCase();
+
+              const isCancelledOrder = currentOrderStatus === "cancelled";
+
               return (
                 <div
                   key={order.id}
@@ -1610,7 +1618,11 @@ export default function MasterAdminClient() {
 
                   <div className="space-y-3">
                     <select
-                      className="w-full rounded-xl border border-[#D8D1C8] bg-white p-3 text-sm font-semibold text-[#5F554C]"
+                      disabled={isCancelledOrder}
+                      className={`w-full rounded-xl border border-[#D8D1C8] p-3 text-sm font-semibold ${isCancelledOrder
+                        ? "cursor-not-allowed bg-gray-100 text-gray-400"
+                        : "bg-white text-[#5F554C]"
+                        }`}
                       value={
                         orderDrafts[order.id]?.order_status ??
                         order.order_status ??
@@ -1649,7 +1661,11 @@ export default function MasterAdminClient() {
                     </select>
 
                     <input
-                      className="w-full rounded-xl border border-[#D8D1C8] bg-white p-3 text-sm font-semibold text-[#5F554C]"
+                      disabled={isCancelledOrder}
+                      className={`w-full rounded-xl border border-[#D8D1C8] p-3 text-sm font-semibold ${isCancelledOrder
+                          ? "cursor-not-allowed bg-gray-100 text-gray-400"
+                          : "bg-white text-[#5F554C]"
+                        }`}
                       placeholder="Tracking Number"
                       value={
                         orderDrafts[order.id]?.tracking_number ??
@@ -1668,8 +1684,8 @@ export default function MasterAdminClient() {
                         onClick={() => saveOrder(order.id)}
                         disabled={!orderDrafts[order.id]}
                         className={`rounded-xl px-4 py-3 text-sm font-semibold ${orderDrafts[order.id]
-                            ? "border border-green-200 bg-green-50 text-green-700"
-                            : "border border-gray-200 bg-gray-50 text-gray-400"
+                          ? "border border-green-200 bg-green-50 text-green-700"
+                          : "border border-gray-200 bg-gray-50 text-gray-400"
                           }`}
                       >
                         Save Order
