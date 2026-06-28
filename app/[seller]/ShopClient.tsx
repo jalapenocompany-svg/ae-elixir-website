@@ -675,7 +675,7 @@ Total: $${cartTotal.toFixed(2)}`
 
     setWhatsAppUrl("");
     setOrderNotice(
-      "Order saved. Payment instructions will be sent to your email."
+      "Order saved. Payment instructions will be sent to your email. Check Junk Folder if Email is not received on your Inbox."
     );
     resetCheckoutAfterSuccessfulOrder();
     setIsSubmitting(false);
