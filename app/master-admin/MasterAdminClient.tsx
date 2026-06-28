@@ -689,6 +689,49 @@ export default function MasterAdminClient() {
 
     const order = orders.find((item) => item.id === orderId);
 
+    if (!order) {
+      alert("Order not found.");
+      return;
+    }
+
+    const currentOrderStatus = String(
+      order.order_status || "pending"
+    ).toLowerCase();
+
+    const nextOrderStatus = String(
+      updates.order_status ?? order.order_status ?? "pending"
+    ).toLowerCase();
+
+    if (currentOrderStatus === "cancelled") {
+      const allowedKeys = ["payment_status"];
+
+      const invalidKeys = Object.keys(updates).filter(
+        (key) => !allowedKeys.includes(key)
+      );
+
+      if (invalidKeys.length > 0) {
+        alert(
+          "This order is already cancelled. Only the payment status can be changed."
+        );
+        return;
+      }
+    }
+
+    if (
+      nextOrderStatus === "cancelled" &&
+      currentOrderStatus !== "cancelled"
+    ) {
+      const orderNumber = order.id.slice(0, 8).toUpperCase();
+
+      const shouldCancel = window.confirm(
+        `Cancel order #${orderNumber}?\n\nThis will return the ordered items back to inventory. This action should only be used if the order is truly cancelled.`
+      );
+
+      if (!shouldCancel) {
+        return;
+      }
+    }
+
     await updateOrder(orderId, updates);
 
     const newTrackingNumber = updates.tracking_number;
@@ -1308,6 +1351,8 @@ export default function MasterAdminClient() {
           <div className="space-y-4">
             {orders.map((order) => {
               const orderNumber = order.id.slice(0, 8).toUpperCase();
+              const isCancelledOrder =
+                String(order.order_status || "").toLowerCase() === "cancelled";
 
               return (
                 <div key={order.id} className="rounded-2xl bg-white p-4 shadow-sm">
@@ -1353,7 +1398,11 @@ export default function MasterAdminClient() {
 
                   <div className="space-y-3">
                     <select
-                      className="w-full rounded-xl border p-3"
+                      disabled={isCancelledOrder}
+                      className={`w-full rounded-xl border p-3 ${isCancelledOrder
+                        ? "cursor-not-allowed bg-gray-100 text-gray-400"
+                        : ""
+                        }`}
                       value={
                         orderDrafts[order.id]?.order_status ??
                         order.order_status ??
@@ -1390,7 +1439,11 @@ export default function MasterAdminClient() {
                     </select>
 
                     <input
-                      className="w-full rounded-xl border p-3"
+                      disabled={isCancelledOrder}
+                      className={`w-full rounded-xl border p-3 ${isCancelledOrder
+                          ? "cursor-not-allowed bg-gray-100 text-gray-400"
+                          : ""
+                        }`}
                       placeholder="Tracking Number"
                       value={
                         orderDrafts[order.id]?.tracking_number ??
