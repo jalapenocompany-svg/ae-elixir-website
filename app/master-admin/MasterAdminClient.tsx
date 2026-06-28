@@ -419,6 +419,8 @@ function SalesChart({ orders }: { orders: Order[] }) {
   );
 }
 
+const ORDERS_PAGE_SIZE = 10;
+
 export default function MasterAdminClient() {
   const [password, setPassword] = useState("");
   const [loggedIn, setLoggedIn] = useState(false);
@@ -440,6 +442,13 @@ export default function MasterAdminClient() {
   const [orderDrafts, setOrderDrafts] = useState<
     Record<string, Partial<Order>>
   >({});
+
+  const [orderSearch, setOrderSearch] = useState("");
+  const [orderStatusFilter, setOrderStatusFilter] = useState("all");
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");
+  const [orderPage, setOrderPage] = useState(0);
+  const [ordersHasMore, setOrdersHasMore] = useState(false);
+  const [ordersLoading, setOrdersLoading] = useState(false);
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [productVariants, setProductVariants] = useState<ProductVariant[]>([]);
@@ -474,19 +483,74 @@ export default function MasterAdminClient() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabName>("dashboard");
 
+
+  async function loadOrders({
+    page = 0,
+    append = false,
+    search = orderSearch,
+    orderStatus = orderStatusFilter,
+    paymentStatus = paymentStatusFilter,
+  }: {
+    page?: number;
+    append?: boolean;
+    search?: string;
+    orderStatus?: string;
+    paymentStatus?: string;
+  } = {}) {
+    setOrdersLoading(true);
+
+    const from = page * ORDERS_PAGE_SIZE;
+    const to = from + ORDERS_PAGE_SIZE - 1;
+
+    let query = supabase
+      .from("orders")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (orderStatus !== "all") {
+      query = query.eq("order_status", orderStatus);
+    }
+
+    if (paymentStatus !== "all") {
+      query = query.eq("payment_status", paymentStatus);
+    }
+
+    const cleanSearch = search.trim();
+
+    if (cleanSearch) {
+      const safeSearch = cleanSearch.replace(/[,%]/g, "");
+
+      query = query.or(
+        `customer_name.ilike.%${safeSearch}%,customer_email.ilike.%${safeSearch}%,customer_phone.ilike.%${safeSearch}%`
+      );
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      alert(error.message);
+      setOrdersLoading(false);
+      return;
+    }
+
+    setOrders((current) =>
+      append ? [...current, ...(data || [])] : data || []
+    );
+
+    setOrderPage(page);
+    setOrdersHasMore((data || []).length === ORDERS_PAGE_SIZE);
+    setOrdersLoading(false);
+  }
+
+
   async function loadData() {
     setLoading(true);
 
-    const { data: orderData, error: orderError } = await supabase
-      .from("orders")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (orderError) {
-      alert(orderError.message);
-      setLoading(false);
-      return;
-    }
+    await loadOrders({
+      page: 0,
+      append: false,
+    });
 
     const { data: settingsData, error: settingsError } = await supabase
       .from("site_settings")
@@ -556,7 +620,7 @@ export default function MasterAdminClient() {
       return;
     }
 
-    setOrders(orderData || []);
+
     setSellers(sellerData || []);
     setInventory(inventoryData || []);
     setAdminProducts(adminProductsData || []);
@@ -1349,48 +1413,196 @@ export default function MasterAdminClient() {
 
         {activeTab === "orders" && (
           <div className="space-y-4">
+            {/* Order Filters */}
+            <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+              <div className="mb-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                  Order Filters
+                </p>
+
+                <h2 className="mt-1 text-xl font-bold text-[#5F554C]">
+                  Orders
+                </h2>
+
+                <p className="mt-1 text-sm leading-6 text-[#6F655C]">
+                  Showing 10 orders at a time. Use filters to quickly find orders by
+                  status, payment status, customer name, email, or phone.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+                <input
+                  value={orderSearch}
+                  onChange={(e) => setOrderSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      loadOrders({
+                        page: 0,
+                        append: false,
+                        search: orderSearch,
+                      });
+                    }
+                  }}
+                  placeholder="Search customer, email, or phone"
+                  className="rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20 sm:col-span-2"
+                />
+
+                <select
+                  value={orderStatusFilter}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setOrderStatusFilter(value);
+                    loadOrders({
+                      page: 0,
+                      append: false,
+                      orderStatus: value,
+                    });
+                  }}
+                  className="rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold text-[#5F554C] outline-none transition focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                >
+                  <option value="all">All Orders</option>
+                  <option value="pending">Order Pending</option>
+                  <option value="processing">Processing</option>
+                  <option value="shipped">Shipped</option>
+                  <option value="delivered">Delivered</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+
+                <select
+                  value={paymentStatusFilter}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setPaymentStatusFilter(value);
+                    loadOrders({
+                      page: 0,
+                      append: false,
+                      paymentStatus: value,
+                    });
+                  }}
+                  className="rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold text-[#5F554C] outline-none transition focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                >
+                  <option value="all">All Payments</option>
+                  <option value="pending">Payment Pending</option>
+                  <option value="paid">Paid</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="refunded">Refunded</option>
+                </select>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() =>
+                    loadOrders({
+                      page: 0,
+                      append: false,
+                    })
+                  }
+                  className="rounded-full bg-[#A79B8E] px-4 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
+                >
+                  Search
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOrderSearch("");
+                    setOrderStatusFilter("all");
+                    setPaymentStatusFilter("all");
+
+                    loadOrders({
+                      page: 0,
+                      append: false,
+                      search: "",
+                      orderStatus: "all",
+                      paymentStatus: "all",
+                    });
+                  }}
+                  className="rounded-full border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold text-[#A79B8E] shadow-sm transition-all hover:bg-[#F8F5F1] active:scale-95"
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+
+            {orders.length === 0 && !ordersLoading && (
+              <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-5 text-center text-sm text-[#6F655C] shadow-sm">
+                No orders found.
+              </div>
+            )}
+
             {orders.map((order) => {
               const orderNumber = order.id.slice(0, 8).toUpperCase();
-              const isCancelledOrder =
-                String(order.order_status || "").toLowerCase() === "cancelled";
 
               return (
-                <div key={order.id} className="rounded-2xl bg-white p-4 shadow-sm">
-                  <div className="mb-3 flex items-start justify-between">
+                <div
+                  key={order.id}
+                  className="rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm"
+                >
+                  <div className="mb-3 flex items-start justify-between gap-4">
                     <div>
-                      <p className="font-bold">#{orderNumber}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xl font-bold text-[#1F1A17]">
+                        #{orderNumber}
+                      </p>
+
+                      <p className="text-xs text-[#8F8276]">
                         {new Date(order.created_at).toLocaleString()}
                       </p>
 
-
                       <div className="mt-2 flex flex-wrap gap-2">
-                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(order.order_status)}`}>
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(
+                            order.order_status
+                          )}`}
+                        >
                           Order: {order.order_status || "pending"}
                         </span>
 
-                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(order.payment_status)}`}>
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(
+                            order.payment_status
+                          )}`}
+                        >
                           Payment: {order.payment_status || "pending"}
                         </span>
-
-
                       </div>
                     </div>
 
-                    <p className="font-bold">${Number(order.total).toFixed(2)}</p>
+                    <p className="shrink-0 text-lg font-bold text-[#1F1A17]">
+                      ${Number(order.total).toFixed(2)}
+                    </p>
                   </div>
 
-                  <div className="mb-3 text-sm text-gray-600">
-                    <p><b>Customer:</b> {order.customer_name}</p>
-                    <p><b>Email:</b> {order.customer_email}</p>
-                    <p><b>Phone:</b> {order.customer_phone}</p>
-                    <p><b>Address:</b> {order.customer_address}</p>
-                    <p><b>Payment Method:</b> {order.payment_method}</p>
+                  <div className="mb-3 text-sm leading-6 text-[#6F655C]">
+                    <p>
+                      <b className="text-[#5F554C]">Customer:</b>{" "}
+                      {order.customer_name}
+                    </p>
+
+                    <p>
+                      <b className="text-[#5F554C]">Email:</b>{" "}
+                      {order.customer_email}
+                    </p>
+
+                    <p>
+                      <b className="text-[#5F554C]">Phone:</b>{" "}
+                      {order.customer_phone}
+                    </p>
+
+                    <p>
+                      <b className="text-[#5F554C]">Address:</b>{" "}
+                      {order.customer_address}
+                    </p>
+
+                    <p>
+                      <b className="text-[#5F554C]">Payment Method:</b>{" "}
+                      {order.payment_method}
+                    </p>
                   </div>
 
-                  <div className="mb-4 rounded-xl bg-gray-50 p-3">
+                  <div className="mb-4 rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] p-3">
                     {order.items?.map((item) => (
-                      <p key={item.id} className="text-sm">
+                      <p key={item.id} className="text-sm text-[#6F655C]">
                         {item.quantity}x {item.name}
                       </p>
                     ))}
@@ -1398,11 +1610,7 @@ export default function MasterAdminClient() {
 
                   <div className="space-y-3">
                     <select
-                      disabled={isCancelledOrder}
-                      className={`w-full rounded-xl border p-3 ${isCancelledOrder
-                        ? "cursor-not-allowed bg-gray-100 text-gray-400"
-                        : ""
-                        }`}
+                      className="w-full rounded-xl border border-[#D8D1C8] bg-white p-3 text-sm font-semibold text-[#5F554C]"
                       value={
                         orderDrafts[order.id]?.order_status ??
                         order.order_status ??
@@ -1410,7 +1618,7 @@ export default function MasterAdminClient() {
                       }
                       onChange={(e) =>
                         updateOrderDraft(order.id, {
-                          order_status: e.target.value
+                          order_status: e.target.value,
                         })
                       }
                     >
@@ -1422,14 +1630,16 @@ export default function MasterAdminClient() {
                     </select>
 
                     <select
-                      className="w-full rounded-xl border p-3"
+                      className="w-full rounded-xl border border-[#D8D1C8] bg-white p-3 text-sm font-semibold text-[#5F554C]"
                       value={
                         orderDrafts[order.id]?.payment_status ??
                         order.payment_status ??
                         "pending"
                       }
                       onChange={(e) =>
-                        updateOrderDraft(order.id, { payment_status: e.target.value })
+                        updateOrderDraft(order.id, {
+                          payment_status: e.target.value,
+                        })
                       }
                     >
                       <option value="pending">Payment Pending</option>
@@ -1439,11 +1649,7 @@ export default function MasterAdminClient() {
                     </select>
 
                     <input
-                      disabled={isCancelledOrder}
-                      className={`w-full rounded-xl border p-3 ${isCancelledOrder
-                          ? "cursor-not-allowed bg-gray-100 text-gray-400"
-                          : ""
-                        }`}
+                      className="w-full rounded-xl border border-[#D8D1C8] bg-white p-3 text-sm font-semibold text-[#5F554C]"
                       placeholder="Tracking Number"
                       value={
                         orderDrafts[order.id]?.tracking_number ??
@@ -1457,19 +1663,13 @@ export default function MasterAdminClient() {
                       }
                     />
 
-
-
-
-
-
-
                     <div className="flex gap-3 pt-2">
                       <button
                         onClick={() => saveOrder(order.id)}
                         disabled={!orderDrafts[order.id]}
                         className={`rounded-xl px-4 py-3 text-sm font-semibold ${orderDrafts[order.id]
-                          ? "bg-green-50 text-green-700 border border-green-200"
-                          : "bg-gray-50 text-gray-400 border border-gray-200"
+                            ? "border border-green-200 bg-green-50 text-green-700"
+                            : "border border-gray-200 bg-gray-50 text-gray-400"
                           }`}
                       >
                         Save Order
@@ -1484,7 +1684,7 @@ export default function MasterAdminClient() {
                           })
                         }
                         disabled={!orderDrafts[order.id]}
-                        className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600"
+                        className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 disabled:opacity-50"
                       >
                         Cancel
                       </button>
@@ -1493,6 +1693,22 @@ export default function MasterAdminClient() {
                 </div>
               );
             })}
+
+            {ordersHasMore && (
+              <button
+                type="button"
+                onClick={() =>
+                  loadOrders({
+                    page: orderPage + 1,
+                    append: true,
+                  })
+                }
+                disabled={ordersLoading}
+                className="w-full rounded-full border border-[#D8D1C8] bg-white py-3 text-sm font-bold text-[#A79B8E] shadow-sm transition-all hover:bg-[#F8F5F1] active:scale-95 disabled:opacity-50"
+              >
+                {ordersLoading ? "Loading..." : "Load 10 More Orders"}
+              </button>
+            )}
           </div>
         )}
 
