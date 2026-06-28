@@ -625,10 +625,16 @@ export default function MasterAdminClient() {
     setInventory(inventoryData || []);
     setAdminProducts(adminProductsData || []);
     setProductVariants(
-      (variantData || []).map((variant: any) => ({
-        ...variant,
-        product_name: variant.product_code,
-      }))
+      (variantData || []).map((variant: any) => {
+        const parentProduct = (adminProductsData || []).find(
+          (product: any) => product.id === variant.product_id
+        );
+
+        return {
+          ...variant,
+          product_name: parentProduct?.name || variant.product_code,
+        };
+      })
     );
     setLoading(false);
   }
@@ -1663,8 +1669,8 @@ export default function MasterAdminClient() {
                     <input
                       disabled={isCancelledOrder}
                       className={`w-full rounded-xl border border-[#D8D1C8] p-3 text-sm font-semibold ${isCancelledOrder
-                          ? "cursor-not-allowed bg-gray-100 text-gray-400"
-                          : "bg-white text-[#5F554C]"
+                        ? "cursor-not-allowed bg-gray-100 text-gray-400"
+                        : "bg-white text-[#5F554C]"
                         }`}
                       placeholder="Tracking Number"
                       value={
