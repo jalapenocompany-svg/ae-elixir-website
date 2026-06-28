@@ -423,15 +423,15 @@ export default function MasterAdminClient() {
   const [password, setPassword] = useState("");
   const [loggedIn, setLoggedIn] = useState(false);
   useEffect(() => {
-  const savedAdminSession = sessionStorage.getItem(
-    "ae_elixir_admin_logged_in"
-  );
+    const savedAdminSession = sessionStorage.getItem(
+      "ae_elixir_admin_logged_in"
+    );
 
-  if (savedAdminSession === "true") {
-    setLoggedIn(true);
-    loadData();
-  }
-}, []);
+    if (savedAdminSession === "true") {
+      setLoggedIn(true);
+      loadData();
+    }
+  }, []);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [paymentDrafts, setPaymentDrafts] = useState<
     Record<string, Partial<PaymentMethod>>
@@ -569,27 +569,27 @@ export default function MasterAdminClient() {
     setLoading(false);
   }
 
-async function handleLogin() {
-  if (password !== MASTER_PASSWORD) {
-    alert("Invalid password.");
-    return;
+  async function handleLogin() {
+    if (password !== MASTER_PASSWORD) {
+      alert("Invalid password.");
+      return;
+    }
+
+    sessionStorage.setItem(
+      "ae_elixir_admin_logged_in",
+      "true"
+    );
+
+    window.dispatchEvent(
+      new Event("ae-admin-auth-change")
+    );
+
+    setLoggedIn(true);
+
+
+    setPassword("");
+    await loadData();
   }
-
-  sessionStorage.setItem(
-    "ae_elixir_admin_logged_in",
-    "true"
-  );
-  
-  window.dispatchEvent(
-  new Event("ae-admin-auth-change")
-);
-
-  setLoggedIn(true);
-
-  
-  setPassword("");
-  await loadData();
-}
 
 
   function updatePaymentDraft(
@@ -632,27 +632,32 @@ async function handleLogin() {
       return copy;
     });
   }
-
   async function restockInventoryForOrder(order: Order) {
     if (order.inventory_restocked) return;
 
     for (const item of order.items || []) {
-      if (!item.product_code) continue;
+      if (!item.product_code) {
+        throw new Error(
+          `Missing product code for ${item.name}. Stock could not be restored.`
+        );
+      }
 
       const { data, error } = await supabase
-        .from("inventory")
+        .from("product_variants")
         .select("stock_quantity")
         .eq("product_code", item.product_code)
         .single();
 
       if (error || !data) {
-        throw new Error(`Inventory item not found: ${item.name}`);
+        throw new Error(`Product variant not found: ${item.name}`);
       }
 
-      const newStock = Number(data.stock_quantity || 0) + Number(item.quantity || 0);
+      const currentStock = Number(data.stock_quantity || 0);
+      const quantityToRestore = Number(item.quantity || 0);
+      const newStock = currentStock + quantityToRestore;
 
       const { error: updateError } = await supabase
-        .from("inventory")
+        .from("product_variants")
         .update({ stock_quantity: newStock })
         .eq("product_code", item.product_code);
 
@@ -689,51 +694,51 @@ async function handleLogin() {
     const newTrackingNumber = updates.tracking_number;
     const oldTrackingNumber = order?.tracking_number;
 
-if (
-  newTrackingNumber &&
-  newTrackingNumber !== oldTrackingNumber &&
-  order?.customer_email
-) {
-  const displayOrderNumber = order.id
-    .slice(0, 8)
-    .toUpperCase();
+    if (
+      newTrackingNumber &&
+      newTrackingNumber !== oldTrackingNumber &&
+      order?.customer_email
+    ) {
+      const displayOrderNumber = order.id
+        .slice(0, 8)
+        .toUpperCase();
 
-  const trackingEmailResponse = await fetch(
-    "/api/send-tracking-email",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        orderNumber: displayOrderNumber,
-        customerName: order.customer_name || "",
-        customerEmail: order.customer_email,
-        trackingNumber: newTrackingNumber,
-      }),
+      const trackingEmailResponse = await fetch(
+        "/api/send-tracking-email",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            orderNumber: displayOrderNumber,
+            customerName: order.customer_name || "",
+            customerEmail: order.customer_email,
+            trackingNumber: newTrackingNumber,
+          }),
+        }
+      );
+
+      const trackingEmailResult =
+        await trackingEmailResponse.json();
+
+      if (!trackingEmailResponse.ok) {
+        console.error(
+          "Tracking email failed:",
+          trackingEmailResult
+        );
+
+        alert(
+          trackingEmailResult?.error ||
+          "Order saved, but the tracking email could not be sent."
+        );
+      } else {
+        console.log(
+          "Tracking email sent successfully:",
+          trackingEmailResult
+        );
+      }
     }
-  );
-
-  const trackingEmailResult =
-    await trackingEmailResponse.json();
-
-  if (!trackingEmailResponse.ok) {
-    console.error(
-      "Tracking email failed:",
-      trackingEmailResult
-    );
-
-    alert(
-      trackingEmailResult?.error ||
-        "Order saved, but the tracking email could not be sent."
-    );
-  } else {
-    console.log(
-      "Tracking email sent successfully:",
-      trackingEmailResult
-    );
-  }
-}
 
     setOrderDrafts((current) => {
       const copy = { ...current };
@@ -1122,91 +1127,91 @@ if (
     };
   });
 
-const tabs: {
-  id: TabName;
-  label: string;
-  icon: React.ReactNode;
-}[] = [
-  {
-    id: "dashboard",
-    label: "Dashboard",
-    icon: <DashboardIcon />,
-  },
-  {
-    id: "orders",
-    label: "Orders",
-    icon: <OrdersIcon />,
-  },
-  {
-    id: "earnings",
-    label: "Affiliates",
-    icon: <AffiliatesIcon />,
-  },
-  {
-    id: "products",
-    label: "Products",
-    icon: <InventoryIcon />,
-  },
-  {
-    id: "settings",
-    label: "Settings",
-    icon: <SettingsIcon />,
-  },
-  {
-    id: "payments",
-    label: "Payments",
-    icon: <PaymentsIcon />,
-  },
-  {
-    id: "inventory-margins",
-    label: "Inventory Margins",
-    icon: <MarginsIcon />,
-  },
-];
+  const tabs: {
+    id: TabName;
+    label: string;
+    icon: React.ReactNode;
+  }[] = [
+      {
+        id: "dashboard",
+        label: "Dashboard",
+        icon: <DashboardIcon />,
+      },
+      {
+        id: "orders",
+        label: "Orders",
+        icon: <OrdersIcon />,
+      },
+      {
+        id: "earnings",
+        label: "Affiliates",
+        icon: <AffiliatesIcon />,
+      },
+      {
+        id: "products",
+        label: "Products",
+        icon: <InventoryIcon />,
+      },
+      {
+        id: "settings",
+        label: "Settings",
+        icon: <SettingsIcon />,
+      },
+      {
+        id: "payments",
+        label: "Payments",
+        icon: <PaymentsIcon />,
+      },
+      {
+        id: "inventory-margins",
+        label: "Inventory Margins",
+        icon: <MarginsIcon />,
+      },
+    ];
 
-if (!loggedIn) {
-  return (
-    <div className="flex min-h-[calc(100dvh-220px)] items-center justify-center bg-gray-50 px-5 py-8 text-black">
-      <div className="w-full max-w-sm rounded-[24px] border border-[#E6E0D8] bg-white p-6 shadow-sm">
-        <div className="mb-5 flex flex-col items-center text-center">
-          <img
-            src="/logo-icon.png"
-            alt="AE Elixir"
-            className="mb-3 h-16 w-16 object-contain"
+  if (!loggedIn) {
+    return (
+      <div className="flex min-h-[calc(100dvh-220px)] items-center justify-center bg-gray-50 px-5 py-8 text-black">
+        <div className="w-full max-w-sm rounded-[24px] border border-[#E6E0D8] bg-white p-6 shadow-sm">
+          <div className="mb-5 flex flex-col items-center text-center">
+            <img
+              src="/logo-icon.png"
+              alt="AE Elixir"
+              className="mb-3 h-16 w-16 object-contain"
+            />
+
+            <h1 className="text-2xl font-bold text-[#5F554C]">
+              Master Admin
+            </h1>
+
+            <p className="mt-1 text-sm text-[#6F655C]">
+              Enter master password to continue.
+            </p>
+          </div>
+
+          <input
+            type="password"
+            placeholder="Master Password"
+            className="mb-4 w-full rounded-xl border border-[#D8D1C8] bg-white p-3 text-black outline-none transition focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleLogin();
+              }
+            }}
           />
 
-          <h1 className="text-2xl font-bold text-[#5F554C]">
-            Master Admin
-          </h1>
-
-          <p className="mt-1 text-sm text-[#6F655C]">
-            Enter master password to continue.
-          </p>
+          <button
+            onClick={handleLogin}
+            className="w-full rounded-full bg-[#A79B8E] py-3 font-semibold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
+          >
+            Login
+          </button>
         </div>
-
-        <input
-          type="password"
-          placeholder="Master Password"
-          className="mb-4 w-full rounded-xl border border-[#D8D1C8] bg-white p-3 text-black outline-none transition focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              handleLogin();
-            }
-          }}
-        />
-
-        <button
-          onClick={handleLogin}
-          className="w-full rounded-full bg-[#A79B8E] py-3 font-semibold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
-        >
-          Login
-        </button>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 text-black">
@@ -1489,38 +1494,38 @@ if (!loggedIn) {
 
 
         {activeTab === "inventory-margins" && (
-  <div className="space-y-5">
-    <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-5 shadow-sm">
-      <div className="mb-5">
-        <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
-          Profit Analysis
-        </p>
+          <div className="space-y-5">
+            <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-5 shadow-sm">
+              <div className="mb-5">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                  Profit Analysis
+                </p>
 
-        <h2 className="mt-1 text-xl font-bold text-[#5F554C]">
-          Inventory Margins & Earnings
-        </h2>
+                <h2 className="mt-1 text-xl font-bold text-[#5F554C]">
+                  Inventory Margins & Earnings
+                </h2>
 
-        <p className="mt-2 text-sm leading-6 text-[#6F655C]">
-          Track product costs, sale prices, profit margins, and estimated
-          earnings by product.
-        </p>
-      </div>
+                <p className="mt-2 text-sm leading-6 text-[#6F655C]">
+                  Track product costs, sale prices, profit margins, and estimated
+                  earnings by product.
+                </p>
+              </div>
 
-      <div className="rounded-2xl border border-dashed border-[#D8D1C8] bg-[#FBFAF8] p-6 text-center">
-        <MarginsIcon />
+              <div className="rounded-2xl border border-dashed border-[#D8D1C8] bg-[#FBFAF8] p-6 text-center">
+                <MarginsIcon />
 
-        <p className="mt-3 font-semibold text-[#5F554C]">
-          Margin dashboard coming next
-        </p>
+                <p className="mt-3 font-semibold text-[#5F554C]">
+                  Margin dashboard coming next
+                </p>
 
-        <p className="mt-2 text-sm leading-6 text-[#7F756B]">
-          We will add product cost, packaging cost, sale price, net profit,
-          and margin percentage here.
-        </p>
-      </div>
-    </div>
-  </div>
-)}
+                <p className="mt-2 text-sm leading-6 text-[#7F756B]">
+                  We will add product cost, packaging cost, sale price, net profit,
+                  and margin percentage here.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {activeTab === "products" && (
           <div className="space-y-4">
@@ -2016,8 +2021,8 @@ if (!loggedIn) {
                                   )
                                 }
                                 className={`rounded-full border px-4 py-2 text-sm font-semibold transition-all active:scale-95 ${parentProduct.show_protocol_button !== false
-                                    ? "border-[#A79B8E] bg-[#A79B8E] text-white"
-                                    : "border-[#D8D1C8] bg-white text-[#7F756B]"
+                                  ? "border-[#A79B8E] bg-[#A79B8E] text-white"
+                                  : "border-[#D8D1C8] bg-white text-[#7F756B]"
                                   }`}
                               >
                                 Protocol:{" "}
@@ -2036,8 +2041,8 @@ if (!loggedIn) {
                                   )
                                 }
                                 className={`rounded-full border px-4 py-2 text-sm font-semibold transition-all active:scale-95 ${parentProduct.show_coa_button !== false
-                                    ? "border-[#A79B8E] bg-[#A79B8E] text-white"
-                                    : "border-[#D8D1C8] bg-white text-[#7F756B]"
+                                  ? "border-[#A79B8E] bg-[#A79B8E] text-white"
+                                  : "border-[#D8D1C8] bg-white text-[#7F756B]"
                                   }`}
                               >
                                 COA:{" "}
@@ -2056,8 +2061,8 @@ if (!loggedIn) {
                                   )
                                 }
                                 className={`rounded-full border px-4 py-2 text-sm font-semibold transition-all active:scale-95 ${parentProduct.show_kit_button !== false
-                                    ? "border-[#A79B8E] bg-[#A79B8E] text-white"
-                                    : "border-[#D8D1C8] bg-white text-[#7F756B]"
+                                  ? "border-[#A79B8E] bg-[#A79B8E] text-white"
+                                  : "border-[#D8D1C8] bg-white text-[#7F756B]"
                                   }`}
                               >
                                 Kit:{" "}
