@@ -28,9 +28,9 @@
 }
 
 @media (max-width: 767px) {
-  input,
-  select,
-  textarea {
+  input:not(.no-ios-zoom-fix),
+  select:not(.no-ios-zoom-fix),
+  textarea:not(.no-ios-zoom-fix) {
     font-size: 16px !important;
     line-height: 1.35 !important;
   }

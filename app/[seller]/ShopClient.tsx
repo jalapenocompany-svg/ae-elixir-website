@@ -914,7 +914,7 @@ Total: $${cartTotal.toFixed(2)}`
                                   [product.id]: Number(e.target.value),
                                 }))
                               }
-                              className={`h-8 ${sizePillWidth} rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-800 shadow-sm outline-none`}
+                              className={`h-8 ${sizePillWidth} no-ios-zoom-fix rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-800 shadow-sm outline-none`}
                             >
                               {product.variants.map((variant, index) => (
                                 <option key={variant.product_code} value={index}>
