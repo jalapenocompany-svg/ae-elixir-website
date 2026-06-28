@@ -116,7 +116,7 @@ type TabName =
   | "payments"
   | "inventory-margins";
 
-const MASTER_PASSWORD = "admin123";
+const MASTER_PASSWORD ="@eeLixir26";
 
 
 
