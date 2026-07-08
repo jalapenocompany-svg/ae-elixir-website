@@ -93,6 +93,8 @@ type ProductVariant = {
   price_zone2: number;
   stock_quantity: number;
   low_stock_threshold: number;
+  cost_per_unit: number | null;
+  margin_notes: string | null;
   active: boolean;
   visible_when_out_of_stock: boolean;
   theme_light: string | null;
@@ -116,7 +118,7 @@ type TabName =
   | "payments"
   | "inventory-margins";
 
-const MASTER_PASSWORD ="@eeLixir26";
+const MASTER_PASSWORD = "@eeLixir26";
 
 
 
@@ -478,6 +480,8 @@ export default function MasterAdminClient() {
     price_zone1: 0,
     price_zone2: 0,
     stock_quantity: 0,
+    cost_per_unit: 0,
+    margin_notes: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -1121,6 +1125,8 @@ export default function MasterAdminClient() {
       price_zone1: Number(newVariant.price_zone1 || 0),
       price_zone2: Number(newVariant.price_zone2 || 0),
       stock_quantity: Number(newVariant.stock_quantity || 0),
+      cost_per_unit: Number(newVariant.cost_per_unit || 0),
+      margin_notes: newVariant.margin_notes.trim(),
       low_stock_threshold: 5,
       active: true,
       visible_when_out_of_stock: true,
@@ -1146,6 +1152,8 @@ export default function MasterAdminClient() {
       price_zone1: 0,
       price_zone2: 0,
       stock_quantity: 0,
+      cost_per_unit: 0,
+      margin_notes: "",
     });
 
     setShowAddVariant(false);
@@ -1240,6 +1248,128 @@ export default function MasterAdminClient() {
     };
   });
 
+  function formatCurrency(value: number) {
+    return `$${Number(value || 0).toFixed(2)}`;
+  }
+
+  function formatPercent(value: number) {
+    return `${Number(value || 0).toFixed(1)}%`;
+  }
+
+  const marginRows = productVariants.map((variant) => {
+    const draft = variantDrafts[variant.id] || {};
+
+    const cost = Number(draft.cost_per_unit ?? variant.cost_per_unit ?? 0);
+    const price = Number(draft.price_zone1 ?? variant.price_zone1 ?? 0);
+    const stock = Number(draft.stock_quantity ?? variant.stock_quantity ?? 0);
+
+    const profitPerUnit = price - cost;
+    const marginPercent = price > 0 ? (profitPerUnit / price) * 100 : 0;
+    const inventoryCostValue = cost * stock;
+    const potentialRevenue = price * stock;
+    const potentialProfit = profitPerUnit * stock;
+
+    return {
+      variant,
+      productName: variant.product_name || variant.product_code,
+      dosage: variant.label || "",
+      productCode: variant.product_code,
+      cost,
+      price,
+      stock,
+      profitPerUnit,
+      marginPercent,
+      inventoryCostValue,
+      potentialRevenue,
+      potentialProfit,
+      notes: String(draft.margin_notes ?? variant.margin_notes ?? ""),
+    };
+  });
+
+  const marginSummary = {
+    totalInventoryCost: marginRows.reduce(
+      (sum, row) => sum + row.inventoryCostValue,
+      0
+    ),
+    totalPotentialRevenue: marginRows.reduce(
+      (sum, row) => sum + row.potentialRevenue,
+      0
+    ),
+    totalPotentialProfit: marginRows.reduce(
+      (sum, row) => sum + row.potentialProfit,
+      0
+    ),
+    totalUnits: marginRows.reduce((sum, row) => sum + row.stock, 0),
+    averageMargin:
+      marginRows.length > 0
+        ? marginRows.reduce((sum, row) => sum + row.marginPercent, 0) /
+        marginRows.length
+        : 0,
+    lowStockCount: marginRows.filter(
+      (row) =>
+        row.stock > 0 &&
+        row.stock <= Number(row.variant.low_stock_threshold || 0)
+    ).length,
+  };
+
+  function exportMarginsCsv() {
+    const headers = [
+      "Product",
+      "Dosage",
+      "Product Code",
+      "Stock Quantity",
+      "Cost",
+      "Price",
+      "Profit Per Unit",
+      "Margin %",
+      "Inventory Cost Value",
+      "Potential Revenue",
+      "Potential Profit",
+      "Notes",
+    ];
+
+    const rows = marginRows.map((row) => [
+      row.productName,
+      row.dosage,
+      row.productCode,
+      row.stock,
+      row.cost.toFixed(2),
+      row.price.toFixed(2),
+      row.profitPerUnit.toFixed(2),
+      row.marginPercent.toFixed(2),
+      row.inventoryCostValue.toFixed(2),
+      row.potentialRevenue.toFixed(2),
+      row.potentialProfit.toFixed(2),
+      row.notes,
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map((row) =>
+        row
+          .map((value) => `"${String(value).replace(/"/g, '""')}"`)
+          .join(",")
+      )
+      .join("\n");
+
+    const blob = new Blob([csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `ae-elixir-margins-${new Date()
+      .toISOString()
+      .slice(0, 10)}.csv`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+  }
+
   const tabs: {
     id: TabName;
     label: string;
@@ -1277,7 +1407,7 @@ export default function MasterAdminClient() {
       },
       {
         id: "inventory-margins",
-        label: "Inventory Margins",
+        label: "Margins & Inventory",
         icon: <MarginsIcon />,
       },
     ];
@@ -1786,35 +1916,324 @@ export default function MasterAdminClient() {
 
         {activeTab === "inventory-margins" && (
           <div className="space-y-5">
-            <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-5 shadow-sm">
-              <div className="mb-5">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
-                  Profit Analysis
-                </p>
+            {activeTab === "inventory-margins" && (
+              <div className="space-y-5">
+                <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-5 shadow-sm">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                        Profit Analysis
+                      </p>
 
-                <h2 className="mt-1 text-xl font-bold text-[#5F554C]">
-                  Inventory Margins & Earnings
-                </h2>
+                      <h2 className="mt-1 text-xl font-bold text-[#5F554C]">
+                        Margins & Inventory
+                      </h2>
 
-                <p className="mt-2 text-sm leading-6 text-[#6F655C]">
-                  Track product costs, sale prices, profit margins, and estimated
-                  earnings by product.
-                </p>
+                      <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6F655C]">
+                        Track product cost, sale price, inventory value, profit per unit,
+                        estimated margin, and potential earnings from current stock.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={exportMarginsCsv}
+                      className="flex h-11 items-center justify-center rounded-full bg-[#A79B8E] px-5 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
+                    >
+                      Export CSV
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
+                  <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                      Inventory Cost
+                    </p>
+                    <p className="mt-2 text-xl font-bold text-[#5F554C]">
+                      {formatCurrency(marginSummary.totalInventoryCost)}
+                    </p>
+                  </div>
+
+                  <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                      Potential Revenue
+                    </p>
+                    <p className="mt-2 text-xl font-bold text-[#5F554C]">
+                      {formatCurrency(marginSummary.totalPotentialRevenue)}
+                    </p>
+                  </div>
+
+                  <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                      Potential Profit
+                    </p>
+                    <p className="mt-2 text-xl font-bold text-green-700">
+                      {formatCurrency(marginSummary.totalPotentialProfit)}
+                    </p>
+                  </div>
+
+                  <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                      Avg. Margin
+                    </p>
+                    <p className="mt-2 text-xl font-bold text-[#5F554C]">
+                      {formatPercent(marginSummary.averageMargin)}
+                    </p>
+                  </div>
+
+                  <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                      Units in Stock
+                    </p>
+                    <p className="mt-2 text-xl font-bold text-[#5F554C]">
+                      {marginSummary.totalUnits}
+                    </p>
+                  </div>
+
+                  <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                      Low Stock
+                    </p>
+                    <p className="mt-2 text-xl font-bold text-[#5F554C]">
+                      {marginSummary.lowStockCount}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="hidden rounded-[24px] border border-[#E6E0D8] bg-white shadow-sm lg:block">
+                  <div className="grid grid-cols-[1.5fr_0.8fr_0.8fr_0.8fr_0.8fr_0.8fr_0.8fr_1fr_1fr_1fr] gap-3 border-b border-[#E6E0D8] px-4 py-3 text-xs font-bold uppercase tracking-wide text-[#7F756B]">
+                    <p>Product</p>
+                    <p>Dosage</p>
+                    <p>Stock</p>
+                    <p>Cost</p>
+                    <p>Price</p>
+                    <p>Profit</p>
+                    <p>Margin</p>
+                    <p>Inventory</p>
+                    <p>Revenue</p>
+                    <p>Potential</p>
+                  </div>
+
+                  <div className="divide-y divide-[#EFEAE4]">
+                    {marginRows.map((row) => {
+                      const hasDraft = Boolean(variantDrafts[row.variant.id]);
+
+                      return (
+                        <div
+                          key={row.variant.id}
+                          className="grid grid-cols-[1.5fr_0.8fr_0.8fr_0.8fr_0.8fr_0.8fr_0.8fr_1fr_1fr_1fr] gap-3 px-4 py-4 text-sm text-[#5F554C]"
+                        >
+                          <div>
+                            <p className="font-bold text-[#1F1A17]">{row.productName}</p>
+                            <p className="mt-1 text-xs text-[#9A9188]">
+                              {row.productCode}
+                            </p>
+                          </div>
+
+                          <p className="font-semibold">{row.dosage}</p>
+
+                          <p className="font-semibold">{row.stock}</p>
+
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="h-10 rounded-xl border border-[#D8D1C8] bg-white px-3 text-sm font-semibold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                            value={
+                              variantDrafts[row.variant.id]?.cost_per_unit ??
+                              row.variant.cost_per_unit ??
+                              0
+                            }
+                            onChange={(e) =>
+                              updateVariantDraft(row.variant.id, {
+                                cost_per_unit: Number(e.target.value || 0),
+                              })
+                            }
+                          />
+
+                          <p className="font-semibold">{formatCurrency(row.price)}</p>
+
+                          <p
+                            className={`font-bold ${row.profitPerUnit >= 0 ? "text-green-700" : "text-red-600"
+                              }`}
+                          >
+                            {formatCurrency(row.profitPerUnit)}
+                          </p>
+
+                          <p className="font-bold">{formatPercent(row.marginPercent)}</p>
+
+                          <p>{formatCurrency(row.inventoryCostValue)}</p>
+
+                          <p>{formatCurrency(row.potentialRevenue)}</p>
+
+                          <div>
+                            <p className="font-bold text-green-700">
+                              {formatCurrency(row.potentialProfit)}
+                            </p>
+
+                            {hasDraft && (
+                              <button
+                                type="button"
+                                onClick={() => saveProductVariant(row.variant.id)}
+                                className="mt-2 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-bold text-green-700"
+                              >
+                                Save
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="space-y-4 lg:hidden">
+                  {marginRows.map((row) => {
+                    const hasDraft = Boolean(variantDrafts[row.variant.id]);
+
+                    return (
+                      <div
+                        key={row.variant.id}
+                        className="rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm"
+                      >
+                        <div className="mb-4 flex items-start justify-between gap-4">
+                          <div>
+                            <p className="text-lg font-bold text-[#1F1A17]">
+                              {row.productName}
+                            </p>
+
+                            <p className="mt-1 text-sm font-semibold text-[#7F756B]">
+                              {row.dosage} · {row.productCode}
+                            </p>
+                          </div>
+
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-bold ${row.stock <= 0
+                              ? "bg-red-100 text-red-700"
+                              : row.stock <= Number(row.variant.low_stock_threshold || 0)
+                                ? "bg-yellow-100 text-yellow-700"
+                                : "bg-green-100 text-green-700"
+                              }`}
+                          >
+                            Stock: {row.stock}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <label className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                            Cost
+                            <input
+                              type="number"
+                              step="0.01"
+                              className="mt-1 w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-base font-bold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                              value={
+                                variantDrafts[row.variant.id]?.cost_per_unit ??
+                                row.variant.cost_per_unit ??
+                                0
+                              }
+                              onChange={(e) =>
+                                updateVariantDraft(row.variant.id, {
+                                  cost_per_unit: Number(e.target.value || 0),
+                                })
+                              }
+                            />
+                          </label>
+
+                          <div className="rounded-2xl bg-[#FBFAF8] p-3">
+                            <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                              Price
+                            </p>
+                            <p className="mt-1 text-lg font-bold text-[#5F554C]">
+                              {formatCurrency(row.price)}
+                            </p>
+                          </div>
+
+                          <div className="rounded-2xl bg-[#FBFAF8] p-3">
+                            <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                              Profit / Unit
+                            </p>
+                            <p
+                              className={`mt-1 text-lg font-bold ${row.profitPerUnit >= 0 ? "text-green-700" : "text-red-600"
+                                }`}
+                            >
+                              {formatCurrency(row.profitPerUnit)}
+                            </p>
+                          </div>
+
+                          <div className="rounded-2xl bg-[#FBFAF8] p-3">
+                            <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                              Margin
+                            </p>
+                            <p className="mt-1 text-lg font-bold text-[#5F554C]">
+                              {formatPercent(row.marginPercent)}
+                            </p>
+                          </div>
+
+                          <div className="rounded-2xl bg-[#FBFAF8] p-3">
+                            <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                              Inventory Cost
+                            </p>
+                            <p className="mt-1 text-lg font-bold text-[#5F554C]">
+                              {formatCurrency(row.inventoryCostValue)}
+                            </p>
+                          </div>
+
+                          <div className="rounded-2xl bg-[#FBFAF8] p-3">
+                            <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                              Potential Profit
+                            </p>
+                            <p className="mt-1 text-lg font-bold text-green-700">
+                              {formatCurrency(row.potentialProfit)}
+                            </p>
+                          </div>
+                        </div>
+
+                        <label className="mt-4 block text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                          Notes
+                          <textarea
+                            className="mt-1 min-h-[90px] w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-base font-semibold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                            value={
+                              variantDrafts[row.variant.id]?.margin_notes ??
+                              row.variant.margin_notes ??
+                              ""
+                            }
+                            onChange={(e) =>
+                              updateVariantDraft(row.variant.id, {
+                                margin_notes: e.target.value,
+                              })
+                            }
+                            placeholder="Supplier notes, restock notes, pricing notes..."
+                          />
+                        </label>
+
+                        <div className="mt-4 grid grid-cols-2 gap-3">
+                          <button
+                            type="button"
+                            onClick={() => saveProductVariant(row.variant.id)}
+                            disabled={!hasDraft}
+                            className={`rounded-full py-3 text-sm font-bold transition-all active:scale-95 ${hasDraft
+                              ? "bg-[#A79B8E] text-white shadow-sm"
+                              : "bg-gray-100 text-gray-400"
+                              }`}
+                          >
+                            Save
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => cancelProductVariantDraft(row.variant.id)}
+                            disabled={!hasDraft}
+                            className="rounded-full border border-[#D8D1C8] bg-white py-3 text-sm font-bold text-[#A79B8E] disabled:text-gray-400"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-
-              <div className="rounded-2xl border border-dashed border-[#D8D1C8] bg-[#FBFAF8] p-6 text-center">
-                <MarginsIcon />
-
-                <p className="mt-3 font-semibold text-[#5F554C]">
-                  Margin dashboard coming next
-                </p>
-
-                <p className="mt-2 text-sm leading-6 text-[#7F756B]">
-                  We will add product cost, packaging cost, sale price, net profit,
-                  and margin percentage here.
-                </p>
-              </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -2008,6 +2427,23 @@ export default function MasterAdminClient() {
                   </label>
 
                   <label className="text-xs text-gray-500">
+                    Cost Per Unit
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={newVariant.cost_per_unit}
+                      onChange={(e) =>
+                        setNewVariant((current) => ({
+                          ...current,
+                          cost_per_unit: Number(e.target.value || 0),
+                        }))
+                      }
+                      className="mt-1 w-full rounded-xl border p-3 text-black"
+                    />
+                  </label>
+
+                  <label className="text-xs text-gray-500">
+
                     Stock
                     <input
                       type="number"
@@ -2215,6 +2651,23 @@ export default function MasterAdminClient() {
 
 
                         <div className="col-span-2 space-y-3">
+                          <label className="text-xs text-gray-500">
+                            Margin Notes
+                            <textarea
+                              className="mt-1 min-h-[90px] w-full rounded-xl border p-3 text-sm text-black"
+                              value={
+                                variantDrafts[variant.id]?.margin_notes ??
+                                variant.margin_notes ??
+                                ""
+                              }
+                              onChange={(e) =>
+                                updateVariantDraft(variant.id, {
+                                  margin_notes: e.target.value,
+                                })
+                              }
+                              placeholder="Supplier notes, cost notes, restock notes, or pricing notes"
+                            />
+                          </label>
                           <label className="text-xs text-gray-500">
                             Kit Description
                             <textarea
