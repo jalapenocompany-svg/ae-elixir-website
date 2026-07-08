@@ -2294,6 +2294,7 @@ export default function MasterAdminClient() {
 
                           <p className="text-right font-bold">{formatPercent(row.marginPercent)}</p>
 
+                          <p className="text-right">{formatCurrency(row.inventoryCostValue)}</p>
 
 
                           <p className="text-right">{formatCurrency(row.potentialRevenue)}</p>
