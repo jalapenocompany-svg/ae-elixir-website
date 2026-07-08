@@ -490,11 +490,16 @@ export default function MasterAdminClient() {
     margin_notes: "",
   });
 
-  const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabName>("dashboard");
-  const [salesPeriod, setSalesPeriod] = useState<"all" | "this-month" | "last-month" | "custom">("this-month");
-  const [salesMonth, setSalesMonth] = useState(new Date().toISOString().slice(0, 7));
+const [loading, setLoading] = useState(false);
+const [activeTab, setActiveTab] = useState<TabName>("dashboard");
 
+const [salesPeriod, setSalesPeriod] = useState<
+  "all" | "this-month" | "last-month" | "custom"
+>("this-month");
+
+const [salesMonth, setSalesMonth] = useState(
+  new Date().toISOString().slice(0, 7)
+);
 
   async function loadOrders({
     page = 0,
@@ -3411,6 +3416,189 @@ export default function MasterAdminClient() {
                 );
               })
             )}
+            <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-5 shadow-sm">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                    Sales Reporting
+                  </p>
+
+                  <h2 className="mt-1 text-xl font-bold text-[#5F554C]">
+                    Sales Performance
+                  </h2>
+
+                  <p className="mt-2 text-sm leading-6 text-[#6F655C]">
+                    View units sold, revenue, product cost, and gross profit by
+                    selected month or all time. Only paid orders are counted.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={exportSalesPerformanceCsv}
+                  className="rounded-full bg-[#A79B8E] px-5 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
+                >
+                  Export Sales CSV
+                </button>
+              </div>
+
+              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <select
+                  value={salesPeriod}
+                  onChange={(e) =>
+                    setSalesPeriod(
+                      e.target.value as
+                        | "all"
+                        | "this-month"
+                        | "last-month"
+                        | "custom"
+                    )
+                  }
+                  className="rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                >
+                  <option value="all">All Time</option>
+                  <option value="this-month">This Month</option>
+                  <option value="last-month">Last Month</option>
+                  <option value="custom">Custom Month</option>
+                </select>
+
+                <input
+                  type="month"
+                  value={salesMonth}
+                  onChange={(e) => setSalesMonth(e.target.value)}
+                  disabled={salesPeriod !== "custom"}
+                  className="rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20 disabled:bg-gray-100 disabled:text-gray-400"
+                />
+
+                <div className="rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] px-4 py-3 text-sm font-semibold text-[#6F655C]">
+                  Orders Counted:{" "}
+                  <span className="font-bold text-[#5F554C]">
+                    {salesSummary.ordersCount}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+              <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                  Units Sold
+                </p>
+                <p className="mt-2 text-xl font-bold text-[#5F554C]">
+                  {salesSummary.unitsSold}
+                </p>
+              </div>
+
+              <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                  Revenue
+                </p>
+                <p className="mt-2 text-xl font-bold text-[#5F554C]">
+                  {formatCurrency(salesSummary.revenue)}
+                </p>
+              </div>
+
+              <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                  Product Cost
+                </p>
+                <p className="mt-2 text-xl font-bold text-[#5F554C]">
+                  {formatCurrency(salesSummary.cost)}
+                </p>
+              </div>
+
+              <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                  Gross Profit
+                </p>
+                <p className="mt-2 text-xl font-bold text-green-700">
+                  {formatCurrency(salesSummary.profit)}
+                </p>
+              </div>
+
+              <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                  Avg. Margin
+                </p>
+                <p className="mt-2 text-xl font-bold text-[#5F554C]">
+                  {formatPercent(salesAverageMargin)}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {salesRows.length === 0 ? (
+                <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-5 text-center text-sm text-[#6F655C] shadow-sm">
+                  No paid sales found for this period.
+                </div>
+              ) : (
+                salesRows.map((row) => {
+                  const rowMargin =
+                    row.revenue > 0 ? (row.profit / row.revenue) * 100 : 0;
+
+                  return (
+                    <div
+                      key={row.productCode}
+                      className="rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-lg font-bold text-[#1F1A17]">
+                            {row.productName}
+                          </p>
+
+                          <p className="mt-1 text-xs font-semibold text-[#9A9188]">
+                            {row.productCode}
+                          </p>
+                        </div>
+
+                        <span className="rounded-full bg-[#F8F5F1] px-3 py-1 text-xs font-bold text-[#7F756B]">
+                          Sold: {row.quantitySold}
+                        </span>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <div className="rounded-2xl bg-[#FBFAF8] p-3">
+                          <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                            Revenue
+                          </p>
+                          <p className="mt-1 font-bold text-[#5F554C]">
+                            {formatCurrency(row.revenue)}
+                          </p>
+                        </div>
+
+                        <div className="rounded-2xl bg-[#FBFAF8] p-3">
+                          <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                            Cost
+                          </p>
+                          <p className="mt-1 font-bold text-[#5F554C]">
+                            {formatCurrency(row.cost)}
+                          </p>
+                        </div>
+
+                        <div className="rounded-2xl bg-[#FBFAF8] p-3">
+                          <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                            Profit
+                          </p>
+                          <p className="mt-1 font-bold text-green-700">
+                            {formatCurrency(row.profit)}
+                          </p>
+                        </div>
+
+                        <div className="rounded-2xl bg-[#FBFAF8] p-3">
+                          <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                            Margin
+                          </p>
+                          <p className="mt-1 font-bold text-[#5F554C]">
+                            {formatPercent(rowMargin)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
         )}
 
