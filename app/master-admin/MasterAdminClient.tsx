@@ -459,6 +459,7 @@ export default function MasterAdminClient() {
   >({});
   const [adminProducts, setAdminProducts] = useState<any[]>([]);
   const [variantDrafts, setVariantDrafts] = useState<Record<string, Partial<ProductVariant>>>({});
+  const [marginCostInputs, setMarginCostInputs] = useState<Record<string, string>>({});
   const [showAddProduct, setShowAddProduct] = useState(false);
 
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
@@ -1248,9 +1249,48 @@ export default function MasterAdminClient() {
     };
   });
 
-  function formatCurrency(value: number) {
-    return `$${Number(value || 0).toFixed(2)}`;
-  }
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(value || 0));
+}
+
+function getMarginCostInputValue(variantId: string, cost: number) {
+  return marginCostInputs[variantId] ?? Number(cost || 0).toFixed(2);
+}
+
+function updateMarginCostInput(variantId: string, value: string) {
+  const cleanValue = value.replace(/[^0-9.]/g, "");
+
+  setMarginCostInputs((current) => ({
+    ...current,
+    [variantId]: cleanValue,
+  }));
+
+  updateVariantDraft(variantId, {
+    cost_per_unit: Number(cleanValue || 0),
+  });
+}
+
+function formatMarginCostInput(variantId: string) {
+  const rawValue = marginCostInputs[variantId];
+
+  if (rawValue === undefined) return;
+
+  const formattedValue = Number(rawValue || 0).toFixed(2);
+
+  setMarginCostInputs((current) => ({
+    ...current,
+    [variantId]: formattedValue,
+  }));
+
+  updateVariantDraft(variantId, {
+    cost_per_unit: Number(formattedValue),
+  });
+}
 
   function formatPercent(value: number) {
     return `${Number(value || 0).toFixed(1)}%`;
@@ -2035,21 +2075,26 @@ export default function MasterAdminClient() {
 
                           <p className="font-semibold">{row.stock}</p>
 
-                          <input
-                            type="number"
-                            step="0.01"
-                            className="h-10 rounded-xl border border-[#D8D1C8] bg-white px-3 text-sm font-semibold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
-                            value={
-                              variantDrafts[row.variant.id]?.cost_per_unit ??
-                              row.variant.cost_per_unit ??
-                              0
-                            }
-                            onChange={(e) =>
-                              updateVariantDraft(row.variant.id, {
-                                cost_per_unit: Number(e.target.value || 0),
-                              })
-                            }
-                          />
+<input
+  type="text"
+  inputMode="decimal"
+  className="h-10 rounded-xl border border-[#D8D1C8] bg-white px-3 text-sm font-semibold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+  value={getMarginCostInputValue(row.variant.id, row.cost)}
+  onFocus={(e) => {
+    if (e.target.value === "0.00") {
+      setMarginCostInputs((current) => ({
+        ...current,
+        [row.variant.id]: "",
+      }));
+    } else {
+      e.target.select();
+    }
+  }}
+  onChange={(e) =>
+    updateMarginCostInput(row.variant.id, e.target.value)
+  }
+  onBlur={() => formatMarginCostInput(row.variant.id)}
+/>
 
                           <p className="font-semibold">{formatCurrency(row.price)}</p>
 
@@ -2122,21 +2167,26 @@ export default function MasterAdminClient() {
                         <div className="grid grid-cols-2 gap-3">
                           <label className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
                             Cost
-                            <input
-                              type="number"
-                              step="0.01"
-                              className="mt-1 w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-base font-bold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
-                              value={
-                                variantDrafts[row.variant.id]?.cost_per_unit ??
-                                row.variant.cost_per_unit ??
-                                0
-                              }
-                              onChange={(e) =>
-                                updateVariantDraft(row.variant.id, {
-                                  cost_per_unit: Number(e.target.value || 0),
-                                })
-                              }
-                            />
+<input
+  type="text"
+  inputMode="decimal"
+  className="mt-1 w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-base font-bold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+  value={getMarginCostInputValue(row.variant.id, row.cost)}
+  onFocus={(e) => {
+    if (e.target.value === "0.00") {
+      setMarginCostInputs((current) => ({
+        ...current,
+        [row.variant.id]: "",
+      }));
+    } else {
+      e.target.select();
+    }
+  }}
+  onChange={(e) =>
+    updateMarginCostInput(row.variant.id, e.target.value)
+  }
+  onBlur={() => formatMarginCostInput(row.variant.id)}
+/>
                           </label>
 
                           <div className="rounded-2xl bg-[#FBFAF8] p-3">
