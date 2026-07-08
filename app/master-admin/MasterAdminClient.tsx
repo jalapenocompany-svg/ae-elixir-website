@@ -11,6 +11,10 @@ type OrderItem = {
   price: number;
   quantity: number;
   line_total?: number;
+  cost_per_unit_at_sale?: number;
+  profit_per_unit_at_sale?: number;
+  total_cost_at_sale?: number;
+  total_profit_at_sale?: number;
 };
 
 type PaymentMethod = {
@@ -119,6 +123,7 @@ type TabName =
   | "inventory-margins";
 
 const MASTER_PASSWORD = "@eeLixir26";
+
 
 
 
@@ -487,6 +492,8 @@ export default function MasterAdminClient() {
 
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabName>("dashboard");
+  const [salesPeriod, setSalesPeriod] = useState<"all" | "this-month" | "last-month" | "custom">("this-month");
+  const [salesMonth, setSalesMonth] = useState(new Date().toISOString().slice(0, 7));
 
 
   async function loadOrders({
@@ -1249,48 +1256,48 @@ export default function MasterAdminClient() {
     };
   });
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(Number(value || 0));
-}
+  function formatCurrency(value: number) {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(Number(value || 0));
+  }
 
-function getMarginCostInputValue(variantId: string, cost: number) {
-  return marginCostInputs[variantId] ?? Number(cost || 0).toFixed(2);
-}
+  function getMarginCostInputValue(variantId: string, cost: number) {
+    return marginCostInputs[variantId] ?? Number(cost || 0).toFixed(2);
+  }
 
-function updateMarginCostInput(variantId: string, value: string) {
-  const cleanValue = value.replace(/[^0-9.]/g, "");
+  function updateMarginCostInput(variantId: string, value: string) {
+    const cleanValue = value.replace(/[^0-9.]/g, "");
 
-  setMarginCostInputs((current) => ({
-    ...current,
-    [variantId]: cleanValue,
-  }));
+    setMarginCostInputs((current) => ({
+      ...current,
+      [variantId]: cleanValue,
+    }));
 
-  updateVariantDraft(variantId, {
-    cost_per_unit: Number(cleanValue || 0),
-  });
-}
+    updateVariantDraft(variantId, {
+      cost_per_unit: Number(cleanValue || 0),
+    });
+  }
 
-function formatMarginCostInput(variantId: string) {
-  const rawValue = marginCostInputs[variantId];
+  function formatMarginCostInput(variantId: string) {
+    const rawValue = marginCostInputs[variantId];
 
-  if (rawValue === undefined) return;
+    if (rawValue === undefined) return;
 
-  const formattedValue = Number(rawValue || 0).toFixed(2);
+    const formattedValue = Number(rawValue || 0).toFixed(2);
 
-  setMarginCostInputs((current) => ({
-    ...current,
-    [variantId]: formattedValue,
-  }));
+    setMarginCostInputs((current) => ({
+      ...current,
+      [variantId]: formattedValue,
+    }));
 
-  updateVariantDraft(variantId, {
-    cost_per_unit: Number(formattedValue),
-  });
-}
+    updateVariantDraft(variantId, {
+      cost_per_unit: Number(formattedValue),
+    });
+  }
 
   function formatPercent(value: number) {
     return `${Number(value || 0).toFixed(1)}%`;
@@ -1326,6 +1333,131 @@ function formatMarginCostInput(variantId: string) {
     };
   });
 
+
+  function getMonthRange(period: string, customMonth: string) {
+    const now = new Date();
+
+    if (period === "all") {
+      return null;
+    }
+
+    let year = now.getFullYear();
+    let month = now.getMonth();
+
+    if (period === "last-month") {
+      month -= 1;
+
+      if (month < 0) {
+        month = 11;
+        year -= 1;
+      }
+    }
+
+    if (period === "custom") {
+      const [customYear, customMonthNumber] = customMonth.split("-").map(Number);
+      year = customYear;
+      month = customMonthNumber - 1;
+    }
+
+    const start = new Date(year, month, 1);
+    const end = new Date(year, month + 1, 1);
+
+    return { start, end };
+  }
+
+  function orderCountsForSales(order: Order) {
+    const paymentStatus = String(order.payment_status || "").toLowerCase();
+    const orderStatus = String(order.order_status || "").toLowerCase();
+
+    return paymentStatus === "paid" && orderStatus !== "cancelled";
+  }
+
+  const selectedSalesRange = getMonthRange(salesPeriod, salesMonth);
+
+  const salesOrders = orders.filter((order) => {
+    if (!orderCountsForSales(order)) return false;
+
+    if (!selectedSalesRange) return true;
+
+    const createdAt = new Date(order.created_at);
+
+    return (
+      createdAt >= selectedSalesRange.start &&
+      createdAt < selectedSalesRange.end
+    );
+  });
+
+  const productCostByCode = new Map(
+    productVariants.map((variant) => [
+      variant.product_code,
+      Number(variant.cost_per_unit || 0),
+    ])
+  );
+
+  const salesMap = new Map<
+    string,
+    {
+      productCode: string;
+      productName: string;
+      quantitySold: number;
+      revenue: number;
+      cost: number;
+      profit: number;
+    }
+  >();
+
+  salesOrders.forEach((order) => {
+    (order.items || []).forEach((item) => {
+      const productCode = item.product_code || item.name;
+      const quantity = Number(item.quantity || 0);
+      const price = Number(item.price || 0);
+      const revenue = Number(item.line_total ?? price * quantity);
+
+      const fallbackCostPerUnit = productCostByCode.get(productCode) || 0;
+      const cost = Number(
+        item.total_cost_at_sale ??
+        Number(item.cost_per_unit_at_sale ?? fallbackCostPerUnit) * quantity
+      );
+
+      const profit = Number(item.total_profit_at_sale ?? revenue - cost);
+
+      const existing = salesMap.get(productCode) || {
+        productCode,
+        productName: item.name,
+        quantitySold: 0,
+        revenue: 0,
+        cost: 0,
+        profit: 0,
+      };
+
+      existing.quantitySold += quantity;
+      existing.revenue += revenue;
+      existing.cost += cost;
+      existing.profit += profit;
+
+      salesMap.set(productCode, existing);
+    });
+  });
+
+  const salesRows = Array.from(salesMap.values()).sort(
+    (a, b) => b.revenue - a.revenue
+  );
+
+  const salesSummary = {
+    ordersCount: salesOrders.length,
+    unitsSold: salesRows.reduce((sum, row) => sum + row.quantitySold, 0),
+    revenue: salesRows.reduce((sum, row) => sum + row.revenue, 0),
+    cost: salesRows.reduce((sum, row) => sum + row.cost, 0),
+    profit: salesRows.reduce((sum, row) => sum + row.profit, 0),
+  };
+
+  const salesAverageMargin =
+    salesSummary.revenue > 0
+      ? (salesSummary.profit / salesSummary.revenue) * 100
+      : 0;
+
+
+
   const marginSummary = {
     totalInventoryCost: marginRows.reduce(
       (sum, row) => sum + row.inventoryCostValue,
@@ -1351,6 +1483,56 @@ function formatMarginCostInput(variantId: string) {
         row.stock <= Number(row.variant.low_stock_threshold || 0)
     ).length,
   };
+
+  function exportSalesPerformanceCsv() {
+    const headers = [
+      "Product",
+      "Product Code",
+      "Units Sold",
+      "Revenue",
+      "Cost",
+      "Profit",
+      "Margin %",
+    ];
+
+    const rows = salesRows.map((row) => {
+      const margin = row.revenue > 0 ? (row.profit / row.revenue) * 100 : 0;
+
+      return [
+        row.productName,
+        row.productCode,
+        row.quantitySold,
+        row.revenue.toFixed(2),
+        row.cost.toFixed(2),
+        row.profit.toFixed(2),
+        margin.toFixed(2),
+      ];
+    });
+
+    const csvContent = [headers, ...rows]
+      .map((row) =>
+        row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(",")
+      )
+      .join("\n");
+
+    const blob = new Blob([csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `ae-elixir-sales-performance-${new Date()
+      .toISOString()
+      .slice(0, 10)}.csv`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+  }
 
   function exportMarginsCsv() {
     const headers = [
@@ -2075,26 +2257,26 @@ function formatMarginCostInput(variantId: string) {
 
                           <p className="font-semibold">{row.stock}</p>
 
-<input
-  type="text"
-  inputMode="decimal"
-  className="h-10 rounded-xl border border-[#D8D1C8] bg-white px-3 text-sm font-semibold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
-  value={getMarginCostInputValue(row.variant.id, row.cost)}
-  onFocus={(e) => {
-    if (e.target.value === "0.00") {
-      setMarginCostInputs((current) => ({
-        ...current,
-        [row.variant.id]: "",
-      }));
-    } else {
-      e.target.select();
-    }
-  }}
-  onChange={(e) =>
-    updateMarginCostInput(row.variant.id, e.target.value)
-  }
-  onBlur={() => formatMarginCostInput(row.variant.id)}
-/>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            className="h-10 rounded-xl border border-[#D8D1C8] bg-white px-3 text-sm font-semibold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                            value={getMarginCostInputValue(row.variant.id, row.cost)}
+                            onFocus={(e) => {
+                              if (e.target.value === "0.00") {
+                                setMarginCostInputs((current) => ({
+                                  ...current,
+                                  [row.variant.id]: "",
+                                }));
+                              } else {
+                                e.target.select();
+                              }
+                            }}
+                            onChange={(e) =>
+                              updateMarginCostInput(row.variant.id, e.target.value)
+                            }
+                            onBlur={() => formatMarginCostInput(row.variant.id)}
+                          />
 
                           <p className="font-semibold">{formatCurrency(row.price)}</p>
 
@@ -2167,26 +2349,26 @@ function formatMarginCostInput(variantId: string) {
                         <div className="grid grid-cols-2 gap-3">
                           <label className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
                             Cost
-<input
-  type="text"
-  inputMode="decimal"
-  className="mt-1 w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-base font-bold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
-  value={getMarginCostInputValue(row.variant.id, row.cost)}
-  onFocus={(e) => {
-    if (e.target.value === "0.00") {
-      setMarginCostInputs((current) => ({
-        ...current,
-        [row.variant.id]: "",
-      }));
-    } else {
-      e.target.select();
-    }
-  }}
-  onChange={(e) =>
-    updateMarginCostInput(row.variant.id, e.target.value)
-  }
-  onBlur={() => formatMarginCostInput(row.variant.id)}
-/>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              className="mt-1 w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-base font-bold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                              value={getMarginCostInputValue(row.variant.id, row.cost)}
+                              onFocus={(e) => {
+                                if (e.target.value === "0.00") {
+                                  setMarginCostInputs((current) => ({
+                                    ...current,
+                                    [row.variant.id]: "",
+                                  }));
+                                } else {
+                                  e.target.select();
+                                }
+                              }}
+                              onChange={(e) =>
+                                updateMarginCostInput(row.variant.id, e.target.value)
+                              }
+                              onBlur={() => formatMarginCostInput(row.variant.id)}
+                            />
                           </label>
 
                           <div className="rounded-2xl bg-[#FBFAF8] p-3">
@@ -2284,6 +2466,187 @@ function formatMarginCostInput(variantId: string) {
                 </div>
               </div>
             )}
+
+            <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-5 shadow-sm">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                    Sales Reporting
+                  </p>
+
+                  <h2 className="mt-1 text-xl font-bold text-[#5F554C]">
+                    Sales Performance
+                  </h2>
+
+                  <p className="mt-2 text-sm leading-6 text-[#6F655C]">
+                    View units sold, revenue, product cost, and gross profit by selected
+                    month or all time. Only paid orders are counted.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={exportSalesPerformanceCsv}
+                  className="rounded-full bg-[#A79B8E] px-5 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
+                >
+                  Export Sales CSV
+                </button>
+              </div>
+
+              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <select
+                  value={salesPeriod}
+                  onChange={(e) =>
+                    setSalesPeriod(
+                      e.target.value as "all" | "this-month" | "last-month" | "custom"
+                    )
+                  }
+                  className="rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                >
+                  <option value="all">All Time</option>
+                  <option value="this-month">This Month</option>
+                  <option value="last-month">Last Month</option>
+                  <option value="custom">Custom Month</option>
+                </select>
+
+                <input
+                  type="month"
+                  value={salesMonth}
+                  onChange={(e) => setSalesMonth(e.target.value)}
+                  disabled={salesPeriod !== "custom"}
+                  className="rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20 disabled:bg-gray-100 disabled:text-gray-400"
+                />
+
+                <div className="rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] px-4 py-3 text-sm font-semibold text-[#6F655C]">
+                  Orders Counted:{" "}
+                  <span className="font-bold text-[#5F554C]">
+                    {salesSummary.ordersCount}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+              <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                  Units Sold
+                </p>
+                <p className="mt-2 text-xl font-bold text-[#5F554C]">
+                  {salesSummary.unitsSold}
+                </p>
+              </div>
+
+              <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                  Revenue
+                </p>
+                <p className="mt-2 text-xl font-bold text-[#5F554C]">
+                  {formatCurrency(salesSummary.revenue)}
+                </p>
+              </div>
+
+              <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                  Product Cost
+                </p>
+                <p className="mt-2 text-xl font-bold text-[#5F554C]">
+                  {formatCurrency(salesSummary.cost)}
+                </p>
+              </div>
+
+              <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                  Gross Profit
+                </p>
+                <p className="mt-2 text-xl font-bold text-green-700">
+                  {formatCurrency(salesSummary.profit)}
+                </p>
+              </div>
+
+              <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                  Avg. Margin
+                </p>
+                <p className="mt-2 text-xl font-bold text-[#5F554C]">
+                  {formatPercent(salesAverageMargin)}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {salesRows.length === 0 ? (
+                <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-5 text-center text-sm text-[#6F655C] shadow-sm">
+                  No paid sales found for this period.
+                </div>
+              ) : (
+                salesRows.map((row) => {
+                  const rowMargin = row.revenue > 0 ? (row.profit / row.revenue) * 100 : 0;
+
+                  return (
+                    <div
+                      key={row.productCode}
+                      className="rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-lg font-bold text-[#1F1A17]">
+                            {row.productName}
+                          </p>
+
+                          <p className="mt-1 text-xs font-semibold text-[#9A9188]">
+                            {row.productCode}
+                          </p>
+                        </div>
+
+                        <span className="rounded-full bg-[#F8F5F1] px-3 py-1 text-xs font-bold text-[#7F756B]">
+                          Sold: {row.quantitySold}
+                        </span>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <div className="rounded-2xl bg-[#FBFAF8] p-3">
+                          <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                            Revenue
+                          </p>
+                          <p className="mt-1 font-bold text-[#5F554C]">
+                            {formatCurrency(row.revenue)}
+                          </p>
+                        </div>
+
+                        <div className="rounded-2xl bg-[#FBFAF8] p-3">
+                          <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                            Cost
+                          </p>
+                          <p className="mt-1 font-bold text-[#5F554C]">
+                            {formatCurrency(row.cost)}
+                          </p>
+                        </div>
+
+                        <div className="rounded-2xl bg-[#FBFAF8] p-3">
+                          <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                            Profit
+                          </p>
+                          <p className="mt-1 font-bold text-green-700">
+                            {formatCurrency(row.profit)}
+                          </p>
+                        </div>
+
+                        <div className="rounded-2xl bg-[#FBFAF8] p-3">
+                          <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                            Margin
+                          </p>
+                          <p className="mt-1 font-bold text-[#5F554C]">
+                            {formatPercent(rowMargin)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+
           </div>
         )}
 

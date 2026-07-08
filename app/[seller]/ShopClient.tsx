@@ -14,6 +14,11 @@ type Product = {
   show_protocol_button?: boolean;
   show_coa_button?: boolean;
   show_kit_button?: boolean;
+  cost_per_unit?: number;
+  cost_per_unit_at_sale?: number;
+  profit_per_unit_at_sale?: number;
+  total_cost_at_sale?: number;
+  total_profit_at_sale?: number;
   prices: {
     zone1: number;
     zone2: number;
@@ -23,6 +28,7 @@ type Product = {
   variants?: {
     label: string;
     product_code: string;
+    cost_per_unit?: number;
     image: string;
     prices: {
       zone1: number;
@@ -327,6 +333,7 @@ export default function ShopClient({ seller }: { seller?: string }) {
               kitItems: Array.isArray(variant.kit_items) ? variant.kit_items : [],
               stock_quantity: Number(variant.stock_quantity || 0),
               low_stock_threshold: Number(variant.low_stock_threshold || 5),
+              cost_per_unit: Number(variant.cost_per_unit || 0),
               visible_when_out_of_stock: Boolean(
                 variant.visible_when_out_of_stock
               ),
@@ -516,6 +523,7 @@ export default function ShopClient({ seller }: { seller?: string }) {
         {
           stock_quantity: Number(variant.stock_quantity || 0),
           low_stock_threshold: Number(variant.low_stock_threshold || 5),
+          cost_per_unit: Number(variant.cost_per_unit || 0),
           visible_when_out_of_stock: Boolean(
             variant.visible_when_out_of_stock
           ),
@@ -604,6 +612,28 @@ export default function ShopClient({ seller }: { seller?: string }) {
 
     setIsSubmitting(true);
 
+
+    const orderItemsWithMargins = cart.map((item) => {
+      const price = Number(item.price || 0);
+      const quantity = Number(item.quantity || 0);
+      const cost = Number(item.cost_per_unit || 0);
+      const lineTotal = price * quantity;
+      const profitPerUnit = price - cost;
+
+      return {
+        id: item.id,
+        product_code: item.product_code,
+        name: item.name,
+        price,
+        quantity,
+        line_total: lineTotal,
+        cost_per_unit_at_sale: cost,
+        profit_per_unit_at_sale: profitPerUnit,
+        total_cost_at_sale: cost * quantity,
+        total_profit_at_sale: profitPerUnit * quantity,
+      };
+    });
+
     const orderPayload = {
       seller_code: validSellerCode || defaultSellerCode,
       customer_name: form.fullName,
@@ -611,14 +641,7 @@ export default function ShopClient({ seller }: { seller?: string }) {
       customer_email: form.email,
       customer_phone: form.phone,
       payment_method: form.paymentMethod,
-      items: cart.map((item) => ({
-        id: item.id,
-        product_code: item.product_code,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        line_total: item.price * item.quantity,
-      })),
+      items: orderItemsWithMargins,
       total: cartTotal,
     };
 
@@ -711,7 +734,7 @@ Total: $${cartTotal.toFixed(2)}`
         paymentInstructions:
           selectedPaymentMethod?.instructions || "",
         whatsAppUrl: orderWhatsAppUrl,
-        items: cart,
+        items: orderItemsWithMargins,
         total: cartTotal,
       }),
     });
@@ -723,7 +746,19 @@ Total: $${cartTotal.toFixed(2)}`
       total: cartTotal,
       paymentMethod: form.paymentMethod,
       createdAt: new Date().toISOString(),
-      items: cart,
+      items: cart.map((item) => {
+        const marginItem = orderItemsWithMargins.find(
+          (orderItem) => orderItem.id === item.id
+        );
+
+        return {
+          ...item,
+          cost_per_unit_at_sale: marginItem?.cost_per_unit_at_sale ?? 0,
+          profit_per_unit_at_sale: marginItem?.profit_per_unit_at_sale ?? 0,
+          total_cost_at_sale: marginItem?.total_cost_at_sale ?? 0,
+          total_profit_at_sale: marginItem?.total_profit_at_sale ?? 0,
+        };
+      }),
     });
 
     if (isWhatsAppPayment) {
@@ -1097,6 +1132,10 @@ Total: $${cartTotal.toFixed(2)}`
                           image: displayImage,
                           price: displayPrice,
                           stock_quantity: stock,
+                          cost_per_unit:
+                            activeVariant?.cost_per_unit ??
+                            product.cost_per_unit ??
+                            0,
                           name: product.variants
                             ? `${product.name} ${activeVariant?.label ?? ""}`
                             : product.name,
@@ -1374,9 +1413,9 @@ Total: $${cartTotal.toFixed(2)}`
                                   Number(item.stock_quantity ?? 0)
                                 }
                                 className={`flex h-8 w-8 items-center justify-center rounded-full border border-[#D8D1C8] bg-white text-lg font-bold text-[#5F554C] shadow-sm transition-all active:scale-95 ${item.quantity >=
-                                    Number(item.stock_quantity ?? 0)
-                                    ? "cursor-not-allowed opacity-40"
-                                    : ""
+                                  Number(item.stock_quantity ?? 0)
+                                  ? "cursor-not-allowed opacity-40"
+                                  : ""
                                   }`}
                               >
                                 +
@@ -1499,8 +1538,8 @@ Total: $${cartTotal.toFixed(2)}`
 
                   <select
                     className={`w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold outline-none transition focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20 ${form.paymentMethod
-                        ? "text-[#5F554C]"
-                        : "text-[#B6ADA4]"
+                      ? "text-[#5F554C]"
+                      : "text-[#B6ADA4]"
                       }`}
                     value={form.paymentMethod}
                     onChange={(e) =>
