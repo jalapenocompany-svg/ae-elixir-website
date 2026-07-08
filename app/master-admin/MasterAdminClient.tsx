@@ -490,16 +490,16 @@ export default function MasterAdminClient() {
     margin_notes: "",
   });
 
-const [loading, setLoading] = useState(false);
-const [activeTab, setActiveTab] = useState<TabName>("dashboard");
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabName>("dashboard");
 
-const [salesPeriod, setSalesPeriod] = useState<
-  "all" | "this-month" | "last-month" | "custom"
->("this-month");
+  const [salesPeriod, setSalesPeriod] = useState<
+    "all" | "this-month" | "last-month" | "custom"
+  >("this-month");
 
-const [salesMonth, setSalesMonth] = useState(
-  new Date().toISOString().slice(0, 7)
-);
+  const [salesMonth, setSalesMonth] = useState(
+    new Date().toISOString().slice(0, 7)
+  );
 
   async function loadOrders({
     page = 0,
@@ -2229,17 +2229,17 @@ const [salesMonth, setSalesMonth] = useState(
                 </div>
 
                 <div className="hidden rounded-[24px] border border-[#E6E0D8] bg-white shadow-sm lg:block">
-                  <div className="grid grid-cols-[1.5fr_0.8fr_0.8fr_0.8fr_0.8fr_0.8fr_0.8fr_1fr_1fr_1fr] gap-3 border-b border-[#E6E0D8] px-4 py-3 text-xs font-bold uppercase tracking-wide text-[#7F756B]">
+                  <div className="grid grid-cols-[1.6fr_0.7fr_0.55fr_1fr_0.85fr_0.85fr_0.75fr_0.9fr_0.9fr_0.9fr] items-center gap-4 border-b border-[#E6E0D8] px-4 py-3 text-xs font-bold uppercase tracking-wide text-[#7F756B]">
                     <p>Product</p>
-                    <p>Dosage</p>
-                    <p>Stock</p>
+                    <p className="text-center">Dosage</p>
+                    <p className="text-center">Stock</p>
                     <p>Cost</p>
-                    <p>Price</p>
-                    <p>Profit</p>
-                    <p>Margin</p>
-                    <p>Inventory</p>
-                    <p>Revenue</p>
-                    <p>Potential</p>
+                    <p className="text-right">Price</p>
+                    <p className="text-right">Profit</p>
+                    <p className="text-right">Margin</p>
+                    <p className="text-right">Inventory</p>
+                    <p className="text-right">Revenue</p>
+                    <p className="text-right">Potential</p>
                   </div>
 
                   <div className="divide-y divide-[#EFEAE4]">
@@ -2249,7 +2249,7 @@ const [salesMonth, setSalesMonth] = useState(
                       return (
                         <div
                           key={row.variant.id}
-                          className="grid grid-cols-[1.5fr_0.8fr_0.8fr_0.8fr_0.8fr_0.8fr_0.8fr_1fr_1fr_1fr] gap-3 px-4 py-4 text-sm text-[#5F554C]"
+                          className="grid grid-cols-[1.6fr_0.7fr_0.55fr_1fr_0.85fr_0.85fr_0.75fr_0.9fr_0.9fr_0.9fr] items-center gap-4 px-4 py-4 text-sm text-[#5F554C]"
                         >
                           <div>
                             <p className="font-bold text-[#1F1A17]">{row.productName}</p>
@@ -2258,14 +2258,14 @@ const [salesMonth, setSalesMonth] = useState(
                             </p>
                           </div>
 
-                          <p className="font-semibold">{row.dosage}</p>
+                          <p className="text-center font-semibold">{row.dosage}</p>
 
-                          <p className="font-semibold">{row.stock}</p>
+                          <p className="text-center font-semibold">{row.stock}</p>
 
                           <input
                             type="text"
                             inputMode="decimal"
-                            className="h-10 rounded-xl border border-[#D8D1C8] bg-white px-3 text-sm font-semibold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                            className="h-10 w-full rounded-xl border border-[#D8D1C8] bg-white px-3 text-sm font-semibold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
                             value={getMarginCostInputValue(row.variant.id, row.cost)}
                             onFocus={(e) => {
                               if (e.target.value === "0.00") {
@@ -2283,22 +2283,22 @@ const [salesMonth, setSalesMonth] = useState(
                             onBlur={() => formatMarginCostInput(row.variant.id)}
                           />
 
-                          <p className="font-semibold">{formatCurrency(row.price)}</p>
+                          <p className="text-right font-semibold">{formatCurrency(row.price)}</p>
 
                           <p
-                            className={`font-bold ${row.profitPerUnit >= 0 ? "text-green-700" : "text-red-600"
+                            className={`text-right font-bold ${row.profitPerUnit >= 0 ? "text-green-700" : "text-red-600"
                               }`}
                           >
                             {formatCurrency(row.profitPerUnit)}
                           </p>
 
-                          <p className="font-bold">{formatPercent(row.marginPercent)}</p>
+                          <p className="text-right font-bold">{formatPercent(row.marginPercent)}</p>
 
-                          <p>{formatCurrency(row.inventoryCostValue)}</p>
 
-                          <p>{formatCurrency(row.potentialRevenue)}</p>
 
-                          <div>
+                          <p className="text-right">{formatCurrency(row.potentialRevenue)}</p>
+
+                          <div className="text-right">
                             <p className="font-bold text-green-700">
                               {formatCurrency(row.potentialProfit)}
                             </p>
@@ -3448,10 +3448,10 @@ const [salesMonth, setSalesMonth] = useState(
                   onChange={(e) =>
                     setSalesPeriod(
                       e.target.value as
-                        | "all"
-                        | "this-month"
-                        | "last-month"
-                        | "custom"
+                      | "all"
+                      | "this-month"
+                      | "last-month"
+                      | "custom"
                     )
                   }
                   className="rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
