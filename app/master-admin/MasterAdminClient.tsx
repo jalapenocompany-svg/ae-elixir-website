@@ -3441,52 +3441,6 @@ export default function MasterAdminClient() {
             )}
 
 
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-              <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
-                  Units Sold
-                </p>
-                <p className="mt-2 text-xl font-bold text-[#5F554C]">
-                  {salesSummary.unitsSold}
-                </p>
-              </div>
-
-              <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
-                  Revenue
-                </p>
-                <p className="mt-2 text-xl font-bold text-[#5F554C]">
-                  {formatCurrency(salesSummary.revenue)}
-                </p>
-              </div>
-
-              <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
-                  Product Cost
-                </p>
-                <p className="mt-2 text-xl font-bold text-[#5F554C]">
-                  {formatCurrency(salesSummary.cost)}
-                </p>
-              </div>
-
-              <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
-                  Gross Profit
-                </p>
-                <p className="mt-2 text-xl font-bold text-green-700">
-                  {formatCurrency(salesSummary.profit)}
-                </p>
-              </div>
-
-              <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
-                  Avg. Margin
-                </p>
-                <p className="mt-2 text-xl font-bold text-[#5F554C]">
-                  {formatPercent(salesAverageMargin)}
-                </p>
-              </div>
-            </div>
 
             <div className="space-y-3">
               {salesRows.length === 0 ? (
