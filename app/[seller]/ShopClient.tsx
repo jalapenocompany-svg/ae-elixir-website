@@ -2093,7 +2093,7 @@ Total: $${cartTotal.toFixed(2)}`
                       </p>
                     </div>
 
-                    <div className="space-y-3 pr-8 text-sm text-[#5F4D45]">
+                    <div className="space-y-3 pr-8 text-xs text-[#5F4D45]">
                       <div className="flex gap-3">
                         <span className="min-w-5 font-bold text-[#A35A2C]">1.</span>
                         <p className="font-semibold text-[#2F241F]">1x BAC Water</p>
