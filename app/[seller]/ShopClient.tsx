@@ -2063,88 +2063,84 @@ Total: $${cartTotal.toFixed(2)}`
                   </div>
                 </div>
 
-                {showRequiredNotIncluded && (
-                  <div className="relative overflow-hidden rounded-3xl border border-[#E8D9CF] bg-[#FFF9F6] p-4 shadow-sm">
+{showRequiredNotIncluded && (
+  <div className="rounded-3xl border border-[#D8D1C8] bg-[#FBFAF8] p-4 shadow-sm">
+    <div className="mb-3 flex items-center gap-2">
+      <svg
+        className="h-4 w-4 shrink-0 text-[#A35A2C]"
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden="true"
+      >
+        <path
+          d="M12 4 21 20H3L12 4Z"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M12 9v5"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+        <circle cx="12" cy="17" r="1" fill="currentColor" />
+      </svg>
 
+      <p className="text-xs font-bold uppercase tracking-wide text-[#A35A2C]">
+        Required But Not Included
+      </p>
+    </div>
 
-                    <div className="mb-3 flex items-center gap-3 pr-12">
-                      <svg
-                        className="h-6 w-6 shrink-0 text-[#A35A2C]"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                      >
-                        <path
-                          d="M12 4 21 20H3L12 4Z"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M12 9v5"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                        />
-                        <circle cx="12" cy="17" r="1" fill="currentColor" />
-                      </svg>
+    <div className="space-y-2 text-sm leading-6 text-[#6F655C]">
+      <div className="flex gap-2">
+        <span className="min-w-5 font-bold text-[#A35A2C]">1.</span>
+        <span>1x BAC Water</span>
+      </div>
 
-                      <p className="text-xs font-bold uppercase tracking-wide text-[#A35A2C]">
-                        Required But Not Included
-                      </p>
-                    </div>
+      <div className="flex gap-2">
+        <span className="min-w-5 font-bold text-[#A35A2C]">2.</span>
+        <div>
+          <p>Minimum of 10 Syringes</p>
+          <p className="mt-1 text-sm leading-6 text-[#6F655C]">
+            One syringe is used to reconstitute the vial. It is not for dosing.
+          </p>
+        </div>
+      </div>
+    </div>
 
-                    <div className="space-y-3 pr-8 text-xs text-[#5F4D45]">
-                      <div className="flex gap-3">
-                        <span className="min-w-5 font-bold text-[#A35A2C]">1.</span>
-                        <p className="font-semibold text-[#2F241F]">1x BAC Water</p>
-                      </div>
+    <div className="my-4 border-t border-[#E6E0D8]" />
 
-                      <div className="flex gap-3">
-                        <span className="min-w-5 font-bold text-[#A35A2C]">2.</span>
+    <div className="flex gap-2 text-sm leading-6 text-[#6F655C]">
+      <svg
+        className="mt-1 h-4 w-4 shrink-0 text-[#A35A2C]"
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden="true"
+      >
+        <circle
+          cx="12"
+          cy="12"
+          r="9"
+          stroke="currentColor"
+          strokeWidth="1.8"
+        />
+        <path
+          d="M12 11v5"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+        <circle cx="12" cy="8" r="1" fill="currentColor" />
+      </svg>
 
-                        <div>
-                          <p className="font-semibold text-[#2F241F]">
-                            Minimum of 10 Syringes
-                          </p>
-
-                          <p className="mt-1 max-w-md text-sm leading-6 text-[#6F655C]">
-                            One syringe is used to reconstitute the vial. It is not for dosing.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="my-4 border-t border-[#E7D8CF]" />
-
-                    <div className="flex items-start gap-3">
-                      <svg
-                        className="mt-0.5 h-6 w-6 shrink-0 text-[#A35A2C]"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                      >
-                        <circle
-                          cx="12"
-                          cy="12"
-                          r="9"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                        />
-                        <path
-                          d="M12 11v5"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                        />
-                        <circle cx="12" cy="8" r="1" fill="currentColor" />
-                      </svg>
-
-                      <p className="text-sm leading-6 text-[#5F4D45]">
-                        Please review the protocol before use. Items listed above may be needed
-                        separately for proper reconstitution.
-                      </p>
-                    </div>
-                  </div>
-                )}
+      <p>
+        Please review the protocol before use. Items listed above may be needed
+        separately for proper reconstitution.
+      </p>
+    </div>
+  </div>
+)}
                 
               </div>
             </div>
