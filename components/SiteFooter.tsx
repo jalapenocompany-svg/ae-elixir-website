@@ -180,7 +180,7 @@ export default function SiteFooter() {
           </>
         )}
 
-        <div className="mb-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs">
+        <div className="mb-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs">
           <Link
             href="/research-use-only"
             className="font-medium text-[#8F8276] transition hover:text-[#5F554C] hover:underline"
@@ -198,12 +198,33 @@ export default function SiteFooter() {
           >
             Legal Disclaimer
           </Link>
+
+          <span className="hidden text-[#D8D1C8] sm:inline" aria-hidden="true">
+            •
+          </span>
+
+          <Link
+            href="/shipping-policy"
+            className="font-medium text-[#8F8276] transition hover:text-[#5F554C] hover:underline"
+          >
+            Shipping Policy
+          </Link>
+
+          <span className="hidden text-[#D8D1C8] sm:inline" aria-hidden="true">
+            •
+          </span>
+
+          <Link
+            href="/return-policy"
+            className="font-medium text-[#8F8276] transition hover:text-[#5F554C] hover:underline"
+          >
+            Return Policy
+          </Link>
         </div>
 
         <p className="text-xs text-gray-400">
           {settings?.footer_text ||
-            `© ${new Date().getFullYear()} ${
-              settings?.site_name || "AE Elixir"
+            `© ${new Date().getFullYear()} ${settings?.site_name || "AE Elixir"
             }. All rights reserved.`}
         </p>
       </div>
