@@ -2681,7 +2681,7 @@ export default function MasterAdminClient() {
                 <div>
                   <h2 className="text-xl font-bold text-[#5F554C]">Products</h2>
                   <p className="mt-1 max-w-md text-sm leading-6 text-[#6F655C]">
-                    Manage products, variants, prices, stock, images, protocols, and kit details.
+                    Manage products, variants, prices, stock, images, protocols, and product information.
                   </p>
                 </div>
 
@@ -3110,7 +3110,7 @@ export default function MasterAdminClient() {
                             />
                           </label>
                           <label className="text-xs text-gray-500">
-                            Kit Description
+                            Product Description
                             <textarea
                               className="mt-1 min-h-[90px] w-full rounded-xl border p-3 text-sm text-black"
                               value={
@@ -3123,12 +3123,12 @@ export default function MasterAdminClient() {
                                   kit_description: e.target.value,
                                 })
                               }
-                              placeholder="Short description shown in the kit modal"
+                              placeholder="Short description shown in the product information modal"
                             />
                           </label>
 
                           <label className="text-xs text-gray-500">
-                            Kit Includes
+                            What’s Included
                             <textarea
                               className="mt-1 min-h-[110px] w-full rounded-xl border p-3 text-sm text-black"
                               value={
@@ -3250,7 +3250,7 @@ export default function MasterAdminClient() {
                                   : "border-[#D8D1C8] bg-white text-[#7F756B]"
                                   }`}
                               >
-                                Kit:{" "}
+                                Product Info:{" "}
                                 {parentProduct.show_kit_button !== false
                                   ? "Shown"
                                   : "Hidden"}

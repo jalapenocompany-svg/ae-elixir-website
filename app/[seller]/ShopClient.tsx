@@ -856,8 +856,54 @@ Total: $${cartTotal.toFixed(2)}`
       selectedCategory === "All" ||
       (product.category || "Other") === selectedCategory;
 
+
+
     return matchesSearch && matchesCategory;
   });
+
+  const selectedKitNameLower = (selectedKit?.name || "").toLowerCase();
+const selectedKitCategoryLower = (selectedKit?.category || "").toLowerCase();
+
+const isBacWaterInfo =
+  selectedKitNameLower.includes("bac") ||
+  selectedKitNameLower.includes("bacteriostatic");
+
+const isSyringeInfo =
+  selectedKitNameLower.includes("syringe") ||
+  selectedKitCategoryLower.includes("supplies");
+
+const showRequiredNotIncluded =
+  Boolean(selectedKit) && !isBacWaterInfo && !isSyringeInfo;
+
+const whatsIncludedItems: string[] =
+  selectedKit?.kitItems && selectedKit.kitItems.length > 0
+    ? selectedKit.kitItems
+    : isBacWaterInfo
+    ? ["1x Bacteriostatic Water vial"]
+    : isSyringeInfo
+    ? ["Selected syringe pack"]
+    : ["1x Product vial"];
+
+const requiredNotIncludedItems: string[] = [
+  "1x BAC Water",
+  "Minimum of 10 syringes",
+  "Review the product protocol before use",
+];
+
+const bacWaterUsageItems: { size: string; usage: string }[] = [
+  {
+    size: "BAC Water 3mL",
+    usage: "Average of 1 vial reconstitution",
+  },
+  {
+    size: "BAC Water 10mL",
+    usage: "Average of 5 vial reconstitutions",
+  },
+  {
+    size: "BAC Water 30mL",
+    usage: "Average of 15 vial reconstitutions",
+  },
+];
 
 
 
@@ -999,8 +1045,8 @@ Total: $${cartTotal.toFixed(2)}`
                       type="button"
                       onClick={() => setSelectedCategory(category)}
                       className={`shrink-0 rounded-full border px-4 py-2 text-sm font-bold transition-all active:scale-95 ${isActive
-                          ? "border-[#A79B8E] bg-[#A79B8E] text-white shadow-sm"
-                          : "border-[#D8D1C8] bg-white text-[#7F756B] hover:bg-[#F8F5F1]"
+                        ? "border-[#A79B8E] bg-[#A79B8E] text-white shadow-sm"
+                        : "border-[#D8D1C8] bg-white text-[#7F756B] hover:bg-[#F8F5F1]"
                         }`}
                     >
                       {category}
@@ -1275,7 +1321,7 @@ Total: $${cartTotal.toFixed(2)}`
                           })
                         }
                         className="flex h-10 w-10 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
-                        title="Kit"
+                        title="Product Information"
                       >
                         <svg
                           className="h-[20px] w-[20px]"
@@ -1916,13 +1962,14 @@ Total: $${cartTotal.toFixed(2)}`
       )}
 
       {selectedKit && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 px-5 backdrop-blur-[2px]">
-          <div className="w-full max-w-sm rounded-[28px] border border-[#E6E0D8] bg-white p-5 shadow-2xl">
-            <div className="mb-4 flex items-start justify-between border-b border-[#E6E0D8] pb-4">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 px-4 py-5 backdrop-blur-[2px]">
+          <div className="flex max-h-[90dvh] w-full max-w-sm flex-col overflow-hidden rounded-[28px] border border-[#E6E0D8] bg-white shadow-2xl">
+            <div className="flex shrink-0 items-start justify-between border-b border-[#E6E0D8] p-5">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
-                  Kit Includes
+                  Product Information
                 </p>
+
                 <h2 className="mt-1 text-xl font-bold tracking-wide text-[#5F554C]">
                   {selectedKit.name}
                 </h2>
@@ -1932,59 +1979,110 @@ Total: $${cartTotal.toFixed(2)}`
                 type="button"
                 onClick={() => setSelectedKit(null)}
                 className="flex h-8 w-8 items-center justify-center rounded-full text-xl leading-none text-[#7F756B] transition-all hover:bg-[#F6F3EF] active:scale-95"
-                aria-label="Close kit details"
+                aria-label="Close product information"
               >
                 ×
               </button>
             </div>
 
-            <div className="mb-5 flex justify-center">
-              <div className="rounded-3xl border border-[#E6E0D8] bg-[#F6F3EF] p-3 shadow-sm">
-                <img
-                  src={selectedKit.image}
-                  alt={selectedKit.name}
-                  className="h-36 w-36 rounded-2xl object-contain"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {/* Description Section */}
-              <div className="rounded-3xl border border-[#D8D1C8] bg-[#FBFAF8] p-4 shadow-sm">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
-                  Product Description
-                </p>
-                <p className="text-sm leading-6 text-[#6F655C]">
-                  {selectedKit.description}
-                </p>
-              </div>
-
-              {/* Kit Items Section */}
-              <div className="rounded-3xl border border-[#D8D1C8] bg-[#FBFAF8] p-4 shadow-sm">
-                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
-                  Kit Includes
-                </p>
-
-                <div className="space-y-2 text-sm text-[#6F655C]">
-                  {selectedKit.kitItems.map((item, index) => (
-                    <div key={index} className="flex gap-2 leading-6">
-                      <span className="min-w-5 font-bold text-[#A79B8E]">
-                        {index + 1}.
-                      </span>
-                      <span>{item}</span>
-                    </div>
-                  ))}
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+              <div className="mb-5 flex justify-center">
+                <div className="rounded-3xl border border-[#E6E0D8] bg-[#F6F3EF] p-3 shadow-sm">
+                  <img
+                    src={selectedKit.image}
+                    alt={selectedKit.name}
+                    className="h-36 w-36 rounded-2xl object-contain"
+                  />
                 </div>
               </div>
+
+              <div className="space-y-4">
+                <div className="rounded-3xl border border-[#D8D1C8] bg-[#FBFAF8] p-4 shadow-sm">
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                    Product Description
+                  </p>
+
+                  <p className="text-sm leading-6 text-[#6F655C]">
+                    {selectedKit.description || "Product information will be updated soon."}
+                  </p>
+                </div>
+
+                {isBacWaterInfo && (
+                  <div className="rounded-3xl border border-[#D8D1C8] bg-[#FBFAF8] p-4 shadow-sm">
+                    <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                      Average BAC Water Usage
+                    </p>
+
+                    <div className="space-y-3">
+                      {bacWaterUsageItems.map((item) => (
+                        <div
+                          key={item.size}
+                          className="rounded-2xl border border-[#E6E0D8] bg-white p-3"
+                        >
+                          <p className="text-sm font-bold text-[#5F554C]">
+                            {item.size}
+                          </p>
+                          <p className="mt-1 text-sm leading-5 text-[#6F655C]">
+                            {item.usage}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="rounded-3xl border border-[#D8D1C8] bg-[#FBFAF8] p-4 shadow-sm">
+                  <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                    What’s Included
+                  </p>
+
+                  <div className="space-y-2 text-sm text-[#6F655C]">
+                    {whatsIncludedItems.map((item, index) => (
+                      <div key={index} className="flex gap-2 leading-6">
+                        <span className="min-w-5 font-bold text-[#A79B8E]">
+                          {index + 1}.
+                        </span>
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {showRequiredNotIncluded && (
+                  <div className="rounded-3xl border border-[#D8D1C8] bg-[#FFFDF9] p-4 shadow-sm">
+                    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                      Required But Not Included
+                    </p>
+
+                    <p className="mb-3 text-sm leading-6 text-[#6F655C]">
+                      These items may be needed separately depending on the selected
+                      product and protocol.
+                    </p>
+
+                    <div className="space-y-2 text-sm text-[#6F655C]">
+                      {requiredNotIncludedItems.map((item, index) => (
+                        <div key={index} className="flex gap-2 leading-6">
+                          <span className="min-w-5 font-bold text-[#A79B8E]">
+                            {index + 1}.
+                          </span>
+                          <span>{item}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setSelectedKit(null)}
-              className="mt-5 w-full rounded-full bg-[#A79B8E] py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
-            >
-              Close
-            </button>
+            <div className="shrink-0 border-t border-[#E6E0D8] bg-white p-5">
+              <button
+                type="button"
+                onClick={() => setSelectedKit(null)}
+                className="w-full rounded-full bg-[#A79B8E] py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
