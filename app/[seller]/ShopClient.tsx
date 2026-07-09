@@ -2065,40 +2065,7 @@ Total: $${cartTotal.toFixed(2)}`
 
                 {showRequiredNotIncluded && (
                   <div className="relative overflow-hidden rounded-3xl border border-[#E8D9CF] bg-[#FFF9F6] p-4 shadow-sm">
-                    <div className="pointer-events-none absolute right-4 top-5 flex flex-col items-center gap-4 opacity-30">
-                      <svg
-                        className="h-6 w-6 text-[#A35A2C]"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                      >
-                        <path
-                          d="M12 3C12 3 6 10 6 14.5A6 6 0 0 0 18 14.5C18 10 12 3 12 3Z"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
 
-                      <svg
-                        className="h-7 w-7 rotate-45 text-[#A35A2C]"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                      >
-                        <path
-                          d="M8 4h8M10 4v6l-3 5v4h10v-4l-3-5V4"
-                          stroke="currentColor"
-                          strokeWidth="1.6"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M9 15h6"
-                          stroke="currentColor"
-                          strokeWidth="1.6"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                    </div>
 
                     <div className="mb-3 flex items-center gap-3 pr-12">
                       <svg
@@ -2126,19 +2093,17 @@ Total: $${cartTotal.toFixed(2)}`
                       </p>
                     </div>
 
-                    <div className="space-y-3 pr-8 text-sm text-[#5F4D45]">
+                    <div className="space-y-2 text-sm leading-6 text-[#6F655C]">
                       <div className="flex gap-3">
                         <span className="min-w-5 font-bold text-[#A35A2C]">1.</span>
-                        <p className="font-semibold text-[#2F241F]">1x BAC Water</p>
+                        <p>1x BAC Water</p>
                       </div>
 
                       <div className="flex gap-3">
                         <span className="min-w-5 font-bold text-[#A35A2C]">2.</span>
 
                         <div>
-                          <p className="font-semibold text-[#2F241F]">
-                            Minimum of 10 Syringes
-                          </p>
+                          <p>Minimum of 10 Syringes</p>
 
                           <p className="mt-1 max-w-md text-sm leading-6 text-[#6F655C]">
                             One syringe is used to reconstitute the vial. It is not for dosing.
@@ -2178,7 +2143,7 @@ Total: $${cartTotal.toFixed(2)}`
                     </div>
                   </div>
                 )}
-                
+
               </div>
             </div>
 
