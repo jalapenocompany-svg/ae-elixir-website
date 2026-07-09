@@ -900,7 +900,7 @@ Total: $${cartTotal.toFixed(2)}`
         )}
 
         {!productsLoading && !showProductFilters && (
-          <div className="mb-5 flex justify-end">
+          <div className="mb-5 flex justify-start">
             <button
               type="button"
               onClick={() => setShowProductFilters(true)}
