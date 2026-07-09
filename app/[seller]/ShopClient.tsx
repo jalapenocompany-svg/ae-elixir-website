@@ -2178,7 +2178,7 @@ Total: $${cartTotal.toFixed(2)}`
                     </div>
                   </div>
                 )}
-                )}
+                
               </div>
             </div>
 
