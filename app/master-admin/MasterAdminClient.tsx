@@ -124,7 +124,14 @@ type TabName =
 
 const MASTER_PASSWORD = "@eeLixir26";
 
-
+const PRODUCT_CATEGORIES = [
+  "Weight Loss",
+  "Longevity",
+  "Healing / Recovery",
+  "Performance",
+  "Wellness",
+  "Supplies",
+];
 
 
 
@@ -473,7 +480,7 @@ export default function MasterAdminClient() {
   const [newProduct, setNewProduct] = useState({
     name: "",
     slug: "",
-    category: "",
+    category: "Weight Loss",
     description: "",
   });
 
@@ -1115,7 +1122,7 @@ export default function MasterAdminClient() {
     setNewProduct({
       name: "",
       slug: "",
-      category: "",
+      category: "Weight Loss",
       description: "",
     });
 
@@ -2743,8 +2750,7 @@ export default function MasterAdminClient() {
 
                   <label className="text-xs text-gray-500">
                     Category
-                    <input
-                      type="text"
+                    <select
                       value={newProduct.category}
                       onChange={(e) =>
                         setNewProduct((current) => ({
@@ -2753,8 +2759,13 @@ export default function MasterAdminClient() {
                         }))
                       }
                       className="mt-1 w-full rounded-xl border p-3 text-black"
-                      placeholder="GLP / Weight Loss"
-                    />
+                    >
+                      {PRODUCT_CATEGORIES.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
                   </label>
 
                   <label className="text-xs text-gray-500 sm:col-span-2">
