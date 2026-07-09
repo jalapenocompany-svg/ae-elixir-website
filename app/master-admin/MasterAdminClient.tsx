@@ -947,26 +947,37 @@ export default function MasterAdminClient() {
     }));
   }
 
-  async function saveSiteSettings() {
-    if (!siteSettings) return;
+async function saveSiteSettings() {
+  if (!siteSettings) return;
 
-    const { error } = await supabase
-      .from("site_settings")
-      .update(siteSettingsDraft)
-      .eq("id", siteSettings.id);
+  const updates = {
+    ...siteSettingsDraft,
+  };
 
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    setSiteSettings({
-      ...siteSettings,
-      ...siteSettingsDraft,
-    });
-
-    setSiteSettingsDraft({});
+  if (Object.keys(updates).length === 0) {
+    return;
   }
+
+  const { data, error } = await supabase
+    .from("site_settings")
+    .update(updates)
+    .eq("id", siteSettings.id)
+    .select("*")
+    .single();
+
+  if (error) {
+    console.error("SAVE SITE SETTINGS ERROR:", error);
+    alert(error.message);
+    return;
+  }
+
+  setSiteSettings(data);
+  setSiteSettingsDraft({});
+
+  window.dispatchEvent(new Event("ae-site-settings-updated"));
+
+  alert("Settings saved successfully.");
+}
 
 
   async function uploadVariantFile(
