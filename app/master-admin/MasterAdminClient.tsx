@@ -3439,68 +3439,7 @@ export default function MasterAdminClient() {
                 );
               })
             )}
-            <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-5 shadow-sm">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
-                    Sales Reporting
-                  </p>
 
-                  <h2 className="mt-1 text-xl font-bold text-[#5F554C]">
-                    Sales Performance
-                  </h2>
-
-                  <p className="mt-2 text-sm leading-6 text-[#6F655C]">
-                    View units sold, revenue, product cost, and gross profit by
-                    selected month or all time. Only paid orders are counted.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={exportSalesPerformanceCsv}
-                  className="rounded-full bg-[#A79B8E] px-5 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
-                >
-                  Export Sales CSV
-                </button>
-              </div>
-
-              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <select
-                  value={salesPeriod}
-                  onChange={(e) =>
-                    setSalesPeriod(
-                      e.target.value as
-                      | "all"
-                      | "this-month"
-                      | "last-month"
-                      | "custom"
-                    )
-                  }
-                  className="rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
-                >
-                  <option value="all">All Time</option>
-                  <option value="this-month">This Month</option>
-                  <option value="last-month">Last Month</option>
-                  <option value="custom">Custom Month</option>
-                </select>
-
-                <input
-                  type="month"
-                  value={salesMonth}
-                  onChange={(e) => setSalesMonth(e.target.value)}
-                  disabled={salesPeriod !== "custom"}
-                  className="rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20 disabled:bg-gray-100 disabled:text-gray-400"
-                />
-
-                <div className="rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] px-4 py-3 text-sm font-semibold text-[#6F655C]">
-                  Orders Counted:{" "}
-                  <span className="font-bold text-[#5F554C]">
-                    {salesSummary.ordersCount}
-                  </span>
-                </div>
-              </div>
-            </div>
 
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
               <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
