@@ -169,6 +169,7 @@ export default function ShopClient({ seller }: { seller?: string }) {
   const [productSearch, setProductSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedKit, setSelectedKit] = useState<Product | null>(null);
+  const [showProductFilters, setShowProductFilters] = useState(false);
   const [selectedProtocol, setSelectedProtocol] = useState<Product | null>(null);
 
   const [selectedVariants, setSelectedVariants] = useState<
@@ -898,78 +899,138 @@ Total: $${cartTotal.toFixed(2)}`
           </div>
         )}
 
-{!productsLoading && (
-  <div className="mb-5 rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-      <div className="w-full lg:max-w-md">
-        <label className="sr-only">Search products</label>
-        <div className="relative">
-          <svg
-            className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#A79B8E]"
-            viewBox="0 0 24 24"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path
-              d="M10.5 18a7.5 7.5 0 1 1 5.3-2.2L21 21"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
-
-          <input
-            value={productSearch}
-            onChange={(e) => setProductSearch(e.target.value)}
-            placeholder="Search products..."
-            className="w-full rounded-full border border-[#D8D1C8] bg-[#FBFAF8] py-3 pl-11 pr-4 text-base font-semibold text-[#5F554C] outline-none transition focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
-          />
-        </div>
-      </div>
-
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-wrap lg:justify-end lg:overflow-visible lg:pb-0">
-        {availableCategories.map((category) => {
-          const isActive = selectedCategory === category;
-
-          return (
+        {!productsLoading && !showProductFilters && (
+          <div className="mb-5 flex justify-end">
             <button
-              key={category}
               type="button"
-              onClick={() => setSelectedCategory(category)}
-              className={`shrink-0 rounded-full border px-4 py-2 text-sm font-bold transition-all active:scale-95 ${
-                isActive
-                  ? "border-[#A79B8E] bg-[#A79B8E] text-white shadow-sm"
-                  : "border-[#D8D1C8] bg-white text-[#7F756B] hover:bg-[#F8F5F1]"
-              }`}
+              onClick={() => setShowProductFilters(true)}
+              aria-label="Search products"
+              className="flex h-12 w-12 items-center justify-center rounded-full border border-[#D8D1C8] bg-white text-[#A79B8E] shadow-sm transition-all hover:bg-[#F8F5F1] active:scale-95"
             >
-              {category}
+              <svg
+                className="h-5 w-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M10.8 18.2a7.4 7.4 0 1 1 5.2-2.2L21 21"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
             </button>
-          );
-        })}
-      </div>
-    </div>
+          </div>
+        )}
 
-    {(productSearch || selectedCategory !== "All") && (
-      <div className="mt-3 flex items-center justify-between gap-3 text-sm">
-        <p className="font-semibold text-[#8F8276]">
-          Showing {filteredProducts.length} product
-          {filteredProducts.length === 1 ? "" : "s"}
-        </p>
+        {!productsLoading && showProductFilters && (
+          <div className="mb-5 rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                  Product Search
+                </p>
+                <p className="mt-1 text-sm font-semibold text-[#6F655C]">
+                  Search by name, category, or product strength.
+                </p>
+              </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            setProductSearch("");
-            setSelectedCategory("All");
-          }}
-          className="font-bold text-[#A79B8E] hover:underline"
-        >
-          Clear
-        </button>
-      </div>
-    )}
-  </div>
-)}
+              <button
+                type="button"
+                onClick={() => {
+                  setProductSearch("");
+                  setSelectedCategory("All");
+                  setShowProductFilters(false);
+                }}
+                aria-label="Close product search"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-[#D8D1C8] bg-white text-[#7F756B] transition-all hover:bg-[#F8F5F1] active:scale-95"
+              >
+                <svg
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M6 6l12 12M18 6 6 18"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="w-full lg:max-w-md">
+                <label className="sr-only">Search products</label>
+                <div className="relative">
+                  <svg
+                    className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#A79B8E]"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M10.5 18a7.5 7.5 0 1 1 5.3-2.2L21 21"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+
+                  <input
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    placeholder="Search products..."
+                    className="w-full rounded-full border border-[#D8D1C8] bg-[#FBFAF8] py-3 pl-11 pr-4 text-base font-semibold text-[#5F554C] outline-none transition focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                  />
+                </div>
+              </div>
+
+              <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-wrap lg:justify-end lg:overflow-visible lg:pb-0">
+                {availableCategories.map((category) => {
+                  const isActive = selectedCategory === category;
+
+                  return (
+                    <button
+                      key={category}
+                      type="button"
+                      onClick={() => setSelectedCategory(category)}
+                      className={`shrink-0 rounded-full border px-4 py-2 text-sm font-bold transition-all active:scale-95 ${isActive
+                          ? "border-[#A79B8E] bg-[#A79B8E] text-white shadow-sm"
+                          : "border-[#D8D1C8] bg-white text-[#7F756B] hover:bg-[#F8F5F1]"
+                        }`}
+                    >
+                      {category}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {(productSearch || selectedCategory !== "All") && (
+              <div className="mt-3 flex items-center justify-between gap-3 text-sm">
+                <p className="font-semibold text-[#8F8276]">
+                  Showing {filteredProducts.length} product
+                  {filteredProducts.length === 1 ? "" : "s"}
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProductSearch("");
+                    setSelectedCategory("All");
+                  }}
+                  className="font-bold text-[#A79B8E] hover:underline"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
 
         <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
