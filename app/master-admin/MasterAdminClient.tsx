@@ -947,37 +947,37 @@ export default function MasterAdminClient() {
     }));
   }
 
-async function saveSiteSettings() {
-  if (!siteSettings) return;
+  async function saveSiteSettings() {
+    if (!siteSettings) return;
 
-  const updates = {
-    ...siteSettingsDraft,
-  };
+    const updates = {
+      ...siteSettingsDraft,
+    };
 
-  if (Object.keys(updates).length === 0) {
-    return;
+    if (Object.keys(updates).length === 0) {
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("site_settings")
+      .update(updates)
+      .eq("id", siteSettings.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error("SAVE SITE SETTINGS ERROR:", error);
+      alert(error.message);
+      return;
+    }
+
+    setSiteSettings(data);
+    setSiteSettingsDraft({});
+
+    window.dispatchEvent(new Event("ae-site-settings-updated"));
+
+    alert("Settings saved successfully.");
   }
-
-  const { data, error } = await supabase
-    .from("site_settings")
-    .update(updates)
-    .eq("id", siteSettings.id)
-    .select("*")
-    .single();
-
-  if (error) {
-    console.error("SAVE SITE SETTINGS ERROR:", error);
-    alert(error.message);
-    return;
-  }
-
-  setSiteSettings(data);
-  setSiteSettingsDraft({});
-
-  window.dispatchEvent(new Event("ae-site-settings-updated"));
-
-  alert("Settings saved successfully.");
-}
 
 
   async function uploadVariantFile(
@@ -3694,7 +3694,7 @@ async function saveSiteSettings() {
                 </label>
 
                 <label className="text-xs text-gray-500">
-                  TikTok URL
+                  Instagram URL
                   <input
                     className="mt-1 w-full rounded-xl border p-3 text-black"
                     value={siteSettingsDraft.tiktok_url ?? siteSettings.tiktok_url ?? ""}
