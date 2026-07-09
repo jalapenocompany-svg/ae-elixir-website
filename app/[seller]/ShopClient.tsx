@@ -862,48 +862,64 @@ Total: $${cartTotal.toFixed(2)}`
   });
 
   const selectedKitNameLower = (selectedKit?.name || "").toLowerCase();
-const selectedKitCategoryLower = (selectedKit?.category || "").toLowerCase();
+  const selectedKitCategoryLower = (selectedKit?.category || "").toLowerCase();
 
-const isBacWaterInfo =
-  selectedKitNameLower.includes("bac") ||
-  selectedKitNameLower.includes("bacteriostatic");
+  const selectedKitSizeMatch = (selectedKit?.name || "").match(
+    /(\d+(?:\.\d+)?\s*(?:mL|ml|ML|mg|MG))/i
+  );
 
-const isSyringeInfo =
-  selectedKitNameLower.includes("syringe") ||
-  selectedKitCategoryLower.includes("supplies");
+  const selectedKitSizeLabel = selectedKitSizeMatch
+    ? selectedKitSizeMatch[1].replace(/\s+/g, "")
+    : "";
 
-const showRequiredNotIncluded =
-  Boolean(selectedKit) && !isBacWaterInfo && !isSyringeInfo;
+  const isBacWaterInfo =
+    selectedKitNameLower.includes("bac") ||
+    selectedKitNameLower.includes("bacteriostatic");
 
-const whatsIncludedItems: string[] =
-  selectedKit?.kitItems && selectedKit.kitItems.length > 0
-    ? selectedKit.kitItems
-    : isBacWaterInfo
-    ? ["1x Bacteriostatic Water vial"]
-    : isSyringeInfo
-    ? ["Selected syringe pack"]
-    : ["1x Product vial"];
+  const isSyringeInfo =
+    selectedKitNameLower.includes("syringe") ||
+    selectedKitCategoryLower.includes("supplies");
 
-const requiredNotIncludedItems: string[] = [
-  "1x BAC Water",
-  "Minimum of 10 syringes",
-  "Review the product protocol before use",
-];
+  const showRequiredNotIncluded =
+    Boolean(selectedKit) && !isBacWaterInfo && !isSyringeInfo;
 
-const bacWaterUsageItems: { size: string; usage: string }[] = [
-  {
-    size: "BAC Water 3mL",
-    usage: "Average of 1 vial reconstitution",
-  },
-  {
-    size: "BAC Water 10mL",
-    usage: "Average of 5 vial reconstitutions",
-  },
-  {
-    size: "BAC Water 30mL",
-    usage: "Average of 15 vial reconstitutions",
-  },
-];
+  const whatsIncludedItems: string[] =
+    selectedKit?.kitItems && selectedKit.kitItems.length > 0
+      ? selectedKit.kitItems
+      : isBacWaterInfo
+        ? [
+          `1x Bacteriostatic Water${selectedKitSizeLabel ? ` ${selectedKitSizeLabel}` : ""
+          } vial`,
+        ]
+        : isSyringeInfo
+          ? ["Selected syringe pack"]
+          : ["1x Product vial"];
+
+  const requiredNotIncludedItems: { title: string; note?: string }[] = [
+    {
+      title: "1x BAC Water",
+    },
+    {
+      title: "Minimum of 10 Syringes",
+      note:
+        "One syringe will be used to dilute the vial. This syringe is not for dosing. It is used only to reconstitute (dilute) the peptide.",
+    },
+  ];
+
+  const bacWaterUsageItems: { size: string; usage: string }[] = [
+    {
+      size: "BAC Water 3mL",
+      usage: "Average of 1 vial reconstitution",
+    },
+    {
+      size: "BAC Water 10mL",
+      usage: "Average of 5 vial reconstitutions",
+    },
+    {
+      size: "BAC Water 30mL",
+      usage: "Average of 15 vial reconstitutions",
+    },
+  ];
 
 
 
@@ -2049,25 +2065,127 @@ const bacWaterUsageItems: { size: string; usage: string }[] = [
                 </div>
 
                 {showRequiredNotIncluded && (
-                  <div className="rounded-3xl border border-[#D8D1C8] bg-[#FFFDF9] p-4 shadow-sm">
-                    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
-                      Required But Not Included
-                    </p>
+                  <div className="relative overflow-hidden rounded-3xl border border-[#E8D9CF] bg-[#FFF9F6] p-5 shadow-sm">
+                    {/* Decorative icons on the right */}
+                    <div className="pointer-events-none absolute right-4 top-5 hidden flex-col items-center gap-4 opacity-40 md:flex">
+                      {/* Water drop */}
+                      <svg
+                        className="h-8 w-8 text-[#A35A2C]"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <path
+                          d="M12 3C12 3 6 10 6 14.5A6 6 0 0 0 18 14.5C18 10 12 3 12 3Z"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
 
-                    <p className="mb-3 text-sm leading-6 text-[#6F655C]">
-                      These items may be needed separately depending on the selected
-                      product and protocol.
-                    </p>
+                      {/* Syringe */}
+                      <svg
+                        className="h-9 w-9 text-[#A35A2C]"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <path
+                          d="M14 4l6 6M13 5l6 6M8 10l6 6M5 13l6 6"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                        />
+                        <path
+                          d="M14 4l2-2 6 6-2 2M4 14l6 6M3 21l2-2"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </div>
 
-                    <div className="space-y-2 text-sm text-[#6F655C]">
+                    {/* Header */}
+                    <div className="mb-4 flex items-center gap-3 pr-12">
+                      <svg
+                        className="h-9 w-9 shrink-0 text-[#A35A2C]"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <path
+                          d="M12 4 21 20H3L12 4Z"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M12 9v5"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                        />
+                        <circle cx="12" cy="17" r="1" fill="currentColor" />
+                      </svg>
+
+                      <p className="text-base font-bold uppercase tracking-wide text-[#A35A2C]">
+                        Required but Not Included
+                      </p>
+                    </div>
+
+                    {/* Items */}
+                    <div className="space-y-5 text-[#5F4D45]">
                       {requiredNotIncludedItems.map((item, index) => (
-                        <div key={index} className="flex gap-2 leading-6">
-                          <span className="min-w-5 font-bold text-[#A79B8E]">
+                        <div key={index} className="flex gap-4">
+                          <span className="min-w-7 text-xl font-medium text-[#5F4D45]">
                             {index + 1}.
                           </span>
-                          <span>{item}</span>
+
+                          <div>
+                            <p className="text-[22px] leading-tight text-[#2F241F]">
+                              {item.title}
+                            </p>
+
+                            {item.note && (
+                              <p className="mt-2 max-w-[580px] text-base leading-7 text-[#5F4D45]">
+                                {item.note}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       ))}
+                    </div>
+
+                    {/* Divider */}
+                    <div className="my-5 border-t border-[#E7D8CF]" />
+
+                    {/* Footer note */}
+                    <div className="flex items-start gap-3">
+                      <svg
+                        className="mt-0.5 h-8 w-8 shrink-0 text-[#A35A2C]"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <circle
+                          cx="12"
+                          cy="12"
+                          r="9"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                        />
+                        <path
+                          d="M12 11v5"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                        />
+                        <circle cx="12" cy="8" r="1" fill="currentColor" />
+                      </svg>
+
+                      <div className="text-base leading-7 text-[#2F241F]">
+                        <p>Please review the protocol before use.</p>
+                        <p>
+                          Items listed above are required for proper reconstitution and use.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 )}
