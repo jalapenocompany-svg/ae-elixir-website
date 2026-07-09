@@ -1979,27 +1979,26 @@ Total: $${cartTotal.toFixed(2)}`
 
       {selectedKit && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 px-4 py-5 backdrop-blur-[2px]">
-          <div className="flex max-h-[90dvh] w-full max-w-sm flex-col overflow-hidden rounded-[28px] border border-[#E6E0D8] bg-white shadow-2xl">
-            <div className="flex shrink-0 items-start justify-between border-b border-[#E6E0D8] p-5">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
-                  Product Information
-                </p>
+          <div className="flex max-h-[90dvh] w-full max-w-md flex-col overflow-hidden rounded-[28px] border border-[#E6E0D8] bg-white shadow-2xl sm:max-w-xl lg:max-w-2xl">            <div className="flex shrink-0 items-start justify-between border-b border-[#E6E0D8] p-5">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                Product Information
+              </p>
 
-                <h2 className="mt-1 text-xl font-bold tracking-wide text-[#5F554C]">
-                  {selectedKit.name}
-                </h2>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setSelectedKit(null)}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-xl leading-none text-[#7F756B] transition-all hover:bg-[#F6F3EF] active:scale-95"
-                aria-label="Close product information"
-              >
-                ×
-              </button>
+              <h2 className="mt-1 text-xl font-bold tracking-wide text-[#5F554C]">
+                {selectedKit.name}
+              </h2>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setSelectedKit(null)}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-xl leading-none text-[#7F756B] transition-all hover:bg-[#F6F3EF] active:scale-95"
+              aria-label="Close product information"
+            >
+              ×
+            </button>
+          </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
               <div className="mb-5 flex justify-center">
@@ -2065,12 +2064,10 @@ Total: $${cartTotal.toFixed(2)}`
                 </div>
 
                 {showRequiredNotIncluded && (
-                  <div className="relative overflow-hidden rounded-3xl border border-[#E8D9CF] bg-[#FFF9F6] p-5 shadow-sm">
-                    {/* Decorative icons on the right */}
-                    <div className="pointer-events-none absolute right-4 top-5 hidden flex-col items-center gap-4 opacity-40 md:flex">
-                      {/* Water drop */}
+                  <div className="relative overflow-hidden rounded-3xl border border-[#E8D9CF] bg-[#FFF9F6] p-4 shadow-sm">
+                    <div className="pointer-events-none absolute right-4 top-5 flex flex-col items-center gap-4 opacity-30">
                       <svg
-                        className="h-8 w-8 text-[#A35A2C]"
+                        className="h-6 w-6 text-[#A35A2C]"
                         viewBox="0 0 24 24"
                         fill="none"
                       >
@@ -2082,32 +2079,30 @@ Total: $${cartTotal.toFixed(2)}`
                         />
                       </svg>
 
-                      {/* Syringe */}
                       <svg
-                        className="h-9 w-9 text-[#A35A2C]"
+                        className="h-7 w-7 rotate-45 text-[#A35A2C]"
                         viewBox="0 0 24 24"
                         fill="none"
                       >
                         <path
-                          d="M14 4l6 6M13 5l6 6M8 10l6 6M5 13l6 6"
-                          stroke="currentColor"
-                          strokeWidth="1.6"
-                          strokeLinecap="round"
-                        />
-                        <path
-                          d="M14 4l2-2 6 6-2 2M4 14l6 6M3 21l2-2"
+                          d="M8 4h8M10 4v6l-3 5v4h10v-4l-3-5V4"
                           stroke="currentColor"
                           strokeWidth="1.6"
                           strokeLinecap="round"
                           strokeLinejoin="round"
                         />
+                        <path
+                          d="M9 15h6"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                        />
                       </svg>
                     </div>
 
-                    {/* Header */}
-                    <div className="mb-4 flex items-center gap-3 pr-12">
+                    <div className="mb-3 flex items-center gap-3 pr-12">
                       <svg
-                        className="h-9 w-9 shrink-0 text-[#A35A2C]"
+                        className="h-7 w-7 shrink-0 text-[#A35A2C]"
                         viewBox="0 0 24 24"
                         fill="none"
                       >
@@ -2126,41 +2121,37 @@ Total: $${cartTotal.toFixed(2)}`
                         <circle cx="12" cy="17" r="1" fill="currentColor" />
                       </svg>
 
-                      <p className="text-base font-bold uppercase tracking-wide text-[#A35A2C]">
-                        Required but Not Included
+                      <p className="text-sm font-bold uppercase tracking-wide text-[#A35A2C]">
+                        Required But Not Included
                       </p>
                     </div>
 
-                    {/* Items */}
-                    <div className="space-y-5 text-[#5F4D45]">
-                      {requiredNotIncludedItems.map((item, index) => (
-                        <div key={index} className="flex gap-4">
-                          <span className="min-w-7 text-xl font-medium text-[#5F4D45]">
-                            {index + 1}.
-                          </span>
+                    <div className="space-y-3 pr-8 text-sm text-[#5F4D45]">
+                      <div className="flex gap-3">
+                        <span className="min-w-5 font-bold text-[#A35A2C]">1.</span>
+                        <p className="font-semibold text-[#2F241F]">1x BAC Water</p>
+                      </div>
 
-                          <div>
-                            <p className="text-[22px] leading-tight text-[#2F241F]">
-                              {item.title}
-                            </p>
+                      <div className="flex gap-3">
+                        <span className="min-w-5 font-bold text-[#A35A2C]">2.</span>
 
-                            {item.note && (
-                              <p className="mt-2 max-w-[580px] text-base leading-7 text-[#5F4D45]">
-                                {item.note}
-                              </p>
-                            )}
-                          </div>
+                        <div>
+                          <p className="font-semibold text-[#2F241F]">
+                            Minimum of 10 Syringes
+                          </p>
+
+                          <p className="mt-1 max-w-md text-sm leading-6 text-[#6F655C]">
+                            One syringe is used to reconstitute the vial. It is not for dosing.
+                          </p>
                         </div>
-                      ))}
+                      </div>
                     </div>
 
-                    {/* Divider */}
-                    <div className="my-5 border-t border-[#E7D8CF]" />
+                    <div className="my-4 border-t border-[#E7D8CF]" />
 
-                    {/* Footer note */}
                     <div className="flex items-start gap-3">
                       <svg
-                        className="mt-0.5 h-8 w-8 shrink-0 text-[#A35A2C]"
+                        className="mt-0.5 h-6 w-6 shrink-0 text-[#A35A2C]"
                         viewBox="0 0 24 24"
                         fill="none"
                       >
@@ -2180,14 +2171,13 @@ Total: $${cartTotal.toFixed(2)}`
                         <circle cx="12" cy="8" r="1" fill="currentColor" />
                       </svg>
 
-                      <div className="text-base leading-7 text-[#2F241F]">
-                        <p>Please review the protocol before use.</p>
-                        <p>
-                          Items listed above are required for proper reconstitution and use.
-                        </p>
-                      </div>
+                      <p className="text-sm leading-6 text-[#5F4D45]">
+                        Please review the protocol before use. Items listed above may be needed
+                        separately for proper reconstitution.
+                      </p>
                     </div>
                   </div>
+                )}
                 )}
               </div>
             </div>
