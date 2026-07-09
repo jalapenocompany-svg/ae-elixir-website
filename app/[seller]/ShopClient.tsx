@@ -2069,7 +2069,7 @@ Total: $${cartTotal.toFixed(2)}`
 
                     <div className="mb-3 flex items-center gap-3 pr-12">
                       <svg
-                        className="h-7 w-7 shrink-0 text-[#A35A2C]"
+                        className="h-6 w-6 shrink-0 text-[#A35A2C]"
                         viewBox="0 0 24 24"
                         fill="none"
                       >
@@ -2088,7 +2088,7 @@ Total: $${cartTotal.toFixed(2)}`
                         <circle cx="12" cy="17" r="1" fill="currentColor" />
                       </svg>
 
-                      <p className="text-sm font-bold uppercase tracking-wide text-[#A35A2C]">
+                      <p className="text-xs font-bold uppercase tracking-wide text-[#A35A2C]">
                         Required But Not Included
                       </p>
                     </div>
