@@ -2093,17 +2093,19 @@ Total: $${cartTotal.toFixed(2)}`
                       </p>
                     </div>
 
-                    <div className="space-y-2 text-sm leading-6 text-[#6F655C]">
+                    <div className="space-y-3 pr-8 text-sm text-[#5F4D45]">
                       <div className="flex gap-3">
                         <span className="min-w-5 font-bold text-[#A35A2C]">1.</span>
-                        <p>1x BAC Water</p>
+                        <p className="font-semibold text-[#2F241F]">1x BAC Water</p>
                       </div>
 
                       <div className="flex gap-3">
                         <span className="min-w-5 font-bold text-[#A35A2C]">2.</span>
 
                         <div>
-                          <p>Minimum of 10 Syringes</p>
+                          <p className="font-semibold text-[#2F241F]">
+                            Minimum of 10 Syringes
+                          </p>
 
                           <p className="mt-1 max-w-md text-sm leading-6 text-[#6F655C]">
                             One syringe is used to reconstitute the vial. It is not for dosing.
@@ -2143,7 +2145,7 @@ Total: $${cartTotal.toFixed(2)}`
                     </div>
                   </div>
                 )}
-
+                
               </div>
             </div>
 
