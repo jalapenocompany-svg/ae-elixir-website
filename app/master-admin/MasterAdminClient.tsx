@@ -2071,7 +2071,46 @@ export default function MasterAdminClient() {
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
-                ...
+                <button
+                  type="button"
+                  onClick={() =>
+                    loadOrders({
+                      page: 0,
+                      append: false,
+                    })
+                  }
+                  className="rounded-full bg-[#A79B8E] px-4 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
+                >
+                  Search
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOrderSearch("");
+                    setOrderStatusFilter("all");
+                    setPaymentStatusFilter("all");
+
+                    loadOrders({
+                      page: 0,
+                      append: false,
+                      search: "",
+                      orderStatus: "all",
+                      paymentStatus: "all",
+                    });
+                  }}
+                  className="rounded-full border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold text-[#A79B8E] shadow-sm transition-all hover:bg-[#F8F5F1] active:scale-95"
+                >
+                  Reset
+                </button>
+
+                <button
+                  type="button"
+                  onClick={exportShippingCsv}
+                  className="col-span-2 rounded-full border border-[#A79B8E] bg-[#F8F5F1] px-4 py-3 text-sm font-bold text-[#7F756B] shadow-sm transition-all hover:bg-[#EFE8E1] active:scale-95 sm:col-span-1"
+                >
+                  Export Shipping CSV
+                </button>
               </div>
             </div>
 
