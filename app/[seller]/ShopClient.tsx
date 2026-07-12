@@ -128,6 +128,17 @@ type PaymentMethod = {
   sort_order: number;
 };
 
+type ShippingMethod = {
+  id: string;
+  name: string;
+  display_label: string;
+  description: string | null;
+  price: number;
+  enabled: boolean;
+  sort_order: number;
+  logo_url: string | null;
+};
+
 type CartItem = Product & {
   quantity: number;
   price: number;
@@ -145,6 +156,9 @@ type LocalOrder = {
   id: string;
   orderNumber: string;
   seller: string;
+  subtotal?: number;
+  shippingPrice?: number;
+  shippingMethod?: string;
   total: number;
   paymentMethod: string;
   createdAt: string;
@@ -195,6 +209,8 @@ export default function ShopClient({ seller }: { seller?: string }) {
   const [priceZone, setPriceZone] = useState<"zone1" | "zone2">("zone1");
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
+  const [selectedShippingMethodId, setSelectedShippingMethodId] = useState("");
 
 
   const [form, setForm] = useState({
@@ -209,10 +225,18 @@ export default function ShopClient({ seller }: { seller?: string }) {
 
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const cartTotal = cart.reduce(
+  const cartSubtotal = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
+
+  const selectedShippingMethod = shippingMethods.find(
+    (method) => method.id === selectedShippingMethodId
+  );
+
+  const shippingPrice = Number(selectedShippingMethod?.price || 0);
+
+  const cartTotal = cartSubtotal + shippingPrice;
 
   useEffect(() => {
     const savedCart = localStorage.getItem("pepmistry_cart");
@@ -257,6 +281,18 @@ export default function ShopClient({ seller }: { seller?: string }) {
         console.error("PAYMENT METHODS ERROR:", paymentError);
       } else {
         setPaymentMethods(paymentData || []);
+      }
+
+      const { data: shippingData, error: shippingError } = await supabase
+        .from("shipping_methods")
+        .select("*")
+        .eq("enabled", true)
+        .order("sort_order", { ascending: true });
+
+      if (shippingError) {
+        console.error("SHIPPING METHODS ERROR:", shippingError);
+      } else {
+        setShippingMethods(shippingData || []);
       }
 
 
@@ -611,8 +647,15 @@ export default function ShopClient({ seller }: { seller?: string }) {
       return;
     }
 
-    if (!form.fullName || !form.address || !form.email || !form.phone || !form.paymentMethod) {
-      alert("Please complete all checkout fields and select a payment method.");
+    if (
+      !form.fullName ||
+      !form.address ||
+      !form.email ||
+      !form.phone ||
+      !selectedShippingMethodId ||
+      !form.paymentMethod
+    ) {
+      alert("Please complete all checkout fields, select a shipping method, and select a payment method.");
       return;
     }
 
@@ -648,6 +691,11 @@ export default function ShopClient({ seller }: { seller?: string }) {
       customer_phone: form.phone,
       payment_method: form.paymentMethod,
       items: orderItemsWithMargins,
+      subtotal: cartSubtotal,
+      shipping_method: selectedShippingMethod?.name || "",
+      shipping_label: selectedShippingMethod?.display_label || "",
+      shipping_description: selectedShippingMethod?.description || "",
+      shipping_price: shippingPrice,
       total: cartTotal,
     };
 
@@ -701,6 +749,7 @@ Email: ${form.email}
 Address: ${form.address}
 
 Payment: ${selectedPaymentMethod?.display_label || form.paymentMethod}
+Shipping: ${selectedShippingMethod?.display_label || ""} - $${shippingPrice.toFixed(2)}
 
 Items:
 ${cart
@@ -712,6 +761,8 @@ ${cart
         )
         .join("\n")}
 
+Subtotal: $${cartSubtotal.toFixed(2)}
+Shipping: $${shippingPrice.toFixed(2)}
 Total: $${cartTotal.toFixed(2)}`
     );
 
@@ -740,8 +791,12 @@ Total: $${cartTotal.toFixed(2)}`
         paymentInstructions:
           selectedPaymentMethod?.instructions || "",
         whatsAppUrl: orderWhatsAppUrl,
-        items: orderItemsWithMargins,
-        total: cartTotal,
+items: orderItemsWithMargins,
+subtotal: cartSubtotal,
+shippingMethodLabel: selectedShippingMethod?.display_label || "",
+shippingDescription: selectedShippingMethod?.description || "",
+shippingPrice,
+total: cartTotal,
       }),
     });
 
@@ -749,9 +804,12 @@ Total: $${cartTotal.toFixed(2)}`
       id: data.id,
       orderNumber: shortOrderNumber,
       seller: validSellerCode || "AEELIXIR",
-      total: cartTotal,
-      paymentMethod: form.paymentMethod,
-      createdAt: new Date().toISOString(),
+subtotal: cartSubtotal,
+shippingPrice,
+shippingMethod: selectedShippingMethod?.display_label || "",
+total: cartTotal,
+paymentMethod: form.paymentMethod,
+createdAt: new Date().toISOString(),
       items: cart.map((item) => {
         const marginItem = orderItemsWithMargins.find(
           (orderItem) => orderItem.id === item.id
@@ -798,6 +856,8 @@ Total: $${cartTotal.toFixed(2)}`
       phone: "",
       paymentMethod: "",
     });
+
+    setSelectedShippingMethodId("");
 
     setAddressSuggestions([]);
     setCheckoutOpen(false);
@@ -1792,6 +1852,69 @@ Total: $${cartTotal.toFixed(2)}`
                 </div>
 
                 <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+  <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+    Shipping Method
+  </p>
+
+  {shippingMethods.length === 0 ? (
+    <div className="rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] p-4 text-sm font-semibold text-[#6F655C]">
+      Shipping options are currently unavailable.
+    </div>
+  ) : (
+    <div className="space-y-3">
+      {shippingMethods.map((method) => {
+        const isSelected = selectedShippingMethodId === method.id;
+
+        return (
+          <button
+            key={method.id}
+            type="button"
+            onClick={() => setSelectedShippingMethodId(method.id)}
+            className={`w-full rounded-2xl border p-4 text-left transition-all active:scale-[0.99] ${
+              isSelected
+                ? "border-[#A79B8E] bg-[#F8F5F1] shadow-sm"
+                : "border-[#E6E0D8] bg-white hover:bg-[#FBFAF8]"
+            }`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div
+                  className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border ${
+                    isSelected
+                      ? "border-[#A79B8E] bg-[#A79B8E]"
+                      : "border-[#D8D1C8] bg-white"
+                  }`}
+                >
+                  {isSelected && (
+                    <div className="h-2 w-2 rounded-full bg-white" />
+                  )}
+                </div>
+
+                <div>
+                  <p className="font-bold text-[#5F554C]">
+                    {method.display_label}
+                  </p>
+
+                  {method.description && (
+                    <p className="mt-1 text-sm leading-5 text-[#6F655C]">
+                      {method.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <p className="shrink-0 font-bold text-[#5F554C]">
+                ${Number(method.price || 0).toFixed(2)}
+              </p>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  )}
+</div>
+
+                <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
                   <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
                     Payment Method
                   </p>
@@ -1872,6 +1995,40 @@ Total: $${cartTotal.toFixed(2)}`
                     </div>
                   )}
                 </div>
+
+                <div className="rounded-[24px] border border-[#E6E0D8] bg-[#FBFAF8] p-4 shadow-sm">
+  <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+    Order Total
+  </p>
+
+  <div className="space-y-2 text-sm text-[#6F655C]">
+    <div className="flex items-center justify-between">
+      <span>Subtotal</span>
+      <span className="font-bold text-[#5F554C]">
+        ${cartSubtotal.toFixed(2)}
+      </span>
+    </div>
+
+    <div className="flex items-center justify-between">
+      <span>
+        Shipping
+        {selectedShippingMethod
+          ? ` · ${selectedShippingMethod.display_label}`
+          : ""}
+      </span>
+      <span className="font-bold text-[#5F554C]">
+        ${shippingPrice.toFixed(2)}
+      </span>
+    </div>
+
+    <div className="border-t border-[#E6E0D8] pt-2">
+      <div className="flex items-center justify-between text-base font-bold text-[#1F1A17]">
+        <span>Total</span>
+        <span>${cartTotal.toFixed(2)}</span>
+      </div>
+    </div>
+  </div>
+</div>
 
                 <button
                   type="button"
@@ -2063,85 +2220,85 @@ Total: $${cartTotal.toFixed(2)}`
                   </div>
                 </div>
 
-{showRequiredNotIncluded && (
-  <div className="rounded-3xl border border-[#D8D1C8] bg-[#FBFAF8] p-4 shadow-sm">
-    <div className="mb-3 flex items-center gap-2">
-      <svg
-        className="h-4 w-4 shrink-0 text-[#A35A2C]"
-        viewBox="0 0 24 24"
-        fill="none"
-        aria-hidden="true"
-      >
-        <path
-          d="M12 4 21 20H3L12 4Z"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M12 9v5"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-        />
-        <circle cx="12" cy="17" r="1" fill="currentColor" />
-      </svg>
+                {showRequiredNotIncluded && (
+                  <div className="rounded-3xl border border-[#D8D1C8] bg-[#FBFAF8] p-4 shadow-sm">
+                    <div className="mb-3 flex items-center gap-2">
+                      <svg
+                        className="h-4 w-4 shrink-0 text-[#A35A2C]"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M12 4 21 20H3L12 4Z"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M12 9v5"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                        />
+                        <circle cx="12" cy="17" r="1" fill="currentColor" />
+                      </svg>
 
-      <p className="text-xs font-bold uppercase tracking-wide text-[#A35A2C]">
-        Required But Not Included
-      </p>
-    </div>
+                      <p className="text-xs font-bold uppercase tracking-wide text-[#A35A2C]">
+                        Required But Not Included
+                      </p>
+                    </div>
 
-    <div className="space-y-2 text-sm leading-6 text-[#6F655C]">
-      <div className="flex gap-2">
-        <span className="min-w-5 font-bold text-[#A35A2C]">1.</span>
-        <span>1x BAC Water</span>
-      </div>
+                    <div className="space-y-2 text-sm leading-6 text-[#6F655C]">
+                      <div className="flex gap-2">
+                        <span className="min-w-5 font-bold text-[#A35A2C]">1.</span>
+                        <span>1x BAC Water</span>
+                      </div>
 
-      <div className="flex gap-2">
-        <span className="min-w-5 font-bold text-[#A35A2C]">2.</span>
-        <div>
-          <p>Minimum of 10 Syringes</p>
-          <p className="mt-1 text-sm leading-6 text-[#6F655C]">
-            One syringe is used to reconstitute the vial. It is not for dosing.
-          </p>
-        </div>
-      </div>
-    </div>
+                      <div className="flex gap-2">
+                        <span className="min-w-5 font-bold text-[#A35A2C]">2.</span>
+                        <div>
+                          <p>Minimum of 10 Syringes</p>
+                          <p className="mt-1 text-sm leading-6 text-[#6F655C]">
+                            One syringe is used to reconstitute the vial. It is not for dosing.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
 
-    <div className="my-4 border-t border-[#E6E0D8]" />
+                    <div className="my-4 border-t border-[#E6E0D8]" />
 
-    <div className="flex gap-2 text-sm leading-6 text-[#6F655C]">
-      <svg
-        className="mt-1 h-4 w-4 shrink-0 text-[#A35A2C]"
-        viewBox="0 0 24 24"
-        fill="none"
-        aria-hidden="true"
-      >
-        <circle
-          cx="12"
-          cy="12"
-          r="9"
-          stroke="currentColor"
-          strokeWidth="1.8"
-        />
-        <path
-          d="M12 11v5"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-        />
-        <circle cx="12" cy="8" r="1" fill="currentColor" />
-      </svg>
+                    <div className="flex gap-2 text-sm leading-6 text-[#6F655C]">
+                      <svg
+                        className="mt-1 h-4 w-4 shrink-0 text-[#A35A2C]"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <circle
+                          cx="12"
+                          cy="12"
+                          r="9"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                        />
+                        <path
+                          d="M12 11v5"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                        />
+                        <circle cx="12" cy="8" r="1" fill="currentColor" />
+                      </svg>
 
-      <p>
-        Please review the protocol before use. Items listed above may be needed
-        separately for proper reconstitution.
-      </p>
-    </div>
-  </div>
-)}
-                
+                      <p>
+                        Please review the protocol before use. Items listed above may be needed
+                        separately for proper reconstitution.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
               </div>
             </div>
 

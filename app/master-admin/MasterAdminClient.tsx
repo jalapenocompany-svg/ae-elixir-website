@@ -30,6 +30,17 @@ type PaymentMethod = {
   sort_order: number;
 };
 
+type ShippingMethod = {
+  id: string;
+  name: string;
+  display_label: string;
+  description: string | null;
+  price: number;
+  enabled: boolean;
+  sort_order: number;
+  logo_url: string | null;
+};
+
 type Order = {
   id: string;
   created_at: string;
@@ -41,6 +52,11 @@ type Order = {
   customer_address: string;
   payment_method: string;
   items: OrderItem[];
+  subtotal: number | null;
+  shipping_method: string | null;
+  shipping_label: string | null;
+  shipping_description: string | null;
+  shipping_price: number | null;
   total: number;
   order_status: string | null;
   payment_status: string | null;
@@ -452,6 +468,11 @@ export default function MasterAdminClient() {
   const [paymentDrafts, setPaymentDrafts] = useState<
     Record<string, Partial<PaymentMethod>>
   >({});
+
+  const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
+  const [shippingDrafts, setShippingDrafts] = useState<
+    Record<string, Partial<ShippingMethod>>
+  >({});
   const [orders, setOrders] = useState<Order[]>([]);
   const [orderDrafts, setOrderDrafts] = useState<
     Record<string, Partial<Order>>
@@ -601,6 +622,19 @@ export default function MasterAdminClient() {
       setPaymentDrafts({});
     }
 
+
+    const { data: shippingData, error: shippingError } = await supabase
+      .from("shipping_methods")
+      .select("*")
+      .order("sort_order", { ascending: true });
+
+    if (shippingError) {
+      console.error("SHIPPING METHODS LOAD ERROR:", shippingError);
+    } else {
+      setShippingMethods(shippingData || []);
+      setShippingDrafts({});
+    }
+
     const { data: sellerData, error: sellerError } = await supabase
       .from("sellers")
       .select("seller_code, seller_name, commission_percent");
@@ -726,6 +760,50 @@ export default function MasterAdminClient() {
       return copy;
     });
   }
+
+
+  function updateShippingDraft(
+    shippingId: string,
+    updates: Partial<ShippingMethod>
+  ) {
+    setShippingDrafts((current) => ({
+      ...current,
+      [shippingId]: {
+        ...current[shippingId],
+        ...updates,
+      },
+    }));
+  }
+
+  async function saveShippingMethod(shippingId: string) {
+    const updates = shippingDrafts[shippingId];
+
+    if (!updates || Object.keys(updates).length === 0) return;
+
+    const { error } = await supabase
+      .from("shipping_methods")
+      .update(updates)
+      .eq("id", shippingId);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    setShippingMethods((current) =>
+      current.map((method) =>
+        method.id === shippingId ? { ...method, ...updates } : method
+      )
+    );
+
+    setShippingDrafts((current) => {
+      const copy = { ...current };
+      delete copy[shippingId];
+      return copy;
+    });
+  }
+
+
   async function restockInventoryForOrder(order: Order) {
     if (order.inventory_restocked) return;
 
@@ -1986,6 +2064,14 @@ export default function MasterAdminClient() {
                     <p>
                       <b className="text-[#5F554C]">Payment Method:</b>{" "}
                       {order.payment_method}
+                    </p>
+
+                    <p>
+                      <b className="text-[#5F554C]">Shipping:</b>{" "}
+                      {order.shipping_label || "Not selected"}
+                      {Number(order.shipping_price || 0) > 0
+                        ? ` · ${formatCurrency(Number(order.shipping_price || 0))}`
+                        : ""}
                     </p>
                   </div>
 
@@ -3760,6 +3846,149 @@ export default function MasterAdminClient() {
                 </div>
               );
             })}
+
+            <div className="rounded-2xl bg-white p-4 shadow-sm">
+              <h2 className="text-lg font-bold text-[#5F554C]">Shipping Options</h2>
+              <p className="mt-1 text-sm leading-6 text-[#6F655C]">
+                Manage static shipping methods shown during checkout. These are fixed rates,
+                not live carrier calculations.
+              </p>
+            </div>
+
+            {shippingMethods.map((method) => {
+              const draft = shippingDrafts[method.id] || {};
+              const enabled = draft.enabled ?? method.enabled;
+
+              return (
+                <div key={method.id} className="rounded-2xl bg-white p-4 shadow-sm">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-bold text-[#5F554C]">
+                        {draft.display_label ?? method.display_label}
+                      </p>
+                      <p className="text-xs text-gray-400">{method.name}</p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateShippingDraft(method.id, {
+                          enabled: !enabled,
+                        })
+                      }
+                      className={`rounded-2xl border px-4 py-2 text-sm font-semibold transition-all active:scale-95 ${enabled
+                          ? "border-[#A79B8E] bg-[#A79B8E] text-white"
+                          : "border-gray-200 bg-white text-gray-500"
+                        }`}
+                    >
+                      {enabled ? "Enabled" : "Disabled"}
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <label className="text-xs text-gray-500">
+                      Display Label
+                      <input
+                        className="mt-1 w-full rounded-xl border p-3 text-black"
+                        value={draft.display_label ?? method.display_label}
+                        onChange={(e) =>
+                          updateShippingDraft(method.id, {
+                            display_label: e.target.value,
+                          })
+                        }
+                      />
+                    </label>
+
+                    <label className="text-xs text-gray-500">
+                      Price
+                      <input
+                        type="number"
+                        step="0.01"
+                        className="mt-1 w-full rounded-xl border p-3 text-black"
+                        value={draft.price ?? method.price}
+                        onChange={(e) =>
+                          updateShippingDraft(method.id, {
+                            price: Number(e.target.value || 0),
+                          })
+                        }
+                      />
+                    </label>
+
+                    <label className="text-xs text-gray-500">
+                      Sort Order
+                      <input
+                        type="number"
+                        className="mt-1 w-full rounded-xl border p-3 text-black"
+                        value={draft.sort_order ?? method.sort_order}
+                        onChange={(e) =>
+                          updateShippingDraft(method.id, {
+                            sort_order: Number(e.target.value || 0),
+                          })
+                        }
+                      />
+                    </label>
+
+                    <label className="text-xs text-gray-500">
+                      Logo URL Optional
+                      <input
+                        className="mt-1 w-full rounded-xl border p-3 text-black"
+                        value={draft.logo_url ?? method.logo_url ?? ""}
+                        onChange={(e) =>
+                          updateShippingDraft(method.id, {
+                            logo_url: e.target.value,
+                          })
+                        }
+                        placeholder="/usps.png, /ups.png, /fedex.png"
+                      />
+                    </label>
+
+                    <label className="text-xs text-gray-500 sm:col-span-2">
+                      Description
+                      <textarea
+                        className="mt-1 min-h-[90px] w-full rounded-xl border p-3 text-black"
+                        value={draft.description ?? method.description ?? ""}
+                        onChange={(e) =>
+                          updateShippingDraft(method.id, {
+                            description: e.target.value,
+                          })
+                        }
+                        placeholder="Lower rate. Longer shipping time."
+                      />
+                    </label>
+                  </div>
+
+                  <div className="mt-4 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => saveShippingMethod(method.id)}
+                      disabled={!shippingDrafts[method.id]}
+                      className={`flex h-11 w-32 items-center justify-center rounded-2xl border text-sm font-semibold transition-all active:scale-95 ${shippingDrafts[method.id]
+                          ? "border-green-200 bg-green-50 text-green-700"
+                          : "border-gray-200 bg-gray-50 text-gray-400"
+                        }`}
+                    >
+                      Save
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShippingDrafts((current) => {
+                          const copy = { ...current };
+                          delete copy[method.id];
+                          return copy;
+                        })
+                      }
+                      disabled={!shippingDrafts[method.id]}
+                      className="flex h-11 w-32 items-center justify-center rounded-2xl border border-red-200 bg-red-50 text-sm font-semibold text-red-600 disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+
           </div>
         )}
 

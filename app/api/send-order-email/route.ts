@@ -138,6 +138,10 @@ export async function POST(req: Request) {
       paymentInstructions,
       whatsAppUrl,
       items,
+      subtotal,
+      shippingMethodLabel,
+      shippingDescription,
+      shippingPrice,
       total,
     } = await req.json();
 
@@ -172,6 +176,11 @@ export async function POST(req: Request) {
       process.env.ORDER_FROM_EMAIL ||
       `${BRAND_NAME} <support@aeelixir.com>`;
 
+    const safeSubtotal = Number(subtotal ?? total ?? 0);
+    const safeShippingPrice = Number(shippingPrice || 0);
+    const safeTotal = Number(total || 0);
+    const safeShippingLabel = shippingMethodLabel || "Shipping";
+    const safeShippingDescription = shippingDescription || "";
     const paymentHtml = getPaymentInstructions({
       paymentMethod,
       paymentMethodLabel,
@@ -310,26 +319,73 @@ export async function POST(req: Request) {
             ">
               ${itemsHtml}
 
-              <tr>
-                <td style="
-                  padding:16px 8px 8px;
-                  color:${DARK_TEXT};
-                  font-size:16px;
-                  font-weight:bold;
-                ">
-                  Total
-                </td>
+<tr>
+  <td style="
+    padding:14px 8px 6px;
+    color:${BODY_TEXT};
+    font-size:14px;
+  ">
+    Subtotal
+  </td>
 
-                <td style="
-                  padding:16px 8px 8px;
-                  text-align:right;
-                  color:${DARK_TEXT};
-                  font-size:18px;
-                  font-weight:bold;
-                ">
-                  $${Number(total).toFixed(2)}
-                </td>
-              </tr>
+  <td style="
+    padding:14px 8px 6px;
+    text-align:right;
+    color:${DARK_TEXT};
+    font-size:14px;
+    font-weight:bold;
+  ">
+    $${safeSubtotal.toFixed(2)}
+  </td>
+</tr>
+
+<tr>
+  <td style="
+    padding:8px;
+    color:${BODY_TEXT};
+    font-size:14px;
+  ">
+    ${safeShippingLabel}
+    ${safeShippingDescription
+        ? `<br /><span style="font-size:12px;color:${BODY_TEXT};">${safeShippingDescription}</span>`
+        : ""
+      }
+  </td>
+
+  <td style="
+    padding:8px;
+    text-align:right;
+    color:${DARK_TEXT};
+    font-size:14px;
+    font-weight:bold;
+    white-space:nowrap;
+  ">
+    $${safeShippingPrice.toFixed(2)}
+  </td>
+</tr>
+
+<tr>
+  <td style="
+    padding:16px 8px 8px;
+    color:${DARK_TEXT};
+    font-size:16px;
+    font-weight:bold;
+    border-top:1px solid ${BORDER_COLOR};
+  ">
+    Total
+  </td>
+
+  <td style="
+    padding:16px 8px 8px;
+    text-align:right;
+    color:${DARK_TEXT};
+    font-size:18px;
+    font-weight:bold;
+    border-top:1px solid ${BORDER_COLOR};
+  ">
+    $${safeTotal.toFixed(2)}
+  </td>
+</tr>
             </table>
 
             ${paymentHtml}
@@ -476,10 +532,15 @@ export async function POST(req: Request) {
                   ${paymentMethod}
                 </p>
 
-                <p style="margin:5px 0;color:${BODY_TEXT};">
-                  <strong style="color:${DARK_TEXT};">Total:</strong>
-                  $${Number(total).toFixed(2)}
-                </p>
+<p style="margin:5px 0;color:${BODY_TEXT};">
+  <strong style="color:${DARK_TEXT};">Shipping:</strong>
+  ${safeShippingLabel} — $${safeShippingPrice.toFixed(2)}
+</p>
+
+<p style="margin:5px 0;color:${BODY_TEXT};">
+  <strong style="color:${DARK_TEXT};">Total:</strong>
+  $${safeTotal.toFixed(2)}
+</p>
               </div>
 
               <h2 style="
@@ -524,9 +585,7 @@ export async function POST(req: Request) {
           from: fromEmail,
           to: [adminEmail],
           replyTo: SUPPORT_EMAIL,
-          subject: `New ${BRAND_NAME} Order #${orderNumber} — $${Number(
-            total
-          ).toFixed(2)}`,
+subject: `New ${BRAND_NAME} Order #${orderNumber} — $${safeTotal.toFixed(2)}`,
           html: adminHtml,
         });
 
