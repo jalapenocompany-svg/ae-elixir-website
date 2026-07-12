@@ -1364,6 +1364,73 @@ export default function MasterAdminClient() {
     return `"${String(value ?? "").replace(/"/g, '""')}"`;
   }
 
+  function parseShippingAddress(fullAddress: string | null | undefined) {
+    const raw = String(fullAddress || "").trim();
+
+    const fallback = {
+      address1: raw,
+      address2: "",
+      city: "",
+      state: "",
+      zip: "",
+      country: "United States",
+    };
+
+    if (!raw) return fallback;
+
+    const parts = raw
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    const countryPart = parts[parts.length - 1] || "";
+    const hasCountry =
+      /united states|usa|us/i.test(countryPart) && parts.length >= 3;
+
+    const country = hasCountry ? "United States" : "United States";
+    const addressParts = hasCountry ? parts.slice(0, -1) : parts;
+
+    const cityStateZip = addressParts[addressParts.length - 1] || "";
+
+    const cityStateZipMatch = cityStateZip.match(
+      /^(.+?)\s+([A-Z]{2})\s+(\d{5}(?:-\d{4})?)$/i
+    );
+
+    if (!cityStateZipMatch) {
+      return {
+        ...fallback,
+        country,
+      };
+    }
+
+    const city = cityStateZipMatch[1].trim();
+    const state = cityStateZipMatch[2].toUpperCase();
+    const zip = cityStateZipMatch[3];
+
+    const streetParts = addressParts.slice(0, -1);
+
+    let address1 = streetParts[0] || "";
+    let address2 = streetParts.slice(1).join(", ");
+
+    const aptMatch = address1.match(
+      /^(.*?)(?:\s+)(Apt|Apartment|Unit|Ste|Suite|#)\s*([A-Za-z0-9-]+)$/i
+    );
+
+    if (aptMatch) {
+      address1 = aptMatch[1].trim();
+      address2 = `${aptMatch[2]} ${aptMatch[3]}`.trim();
+    }
+
+    return {
+      address1,
+      address2,
+      city,
+      state,
+      zip,
+      country,
+    };
+  }
+
   function formatCurrency(value: number) {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -1711,18 +1778,20 @@ export default function MasterAdminClient() {
         .map((item) => `${item.quantity}x ${item.name}`)
         .join(" | ");
 
+      const parsedAddress = parseShippingAddress(order.customer_address);
+
       return [
         orderNumber,
         order.customer_name,
         order.customer_email,
         order.customer_phone,
         order.customer_address,
-        order.customer_address,
-        "",
-        "",
-        "",
-        "",
-        "United States",
+        parsedAddress.address1,
+        parsedAddress.address2,
+        parsedAddress.city,
+        parsedAddress.state,
+        parsedAddress.zip,
+        parsedAddress.country,
         order.shipping_label || order.shipping_method || "",
         Number(order.shipping_price || 0).toFixed(2),
         Number(order.total || 0).toFixed(2),
