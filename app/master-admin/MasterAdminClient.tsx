@@ -1839,7 +1839,7 @@ function parseShippingAddress(fullAddress: string | null | undefined) {
         parsedAddress.address2,
         parsedAddress.city,
         parsedAddress.state,
-        parsedAddress.zip,
+        parsedAddress.zip ? `="${parsedAddress.zip}"` : "",
         parsedAddress.country,
         order.shipping_label || order.shipping_method || "",
         Number(order.shipping_price || 0).toFixed(2),
