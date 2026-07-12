@@ -1798,26 +1798,21 @@ export default function MasterAdminClient() {
     }
 
     const headers = [
-
-      "Order Number",
-      "Full Name",
       "Email",
-      "Phone",
-      "Full Address",
-      "Address 1",
-      "Address 2",
+      "Name",
+      "Company",
+      "Address",
+      "Address Line 2",
       "City",
       "State",
       "Zipcode",
       "Country",
-      "Shipping Method",
-      "Shipping Paid",
-      "Order Total",
-      "Items",
-      "Order Status",
-      "Payment Status",
-      "Tracking Number",
-      "Notes",
+      "Order ID",
+      "Order Items",
+      "Pounds",
+      "Length",
+      "Width",
+      "Height",
     ];
 
     const rows = exportOrders.map((order: Order) => {
@@ -1831,25 +1826,21 @@ export default function MasterAdminClient() {
       const parsedAddress = parseShippingAddress(order.customer_address);
 
       return [
-        orderNumber,
-        order.customer_name,
         order.customer_email,
-        order.customer_phone,
-        order.customer_address,
+        order.customer_name,
+        "",
         parsedAddress.address1,
         parsedAddress.address2,
         parsedAddress.city,
         parsedAddress.state,
         parsedAddress.zip,
-        parsedAddress.country,
-        order.shipping_label || order.shipping_method || "",
-        Number(order.shipping_price || 0).toFixed(2),
-        Number(order.total || 0).toFixed(2),
+        "US",
+        orderNumber,
         itemsSummary,
-        order.order_status || "pending",
-        order.payment_status || "pending",
-        order.tracking_number || "",
-        `AE Elixir order #${orderNumber}`,
+        "",
+        "",
+        "",
+        "",
       ];
     });
 
