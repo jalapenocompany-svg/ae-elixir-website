@@ -2111,12 +2111,13 @@ export default function MasterAdminClient() {
                 >
                   Export Shipping CSV
                 </button>
-                            <p className="mt-3 text-xs leading-5 text-[#8F8276]">
-              Tip: filter by Paid + Pending or Processing before exporting orders for
-              shipping labels.
-            </p>
-            
+
+
               </div>
+              <p className="mt-3 text-xs leading-5 text-[#8F8276]">
+                Tip: filter by Paid + Pending or Processing before exporting orders for
+                shipping labels.
+              </p>
             </div>
 
 
