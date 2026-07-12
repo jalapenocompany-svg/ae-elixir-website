@@ -3833,18 +3833,12 @@ export default function MasterAdminClient() {
 
                               {newCoaDrafts[variant.id]?.imageUrl && (
                                 <div className="mt-3 rounded-2xl border border-green-200 bg-green-50 p-3 text-sm font-semibold text-green-700">
-                                  COA image uploaded. Click “Add COA to List”, then click the main
-                                  variant Save button.
+                                  COA image uploaded. Click “Add COA to List” to save it.
                                 </div>
                               )}
                             </div>
 
-                            {variantDrafts[variant.id]?.coa_list && (
-                              <div className="mt-3 rounded-2xl border border-yellow-200 bg-yellow-50 p-3 text-xs font-semibold leading-5 text-yellow-800">
-                                COA list changes are pending. Click the main Save button below to publish
-                                them.
-                              </div>
-                            )}
+
                           </div>
 
                         </div>
