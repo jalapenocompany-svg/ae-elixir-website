@@ -2507,7 +2507,7 @@ Total: $${cartTotal.toFixed(2)}`
                   ) : selectedProtocol.coaList && selectedProtocol.coaList.length > 0 ? (
                     <div className="overflow-hidden rounded-[20px] border border-[#E6E0D8] bg-white">
                       <div className="grid grid-cols-[1.4fr_0.8fr_0.7fr] gap-2 border-b border-[#E6E0D8] bg-[#F8F5F1] px-4 py-3 text-xs font-bold uppercase tracking-wide text-[#8F8276]">
-                        <p>COA Name</p>
+                        <p>Net Content</p>
                         <p>Date</p>
                         <p className="text-right">Purity</p>
                       </div>
@@ -2522,7 +2522,7 @@ Total: $${cartTotal.toFixed(2)}`
                           >
                             <div>
                               <p className="font-bold text-[#5F554C]">
-                                {coa.name || "Certificate of Analysis"}
+                                {coa.name || "Not listed"}
                               </p>
                               <p className="mt-1 text-xs font-semibold text-[#A79B8E]">
                                 Tap to view COA
