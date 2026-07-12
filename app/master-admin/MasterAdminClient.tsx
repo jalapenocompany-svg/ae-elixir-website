@@ -1360,6 +1360,10 @@ export default function MasterAdminClient() {
     };
   });
 
+  function csvEscape(value: unknown) {
+    return `"${String(value ?? "").replace(/"/g, '""')}"`;
+  }
+
   function formatCurrency(value: number) {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -1628,6 +1632,121 @@ export default function MasterAdminClient() {
 
     link.href = url;
     link.download = `ae-elixir-sales-performance-${new Date()
+      .toISOString()
+      .slice(0, 10)}.csv`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+  }
+
+  async function exportShippingCsv() {
+    let query = supabase
+      .from("orders")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(500);
+
+    if (orderStatusFilter !== "all") {
+      query = query.eq("order_status", orderStatusFilter);
+    }
+
+    if (paymentStatusFilter !== "all") {
+      query = query.eq("payment_status", paymentStatusFilter);
+    }
+
+    const cleanSearch = orderSearch.trim();
+
+    if (cleanSearch) {
+      const safeSearch = cleanSearch.replace(/[,%]/g, "");
+
+      query = query.or(
+        `customer_name.ilike.%${safeSearch}%,customer_email.ilike.%${safeSearch}%,customer_phone.ilike.%${safeSearch}%`
+      );
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    const exportOrders = data || [];
+
+    if (exportOrders.length === 0) {
+      alert("No orders found for the selected filters.");
+      return;
+    }
+
+    const headers = [
+      "Order Number",
+      "Customer Name",
+      "Email",
+      "Phone",
+      "Full Address",
+      "Address 1",
+      "Address 2",
+      "City",
+      "State",
+      "ZIP",
+      "Country",
+      "Shipping Method",
+      "Shipping Paid",
+      "Order Total",
+      "Items",
+      "Order Status",
+      "Payment Status",
+      "Tracking Number",
+      "Notes",
+    ];
+
+    const rows = exportOrders.map((order: Order) => {
+      const orderNumber =
+        order.order_number || order.id.slice(0, 8).toUpperCase();
+
+      const itemsSummary = (order.items || [])
+        .map((item) => `${item.quantity}x ${item.name}`)
+        .join(" | ");
+
+      return [
+        orderNumber,
+        order.customer_name,
+        order.customer_email,
+        order.customer_phone,
+        order.customer_address,
+        order.customer_address,
+        "",
+        "",
+        "",
+        "",
+        "United States",
+        order.shipping_label || order.shipping_method || "",
+        Number(order.shipping_price || 0).toFixed(2),
+        Number(order.total || 0).toFixed(2),
+        itemsSummary,
+        order.order_status || "pending",
+        order.payment_status || "pending",
+        order.tracking_number || "",
+        `AE Elixir order #${orderNumber}`,
+      ];
+    });
+
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map(csvEscape).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `ae-elixir-shipping-orders-${new Date()
       .toISOString()
       .slice(0, 10)}.csv`;
 
@@ -1952,38 +2071,7 @@ export default function MasterAdminClient() {
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
-                <button
-                  type="button"
-                  onClick={() =>
-                    loadOrders({
-                      page: 0,
-                      append: false,
-                    })
-                  }
-                  className="rounded-full bg-[#A79B8E] px-4 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
-                >
-                  Search
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOrderSearch("");
-                    setOrderStatusFilter("all");
-                    setPaymentStatusFilter("all");
-
-                    loadOrders({
-                      page: 0,
-                      append: false,
-                      search: "",
-                      orderStatus: "all",
-                      paymentStatus: "all",
-                    });
-                  }}
-                  className="rounded-full border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold text-[#A79B8E] shadow-sm transition-all hover:bg-[#F8F5F1] active:scale-95"
-                >
-                  Reset
-                </button>
+                ...
               </div>
             </div>
 
