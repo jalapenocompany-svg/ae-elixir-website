@@ -1156,7 +1156,7 @@ export default function MasterAdminClient() {
     });
   }
 
-  function addCoaEntryToVariant(variant: ProductVariant) {
+  async function addCoaEntryToVariant(variant: ProductVariant) {
     const draft = newCoaDrafts[variant.id] || {};
 
     if (!draft.imageUrl) {
@@ -1173,8 +1173,35 @@ export default function MasterAdminClient() {
       imageUrl: String(draft.imageUrl || "").trim(),
     };
 
-    updateVariantDraft(variant.id, {
-      coa_list: [nextCoa, ...currentList],
+    const nextList = [nextCoa, ...currentList];
+
+    const { data, error } = await supabase
+      .from("product_variants")
+      .update({ coa_list: nextList })
+      .eq("id", variant.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    setProductVariants((current) =>
+      current.map((item) =>
+        item.id === variant.id
+          ? {
+            ...item,
+            coa_list: data.coa_list || nextList,
+          }
+          : item
+      )
+    );
+
+    setVariantDrafts((current) => {
+      const copy = { ...current };
+      delete copy[variant.id];
+      return copy;
     });
 
     setNewCoaDrafts((current) => {
@@ -1182,21 +1209,48 @@ export default function MasterAdminClient() {
       delete copy[variant.id];
       return copy;
     });
+
+    alert("COA added and saved.");
   }
 
-  function deleteCoaEntryFromVariant(variant: ProductVariant, indexToDelete: number) {
-    const shouldDelete = window.confirm(
-      "Delete this COA from the list? Remember to click Save after deleting."
-    );
+  async function deleteCoaEntryFromVariant(
+    variant: ProductVariant,
+    indexToDelete: number
+  ) {
+    const shouldDelete = window.confirm("Delete this COA from the list?");
 
     if (!shouldDelete) return;
 
     const currentList = getCurrentCoaList(variant);
-
     const nextList = currentList.filter((_, index) => index !== indexToDelete);
 
-    updateVariantDraft(variant.id, {
-      coa_list: nextList,
+    const { data, error } = await supabase
+      .from("product_variants")
+      .update({ coa_list: nextList })
+      .eq("id", variant.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    setProductVariants((current) =>
+      current.map((item) =>
+        item.id === variant.id
+          ? {
+            ...item,
+            coa_list: data.coa_list || nextList,
+          }
+          : item
+      )
+    );
+
+    setVariantDrafts((current) => {
+      const copy = { ...current };
+      delete copy[variant.id];
+      return copy;
     });
   }
 
@@ -3628,173 +3682,170 @@ export default function MasterAdminClient() {
                             />
                           </label>
 
-                          <div className="rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] p-4">
-  <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-    <div>
-      <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
-        COA List Manager
-      </p>
-      <p className="mt-1 text-sm leading-6 text-[#6F655C]">
-        Add multiple COAs for this variant. The storefront will show them as a
-        clickable list ordered from newest to oldest.
-      </p>
-    </div>
+                          <div className="mt-3 rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] p-4">
+                            <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                                  COA List Manager
+                                </p>
+                                <p className="mt-1 text-sm leading-6 text-[#6F655C]">
+                                  Add multiple COAs for this variant. The storefront will show them as a
+                                  clickable list ordered from newest to oldest.
+                                </p>
+                              </div>
 
-    <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-[#7F756B]">
-      {getCurrentCoaList(variant).length} COA
-      {getCurrentCoaList(variant).length === 1 ? "" : "s"}
-    </span>
-  </div>
+                              <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-[#7F756B]">
+                                {getCurrentCoaList(variant).length} COA
+                                {getCurrentCoaList(variant).length === 1 ? "" : "s"}
+                              </span>
+                            </div>
 
-  {getCurrentCoaList(variant).length > 0 ? (
-    <div className="mb-4 overflow-hidden rounded-2xl border border-[#E6E0D8] bg-white">
-      <div className="grid grid-cols-[1fr_0.7fr_0.7fr_auto] gap-2 border-b border-[#E6E0D8] bg-[#F8F5F1] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-[#8F8276]">
-        <p>Net Content</p>
-        <p>Date</p>
-        <p>Purity</p>
-        <p className="text-right">Actions</p>
-      </div>
+                            {getCurrentCoaList(variant).length > 0 ? (
+                              <div className="mb-4 overflow-hidden rounded-2xl border border-[#E6E0D8] bg-white">
+                                <div className="grid grid-cols-[1fr_0.7fr_0.7fr_auto] gap-2 border-b border-[#E6E0D8] bg-[#F8F5F1] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-[#8F8276]">
+                                  <p>Net Content</p>
+                                  <p>Date</p>
+                                  <p>Purity</p>
+                                  <p className="text-right">Actions</p>
+                                </div>
 
-      <div className="divide-y divide-[#EFEAE4]">
-        {getCurrentCoaList(variant).map((coa, index) => (
-          <div
-            key={`${coa.imageUrl}-${index}`}
-            className="grid grid-cols-[1fr_0.7fr_0.7fr_auto] items-center gap-2 px-3 py-3 text-sm"
-          >
-            <div>
-              <p className="font-bold text-[#5F554C]">
-                {coa.name || "Not listed"}
-              </p>
-              <p className="mt-1 truncate text-xs font-semibold text-[#A79B8E]">
-                {coa.imageUrl}
-              </p>
-            </div>
+                                <div className="divide-y divide-[#EFEAE4]">
+                                  {getCurrentCoaList(variant).map((coa, index) => (
+                                    <div
+                                      key={`${coa.imageUrl}-${index}`}
+                                      className="grid grid-cols-[1fr_0.7fr_0.7fr_auto] items-center gap-2 px-3 py-3 text-sm"
+                                    >
+                                      <div>
+                                        <p className="font-bold text-[#5F554C]">
+                                          {coa.name || "Not listed"}
+                                        </p>
+                                      </div>
 
-            <p className="font-semibold text-[#6F655C]">
-              {coa.date || "—"}
-            </p>
+                                      <p className="font-semibold text-[#6F655C]">
+                                        {coa.date || "—"}
+                                      </p>
 
-            <p className="font-bold text-green-700">
-              {coa.purity || "—"}
-            </p>
+                                      <p className="font-bold text-green-700">
+                                        {coa.purity || "—"}
+                                      </p>
 
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => window.open(coa.imageUrl, "_blank")}
-                className="rounded-full border border-[#D8D1C8] bg-white px-3 py-1.5 text-xs font-bold text-[#7F756B] transition hover:bg-[#F8F5F1]"
-              >
-                View
-              </button>
+                                      <div className="flex justify-end gap-2">
+                                        <button
+                                          type="button"
+                                          onClick={() => window.open(coa.imageUrl, "_blank")}
+                                          className="rounded-full border border-[#D8D1C8] bg-white px-3 py-1.5 text-xs font-bold text-[#7F756B] transition hover:bg-[#F8F5F1]"
+                                        >
+                                          View
+                                        </button>
 
-              <button
-                type="button"
-                onClick={() => deleteCoaEntryFromVariant(variant, index)}
-                className="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 transition hover:bg-red-100"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  ) : (
-    <div className="mb-4 rounded-2xl border border-dashed border-[#D8D1C8] bg-white p-4 text-center text-sm font-semibold text-[#8F8276]">
-      No COAs added to the new list yet.
-    </div>
-  )}
+                                        <button
+                                          type="button"
+                                          onClick={() => deleteCoaEntryFromVariant(variant, index)}
+                                          className="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 transition hover:bg-red-100"
+                                        >
+                                          Delete
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="mb-4 rounded-2xl border border-dashed border-[#D8D1C8] bg-white p-4 text-center text-sm font-semibold text-[#8F8276]">
+                                No COAs added to the new list yet.
+                              </div>
+                            )}
 
-  <div className="rounded-2xl border border-[#E6E0D8] bg-white p-4">
-    <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#7F756B]">
-      Add New COA
-    </p>
+                            <div className="rounded-2xl border border-[#E6E0D8] bg-white p-4">
+                              <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#7F756B]">
+                                Add New COA
+                              </p>
 
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-      <label className="text-xs text-gray-500">
-        Net Content
-        <input
-          type="text"
-          className="mt-1 w-full rounded-xl border border-gray-200 p-3 text-sm text-black outline-none focus:border-[#A79B8E]"
-          value={newCoaDrafts[variant.id]?.name ?? ""}
-          onChange={(e) =>
-            updateNewCoaDraft(variant.id, {
-              name: e.target.value,
-            })
-          }
-          placeholder="Example: 15.08mg"
-        />
-      </label>
+                              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                <label className="text-xs text-gray-500">
+                                  Net Content
+                                  <input
+                                    type="text"
+                                    className="mt-1 w-full rounded-xl border border-gray-200 p-3 text-sm text-black outline-none focus:border-[#A79B8E]"
+                                    value={newCoaDrafts[variant.id]?.name ?? ""}
+                                    onChange={(e) =>
+                                      updateNewCoaDraft(variant.id, {
+                                        name: e.target.value,
+                                      })
+                                    }
+                                    placeholder="Example: 15.08mg"
+                                  />
+                                </label>
 
-      <label className="text-xs text-gray-500">
-        Date
-        <input
-          type="date"
-          className="mt-1 w-full rounded-xl border border-gray-200 p-3 text-sm text-black outline-none focus:border-[#A79B8E]"
-          value={newCoaDrafts[variant.id]?.date ?? ""}
-          onChange={(e) =>
-            updateNewCoaDraft(variant.id, {
-              date: e.target.value,
-            })
-          }
-        />
-      </label>
+                                <label className="text-xs text-gray-500">
+                                  Date
+                                  <input
+                                    type="date"
+                                    className="mt-1 w-full rounded-xl border border-gray-200 p-3 text-sm text-black outline-none focus:border-[#A79B8E]"
+                                    value={newCoaDrafts[variant.id]?.date ?? ""}
+                                    onChange={(e) =>
+                                      updateNewCoaDraft(variant.id, {
+                                        date: e.target.value,
+                                      })
+                                    }
+                                  />
+                                </label>
 
-      <label className="text-xs text-gray-500">
-        Purity %
-        <input
-          type="text"
-          className="mt-1 w-full rounded-xl border border-gray-200 p-3 text-sm text-black outline-none focus:border-[#A79B8E]"
-          value={newCoaDrafts[variant.id]?.purity ?? ""}
-          onChange={(e) =>
-            updateNewCoaDraft(variant.id, {
-              purity: e.target.value,
-            })
-          }
-          placeholder="Example: 99.72%"
-        />
-      </label>
-    </div>
+                                <label className="text-xs text-gray-500">
+                                  Purity %
+                                  <input
+                                    type="text"
+                                    className="mt-1 w-full rounded-xl border border-gray-200 p-3 text-sm text-black outline-none focus:border-[#A79B8E]"
+                                    value={newCoaDrafts[variant.id]?.purity ?? ""}
+                                    onChange={(e) =>
+                                      updateNewCoaDraft(variant.id, {
+                                        purity: e.target.value,
+                                      })
+                                    }
+                                    placeholder="Example: 99.72%"
+                                  />
+                                </label>
+                              </div>
 
-    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
-      <label className="cursor-pointer rounded-2xl border border-[#D8D1C8] bg-[#F8F5F1] p-4 text-sm font-bold text-[#7F756B] shadow-sm transition active:scale-95">
-        Upload COA Image
-        <input
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            uploadCoaListImage(variant.id, file);
-          }}
-        />
-      </label>
+                              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                                <label className="cursor-pointer rounded-2xl border border-[#D8D1C8] bg-[#F8F5F1] p-4 text-sm font-bold text-[#7F756B] shadow-sm transition active:scale-95">
+                                  Upload COA Image
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (!file) return;
+                                      uploadCoaListImage(variant.id, file);
+                                    }}
+                                  />
+                                </label>
 
-      <button
-        type="button"
-        onClick={() => addCoaEntryToVariant(variant)}
-        className="rounded-full bg-[#A79B8E] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#978D82] active:scale-95"
-      >
-        Add COA to List
-      </button>
-    </div>
+                                <button
+                                  type="button"
+                                  onClick={() => addCoaEntryToVariant(variant)}
+                                  className="rounded-full bg-[#A79B8E] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#978D82] active:scale-95"
+                                >
+                                  Add COA to List
+                                </button>
+                              </div>
 
-    {newCoaDrafts[variant.id]?.imageUrl && (
-      <div className="mt-3 rounded-2xl border border-green-200 bg-green-50 p-3 text-sm font-semibold text-green-700">
-        COA image uploaded. Click “Add COA to List”, then click the main
-        variant Save button.
-      </div>
-    )}
-  </div>
+                              {newCoaDrafts[variant.id]?.imageUrl && (
+                                <div className="mt-3 rounded-2xl border border-green-200 bg-green-50 p-3 text-sm font-semibold text-green-700">
+                                  COA image uploaded. Click “Add COA to List”, then click the main
+                                  variant Save button.
+                                </div>
+                              )}
+                            </div>
 
-  {variantDrafts[variant.id]?.coa_list && (
-    <div className="mt-3 rounded-2xl border border-yellow-200 bg-yellow-50 p-3 text-xs font-semibold leading-5 text-yellow-800">
-      COA list changes are pending. Click the main Save button below to publish
-      them.
-    </div>
-  )}
-</div>
+                            {variantDrafts[variant.id]?.coa_list && (
+                              <div className="mt-3 rounded-2xl border border-yellow-200 bg-yellow-50 p-3 text-xs font-semibold leading-5 text-yellow-800">
+                                COA list changes are pending. Click the main Save button below to publish
+                                them.
+                              </div>
+                            )}
+                          </div>
 
                         </div>
 
