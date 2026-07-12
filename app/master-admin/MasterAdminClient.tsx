@@ -1364,121 +1364,121 @@ export default function MasterAdminClient() {
     return `"${String(value ?? "").replace(/"/g, '""')}"`;
   }
 
-function parseShippingAddress(fullAddress: string | null | undefined) {
-  const raw = String(fullAddress || "").trim();
+  function parseShippingAddress(fullAddress: string | null | undefined) {
+    const raw = String(fullAddress || "").trim();
 
-  const fallback = {
-    address1: raw,
-    address2: "",
-    city: "",
-    state: "",
-    zip: "",
-    country: "United States",
-  };
+    const fallback = {
+      address1: raw,
+      address2: "",
+      city: "",
+      state: "",
+      zip: "",
+      country: "United States",
+    };
 
-  if (!raw) return fallback;
+    if (!raw) return fallback;
 
-  const parts = raw
-    .split(",")
-    .map((part) => part.trim())
-    .filter(Boolean);
+    const parts = raw
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean);
 
-  let country = "United States";
+    let country = "United States";
 
-  const lastPart = parts[parts.length - 1] || "";
+    const lastPart = parts[parts.length - 1] || "";
 
-  const hasCountry =
-    /united states|united states of america|usa|u\.s\.a\.|us$/i.test(lastPart);
+    const hasCountry =
+      /united states|united states of america|usa|u\.s\.a\.|us$/i.test(lastPart);
 
-  const addressParts = hasCountry ? parts.slice(0, -1) : parts;
+    const addressParts = hasCountry ? parts.slice(0, -1) : parts;
 
-  if (hasCountry) {
-    country = "United States";
-  }
+    if (hasCountry) {
+      country = "United States";
+    }
 
-  let address1 = "";
-  let address2 = "";
-  let city = "";
-  let state = "";
-  let zip = "";
+    let address1 = "";
+    let address2 = "";
+    let city = "";
+    let state = "";
+    let zip = "";
 
-  // Format:
-  // 50 Sidney Lane, Willingboro Township, NJ 08046, United States of America
-  if (addressParts.length >= 3) {
-    address1 = addressParts[0] || "";
-    city = addressParts[addressParts.length - 2] || "";
+    // Format:
+    // 50 Sidney Lane, Willingboro Township, NJ 08046, United States of America
+    if (addressParts.length >= 3) {
+      address1 = addressParts[0] || "";
+      city = addressParts[addressParts.length - 2] || "";
 
-    const stateZipPart = addressParts[addressParts.length - 1] || "";
+      const stateZipPart = addressParts[addressParts.length - 1] || "";
 
-    const stateZipMatch = stateZipPart.match(
-      /^([A-Z]{2})\s+(\d{5}(?:-\d{4})?)$/i
+      const stateZipMatch = stateZipPart.match(
+        /^([A-Z]{2})\s+(\d{5}(?:-\d{4})?)$/i
+      );
+
+      if (stateZipMatch) {
+        state = stateZipMatch[1].toUpperCase();
+        zip = stateZipMatch[2];
+
+        if (addressParts.length > 3) {
+          address2 = addressParts.slice(1, -2).join(", ");
+        }
+
+        return {
+          address1,
+          address2,
+          city,
+          state,
+          zip,
+          country,
+        };
+      }
+    }
+
+    // Format:
+    // 50 Sidney Lane, Willingboro Township NJ 08046, United States
+    if (addressParts.length >= 2) {
+      address1 = addressParts[0] || "";
+
+      const cityStateZipPart = addressParts[addressParts.length - 1] || "";
+
+      const cityStateZipMatch = cityStateZipPart.match(
+        /^(.+?)\s+([A-Z]{2})\s+(\d{5}(?:-\d{4})?)$/i
+      );
+
+      if (cityStateZipMatch) {
+        city = cityStateZipMatch[1].trim();
+        state = cityStateZipMatch[2].toUpperCase();
+        zip = cityStateZipMatch[3];
+
+        if (addressParts.length > 2) {
+          address2 = addressParts.slice(1, -1).join(", ");
+        }
+
+        return {
+          address1,
+          address2,
+          city,
+          state,
+          zip,
+          country,
+        };
+      }
+    }
+
+    // Try to extract apartment/unit from Address 1
+    const aptMatch = address1.match(
+      /^(.*?)(?:\s+)(Apt|Apartment|Unit|Ste|Suite|#)\s*([A-Za-z0-9-]+)$/i
     );
 
-    if (stateZipMatch) {
-      state = stateZipMatch[1].toUpperCase();
-      zip = stateZipMatch[2];
-
-      if (addressParts.length > 3) {
-        address2 = addressParts.slice(1, -2).join(", ");
-      }
-
-      return {
-        address1,
-        address2,
-        city,
-        state,
-        zip,
-        country,
-      };
+    if (aptMatch) {
+      address1 = aptMatch[1].trim();
+      address2 = `${aptMatch[2]} ${aptMatch[3]}`.trim();
     }
+
+    return {
+      ...fallback,
+      country,
+    };
   }
-
-  // Format:
-  // 50 Sidney Lane, Willingboro Township NJ 08046, United States
-  if (addressParts.length >= 2) {
-    address1 = addressParts[0] || "";
-
-    const cityStateZipPart = addressParts[addressParts.length - 1] || "";
-
-    const cityStateZipMatch = cityStateZipPart.match(
-      /^(.+?)\s+([A-Z]{2})\s+(\d{5}(?:-\d{4})?)$/i
-    );
-
-    if (cityStateZipMatch) {
-      city = cityStateZipMatch[1].trim();
-      state = cityStateZipMatch[2].toUpperCase();
-      zip = cityStateZipMatch[3];
-
-      if (addressParts.length > 2) {
-        address2 = addressParts.slice(1, -1).join(", ");
-      }
-
-      return {
-        address1,
-        address2,
-        city,
-        state,
-        zip,
-        country,
-      };
-    }
-  }
-
-  // Try to extract apartment/unit from Address 1
-  const aptMatch = address1.match(
-    /^(.*?)(?:\s+)(Apt|Apartment|Unit|Ste|Suite|#)\s*([A-Za-z0-9-]+)$/i
-  );
-
-  if (aptMatch) {
-    address1 = aptMatch[1].trim();
-    address2 = `${aptMatch[2]} ${aptMatch[3]}`.trim();
-  }
-
-  return {
-    ...fallback,
-    country,
-  };
-}
 
   function formatCurrency(value: number) {
     return new Intl.NumberFormat("en-US", {
@@ -1798,8 +1798,9 @@ function parseShippingAddress(fullAddress: string | null | undefined) {
     }
 
     const headers = [
+
       "Order Number",
-      "Customer Name",
+      "Full Name",
       "Email",
       "Phone",
       "Full Address",
@@ -1807,7 +1808,7 @@ function parseShippingAddress(fullAddress: string | null | undefined) {
       "Address 2",
       "City",
       "State",
-      "ZIP",
+      "Zipcode",
       "Country",
       "Shipping Method",
       "Shipping Paid",
@@ -1839,7 +1840,7 @@ function parseShippingAddress(fullAddress: string | null | undefined) {
         parsedAddress.address2,
         parsedAddress.city,
         parsedAddress.state,
-        parsedAddress.zip ? `="${parsedAddress.zip}"` : "",
+        parsedAddress.zip,
         parsedAddress.country,
         order.shipping_label || order.shipping_method || "",
         Number(order.shipping_price || 0).toFixed(2),
