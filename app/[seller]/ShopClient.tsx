@@ -791,12 +791,12 @@ Total: $${cartTotal.toFixed(2)}`
         paymentInstructions:
           selectedPaymentMethod?.instructions || "",
         whatsAppUrl: orderWhatsAppUrl,
-items: orderItemsWithMargins,
-subtotal: cartSubtotal,
-shippingMethodLabel: selectedShippingMethod?.display_label || "",
-shippingDescription: selectedShippingMethod?.description || "",
-shippingPrice,
-total: cartTotal,
+        items: orderItemsWithMargins,
+        subtotal: cartSubtotal,
+        shippingMethodLabel: selectedShippingMethod?.display_label || "",
+        shippingDescription: selectedShippingMethod?.description || "",
+        shippingPrice,
+        total: cartTotal,
       }),
     });
 
@@ -804,12 +804,12 @@ total: cartTotal,
       id: data.id,
       orderNumber: shortOrderNumber,
       seller: validSellerCode || "AEELIXIR",
-subtotal: cartSubtotal,
-shippingPrice,
-shippingMethod: selectedShippingMethod?.display_label || "",
-total: cartTotal,
-paymentMethod: form.paymentMethod,
-createdAt: new Date().toISOString(),
+      subtotal: cartSubtotal,
+      shippingPrice,
+      shippingMethod: selectedShippingMethod?.display_label || "",
+      total: cartTotal,
+      paymentMethod: form.paymentMethod,
+      createdAt: new Date().toISOString(),
       items: cart.map((item) => {
         const marginItem = orderItemsWithMargins.find(
           (orderItem) => orderItem.id === item.id
@@ -1852,67 +1852,99 @@ createdAt: new Date().toISOString(),
                 </div>
 
                 <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
-  <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
-    Shipping Method
-  </p>
+                  <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                    <svg
+                      className="h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M4 7h10v9H4V7Z"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M14 10h3.5L20 13v3h-6v-6Z"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinejoin="round"
+                      />
+                      <circle
+                        cx="7"
+                        cy="18"
+                        r="1.5"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                      />
+                      <circle
+                        cx="17"
+                        cy="18"
+                        r="1.5"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                      />
+                    </svg>
 
-  {shippingMethods.length === 0 ? (
-    <div className="rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] p-4 text-sm font-semibold text-[#6F655C]">
-      Shipping options are currently unavailable.
-    </div>
-  ) : (
-    <div className="space-y-3">
-      {shippingMethods.map((method) => {
-        const isSelected = selectedShippingMethodId === method.id;
+                    <span>Shipping Method</span>
+                  </div>
 
-        return (
-          <button
-            key={method.id}
-            type="button"
-            onClick={() => setSelectedShippingMethodId(method.id)}
-            className={`w-full rounded-2xl border p-4 text-left transition-all active:scale-[0.99] ${
-              isSelected
-                ? "border-[#A79B8E] bg-[#F8F5F1] shadow-sm"
-                : "border-[#E6E0D8] bg-white hover:bg-[#FBFAF8]"
-            }`}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3">
-                <div
-                  className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border ${
-                    isSelected
-                      ? "border-[#A79B8E] bg-[#A79B8E]"
-                      : "border-[#D8D1C8] bg-white"
-                  }`}
-                >
-                  {isSelected && (
-                    <div className="h-2 w-2 rounded-full bg-white" />
+                  {shippingMethods.length === 0 ? (
+                    <div className="rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] p-4 text-sm font-semibold text-[#6F655C]">
+                      Shipping options are currently unavailable.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {shippingMethods.map((method) => {
+                        const isSelected = selectedShippingMethodId === method.id;
+
+                        return (
+                          <button
+                            key={method.id}
+                            type="button"
+                            onClick={() => setSelectedShippingMethodId(method.id)}
+                            className={`w-full rounded-2xl border p-4 text-left transition-all active:scale-[0.99] ${isSelected
+                                ? "border-[#A79B8E] bg-[#F8F5F1] shadow-sm"
+                                : "border-[#E6E0D8] bg-white hover:bg-[#FBFAF8]"
+                              }`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-start gap-3">
+                                <div
+                                  className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border ${isSelected
+                                      ? "border-[#A79B8E] bg-[#A79B8E]"
+                                      : "border-[#D8D1C8] bg-white"
+                                    }`}
+                                >
+                                  {isSelected && (
+                                    <div className="h-2 w-2 rounded-full bg-white" />
+                                  )}
+                                </div>
+
+                                <div>
+                                  <p className="font-bold text-[#5F554C]">
+                                    {method.display_label}
+                                  </p>
+
+                                  {method.description && (
+                                    <p className="mt-1 text-sm leading-5 text-[#6F655C]">
+                                      {method.description}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              <p className="shrink-0 font-bold text-[#5F554C]">
+                                ${Number(method.price || 0).toFixed(2)}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
-
-                <div>
-                  <p className="font-bold text-[#5F554C]">
-                    {method.display_label}
-                  </p>
-
-                  {method.description && (
-                    <p className="mt-1 text-sm leading-5 text-[#6F655C]">
-                      {method.description}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <p className="shrink-0 font-bold text-[#5F554C]">
-                ${Number(method.price || 0).toFixed(2)}
-              </p>
-            </div>
-          </button>
-        );
-      })}
-    </div>
-  )}
-</div>
 
                 <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
                   <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
@@ -1997,38 +2029,38 @@ createdAt: new Date().toISOString(),
                 </div>
 
                 <div className="rounded-[24px] border border-[#E6E0D8] bg-[#FBFAF8] p-4 shadow-sm">
-  <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
-    Order Total
-  </p>
+                  <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                    Order Total
+                  </p>
 
-  <div className="space-y-2 text-sm text-[#6F655C]">
-    <div className="flex items-center justify-between">
-      <span>Subtotal</span>
-      <span className="font-bold text-[#5F554C]">
-        ${cartSubtotal.toFixed(2)}
-      </span>
-    </div>
+                  <div className="space-y-2 text-sm text-[#6F655C]">
+                    <div className="flex items-center justify-between">
+                      <span>Subtotal</span>
+                      <span className="font-bold text-[#5F554C]">
+                        ${cartSubtotal.toFixed(2)}
+                      </span>
+                    </div>
 
-    <div className="flex items-center justify-between">
-      <span>
-        Shipping
-        {selectedShippingMethod
-          ? ` · ${selectedShippingMethod.display_label}`
-          : ""}
-      </span>
-      <span className="font-bold text-[#5F554C]">
-        ${shippingPrice.toFixed(2)}
-      </span>
-    </div>
+                    <div className="flex items-center justify-between">
+                      <span>
+                        Shipping
+                        {selectedShippingMethod
+                          ? ` · ${selectedShippingMethod.display_label}`
+                          : ""}
+                      </span>
+                      <span className="font-bold text-[#5F554C]">
+                        ${shippingPrice.toFixed(2)}
+                      </span>
+                    </div>
 
-    <div className="border-t border-[#E6E0D8] pt-2">
-      <div className="flex items-center justify-between text-base font-bold text-[#1F1A17]">
-        <span>Total</span>
-        <span>${cartTotal.toFixed(2)}</span>
-      </div>
-    </div>
-  </div>
-</div>
+                    <div className="border-t border-[#E6E0D8] pt-2">
+                      <div className="flex items-center justify-between text-base font-bold text-[#1F1A17]">
+                        <span>Total</span>
+                        <span>${cartTotal.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
                 <button
                   type="button"

@@ -738,19 +738,22 @@ export default function MasterAdminClient() {
 
     if (!updates || Object.keys(updates).length === 0) return;
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("payment_methods")
       .update(updates)
-      .eq("id", paymentId);
+      .eq("id", paymentId)
+      .select("*")
+      .single();
 
     if (error) {
+      console.error("SAVE PAYMENT METHOD ERROR:", error);
       alert(error.message);
       return;
     }
 
     setPaymentMethods((current) =>
       current.map((method) =>
-        method.id === paymentId ? { ...method, ...updates } : method
+        method.id === paymentId ? data : method
       )
     );
 
@@ -3737,9 +3740,9 @@ export default function MasterAdminClient() {
 
         {activeTab === "payments" && (
           <div className="space-y-4">
-            <div className="rounded-2xl bg-white p-4 shadow-sm">
+            <div className="rounded-2xl bg-[#A79B8E] p-4 text-white shadow-sm">
               <h2 className="text-lg font-bold">Payment Methods</h2>
-              <p className="text-sm text-gray-500">
+              <p className="mt-1 text-sm leading-6 text-white/85">
                 Enable payment options and customize customer payment instructions.
               </p>
             </div>
@@ -3847,9 +3850,9 @@ export default function MasterAdminClient() {
               );
             })}
 
-            <div className="rounded-2xl bg-white p-4 shadow-sm">
-              <h2 className="text-lg font-bold text-[#5F554C]">Shipping Options</h2>
-              <p className="mt-1 text-sm leading-6 text-[#6F655C]">
+            <div className="rounded-2xl bg-[#A79B8E] p-4 text-white shadow-sm">
+              <h2 className="text-lg font-bold">Shipping Options</h2>
+              <p className="mt-1 text-sm leading-6 text-white/85">
                 Manage static shipping methods shown during checkout. These are fixed rates,
                 not live carrier calculations.
               </p>
@@ -3877,8 +3880,8 @@ export default function MasterAdminClient() {
                         })
                       }
                       className={`rounded-2xl border px-4 py-2 text-sm font-semibold transition-all active:scale-95 ${enabled
-                          ? "border-[#A79B8E] bg-[#A79B8E] text-white"
-                          : "border-gray-200 bg-white text-gray-500"
+                        ? "border-[#A79B8E] bg-[#A79B8E] text-white"
+                        : "border-gray-200 bg-white text-gray-500"
                         }`}
                     >
                       {enabled ? "Enabled" : "Disabled"}
@@ -3963,8 +3966,8 @@ export default function MasterAdminClient() {
                       onClick={() => saveShippingMethod(method.id)}
                       disabled={!shippingDrafts[method.id]}
                       className={`flex h-11 w-32 items-center justify-center rounded-2xl border text-sm font-semibold transition-all active:scale-95 ${shippingDrafts[method.id]
-                          ? "border-green-200 bg-green-50 text-green-700"
-                          : "border-gray-200 bg-gray-50 text-gray-400"
+                        ? "border-green-200 bg-green-50 text-green-700"
+                        : "border-gray-200 bg-gray-50 text-gray-400"
                         }`}
                     >
                       Save
