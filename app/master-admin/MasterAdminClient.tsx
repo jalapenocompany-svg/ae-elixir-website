@@ -1364,72 +1364,121 @@ export default function MasterAdminClient() {
     return `"${String(value ?? "").replace(/"/g, '""')}"`;
   }
 
-  function parseShippingAddress(fullAddress: string | null | undefined) {
-    const raw = String(fullAddress || "").trim();
+function parseShippingAddress(fullAddress: string | null | undefined) {
+  const raw = String(fullAddress || "").trim();
 
-    const fallback = {
-      address1: raw,
-      address2: "",
-      city: "",
-      state: "",
-      zip: "",
-      country: "United States",
-    };
+  const fallback = {
+    address1: raw,
+    address2: "",
+    city: "",
+    state: "",
+    zip: "",
+    country: "United States",
+  };
 
-    if (!raw) return fallback;
+  if (!raw) return fallback;
 
-    const parts = raw
-      .split(",")
-      .map((part) => part.trim())
-      .filter(Boolean);
+  const parts = raw
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
 
-    const countryPart = parts[parts.length - 1] || "";
-    const hasCountry =
-      /united states|usa|us/i.test(countryPart) && parts.length >= 3;
+  let country = "United States";
 
-    const country = hasCountry ? "United States" : "United States";
-    const addressParts = hasCountry ? parts.slice(0, -1) : parts;
+  const lastPart = parts[parts.length - 1] || "";
 
-    const cityStateZip = addressParts[addressParts.length - 1] || "";
+  const hasCountry =
+    /united states|united states of america|usa|u\.s\.a\.|us$/i.test(lastPart);
 
-    const cityStateZipMatch = cityStateZip.match(
-      /^(.+?)\s+([A-Z]{2})\s+(\d{5}(?:-\d{4})?)$/i
+  const addressParts = hasCountry ? parts.slice(0, -1) : parts;
+
+  if (hasCountry) {
+    country = "United States";
+  }
+
+  let address1 = "";
+  let address2 = "";
+  let city = "";
+  let state = "";
+  let zip = "";
+
+  // Format:
+  // 50 Sidney Lane, Willingboro Township, NJ 08046, United States of America
+  if (addressParts.length >= 3) {
+    address1 = addressParts[0] || "";
+    city = addressParts[addressParts.length - 2] || "";
+
+    const stateZipPart = addressParts[addressParts.length - 1] || "";
+
+    const stateZipMatch = stateZipPart.match(
+      /^([A-Z]{2})\s+(\d{5}(?:-\d{4})?)$/i
     );
 
-    if (!cityStateZipMatch) {
+    if (stateZipMatch) {
+      state = stateZipMatch[1].toUpperCase();
+      zip = stateZipMatch[2];
+
+      if (addressParts.length > 3) {
+        address2 = addressParts.slice(1, -2).join(", ");
+      }
+
       return {
-        ...fallback,
+        address1,
+        address2,
+        city,
+        state,
+        zip,
         country,
       };
     }
+  }
 
-    const city = cityStateZipMatch[1].trim();
-    const state = cityStateZipMatch[2].toUpperCase();
-    const zip = cityStateZipMatch[3];
+  // Format:
+  // 50 Sidney Lane, Willingboro Township NJ 08046, United States
+  if (addressParts.length >= 2) {
+    address1 = addressParts[0] || "";
 
-    const streetParts = addressParts.slice(0, -1);
+    const cityStateZipPart = addressParts[addressParts.length - 1] || "";
 
-    let address1 = streetParts[0] || "";
-    let address2 = streetParts.slice(1).join(", ");
-
-    const aptMatch = address1.match(
-      /^(.*?)(?:\s+)(Apt|Apartment|Unit|Ste|Suite|#)\s*([A-Za-z0-9-]+)$/i
+    const cityStateZipMatch = cityStateZipPart.match(
+      /^(.+?)\s+([A-Z]{2})\s+(\d{5}(?:-\d{4})?)$/i
     );
 
-    if (aptMatch) {
-      address1 = aptMatch[1].trim();
-      address2 = `${aptMatch[2]} ${aptMatch[3]}`.trim();
-    }
+    if (cityStateZipMatch) {
+      city = cityStateZipMatch[1].trim();
+      state = cityStateZipMatch[2].toUpperCase();
+      zip = cityStateZipMatch[3];
 
-    return {
-      address1,
-      address2,
-      city,
-      state,
-      zip,
-      country,
-    };
+      if (addressParts.length > 2) {
+        address2 = addressParts.slice(1, -1).join(", ");
+      }
+
+      return {
+        address1,
+        address2,
+        city,
+        state,
+        zip,
+        country,
+      };
+    }
   }
+
+  // Try to extract apartment/unit from Address 1
+  const aptMatch = address1.match(
+    /^(.*?)(?:\s+)(Apt|Apartment|Unit|Ste|Suite|#)\s*([A-Za-z0-9-]+)$/i
+  );
+
+  if (aptMatch) {
+    address1 = aptMatch[1].trim();
+    address2 = `${aptMatch[2]} ${aptMatch[3]}`.trim();
+  }
+
+  return {
+    ...fallback,
+    country,
+  };
+}
 
   function formatCurrency(value: number) {
     return new Intl.NumberFormat("en-US", {
