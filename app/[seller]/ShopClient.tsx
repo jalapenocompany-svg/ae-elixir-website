@@ -2010,7 +2010,7 @@ Total: $${cartTotal.toFixed(2)}`
                       </div>
 
                       {selectedPaymentMethod.account_value && (
-                        <div className="mb-3 rounded-xl border border-[#E6E0D8] bg-white px-3 py-2">
+                        <div className="mb-3 rounded-xl border border-[#E6E0D8] bg-white px-3 py-2 text-center">
                           <p className="text-xs font-semibold uppercase tracking-wide text-[#9A9188]">
                             Payment Info
                           </p>
@@ -2114,7 +2114,7 @@ Total: $${cartTotal.toFixed(2)}`
                 </p>
 
                 {submittedPaymentMethod.account_value && (
-                  <div className="mb-3 rounded-xl border border-[#E6E0D8] bg-white px-3 py-2 text-left">
+                  <div className="mb-3 rounded-xl border border-[#E6E0D8] bg-white px-3 py-2 text-center">
                     <p className="text-xs font-semibold uppercase tracking-wide text-[#9A9188]">
                       Payment Info
                     </p>
