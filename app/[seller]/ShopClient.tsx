@@ -49,6 +49,7 @@ type Product = {
       protocol: string;
       coa: string;
     };
+    coaList?: CoaEntry[];
   }[];
 
   kitItems: string[];
@@ -57,6 +58,8 @@ type Product = {
     coa: string;
   };
 
+  coaList?: CoaEntry[];
+
 
   description: string;
   theme: {
@@ -64,6 +67,13 @@ type Product = {
     border: string;
     text: string;
   };
+};
+
+type CoaEntry = {
+  name: string;
+  date: string;
+  purity: string;
+  imageUrl: string;
 };
 
 
@@ -86,6 +96,7 @@ type DbProductVariant = {
   kit_items: string[] | null;
   protocol_image_url: string | null;
   coa_image_url: string | null;
+  coa_list: CoaEntry[] | null;
   sort_order: number;
 };
 
@@ -191,6 +202,7 @@ export default function ShopClient({ seller }: { seller?: string }) {
   >({});
 
   const [protocolTab, setProtocolTab] = useState<"protocol" | "coa">("protocol");
+  const [selectedCoaImageUrl, setSelectedCoaImageUrl] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
@@ -383,13 +395,14 @@ export default function ShopClient({ seller }: { seller?: string }) {
                 protocol: variant.protocol_image_url || "",
                 coa: variant.coa_image_url || "",
               },
+              coaList: getCoaListFromVariant(variant),
             })),
 
             protocolImages: {
               protocol: firstVariant.protocol_image_url || "",
               coa: firstVariant.coa_image_url || "",
-
             },
+            coaList: getCoaListFromVariant(firstVariant),
 
             description: firstVariant.kit_description || product.description || "",
             theme: {
@@ -864,6 +877,33 @@ Total: $${cartTotal.toFixed(2)}`
     setCartOpen(false);
   }
 
+
+  function getCoaListFromVariant(variant: any): CoaEntry[] {
+    if (Array.isArray(variant.coa_list) && variant.coa_list.length > 0) {
+      return variant.coa_list
+        .filter((coa: any) => coa?.imageUrl)
+        .map((coa: any) => ({
+          name: String(coa.name || "Certificate of Analysis"),
+          date: String(coa.date || ""),
+          purity: String(coa.purity || ""),
+          imageUrl: String(coa.imageUrl || ""),
+        }));
+    }
+
+    if (variant.coa_image_url) {
+      return [
+        {
+          name: "Certificate of Analysis",
+          date: "",
+          purity: "",
+          imageUrl: variant.coa_image_url,
+        },
+      ];
+    }
+
+    return [];
+  }
+
   const defaultSellerCode = siteSettings?.default_seller_code || "";
   const cleanWhatsApp = (siteSettings?.whatsapp_number || "").replace(/\D/g, "");
   const logoUrl = siteSettings?.logo_url || "/logo.png";
@@ -1320,7 +1360,13 @@ Total: $${cartTotal.toFixed(2)}`
                             protocolImages:
                               activeVariant?.protocolImages ||
                               product.protocolImages,
+                            coaList:
+                              activeVariant?.coaList ||
+                              product.coaList ||
+                              [],
                           });
+
+                          setSelectedCoaImageUrl("");
 
                           setProtocolTab(
                             product.show_protocol_button ? "protocol" : "coa"
@@ -1905,16 +1951,16 @@ Total: $${cartTotal.toFixed(2)}`
                             type="button"
                             onClick={() => setSelectedShippingMethodId(method.id)}
                             className={`w-full rounded-2xl border p-4 text-left transition-all active:scale-[0.99] ${isSelected
-                                ? "border-[#A79B8E] bg-[#F8F5F1] shadow-sm"
-                                : "border-[#E6E0D8] bg-white hover:bg-[#FBFAF8]"
+                              ? "border-[#A79B8E] bg-[#F8F5F1] shadow-sm"
+                              : "border-[#E6E0D8] bg-white hover:bg-[#FBFAF8]"
                               }`}
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex items-start gap-3">
                                 <div
                                   className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border ${isSelected
-                                      ? "border-[#A79B8E] bg-[#A79B8E]"
-                                      : "border-[#D8D1C8] bg-white"
+                                    ? "border-[#A79B8E] bg-[#A79B8E]"
+                                    : "border-[#D8D1C8] bg-white"
                                     }`}
                                 >
                                   {isSelected && (
@@ -2361,7 +2407,10 @@ Total: $${cartTotal.toFixed(2)}`
 
               <button
                 type="button"
-                onClick={() => setSelectedProtocol(null)}
+                onClick={() => {
+                  setSelectedProtocol(null);
+                  setSelectedCoaImageUrl("");
+                }}
                 className="flex h-9 w-9 items-center justify-center rounded-full text-3xl font-light leading-none text-white transition-all hover:bg-white/10 active:scale-95"
                 aria-label="Close protocol"
               >
@@ -2388,7 +2437,10 @@ Total: $${cartTotal.toFixed(2)}`
                 <div className="mb-5 flex justify-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setProtocolTab("protocol")}
+                    onClick={() => {
+                      setProtocolTab("protocol");
+                      setSelectedCoaImageUrl("");
+                    }}
                     className={`rounded-full px-5 py-2 text-sm font-bold shadow-sm transition-all active:scale-95 ${protocolTab === "protocol"
                       ? "bg-[#A79B8E] text-white"
                       : "border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] hover:bg-[#E6E0D8]"
@@ -2400,7 +2452,10 @@ Total: $${cartTotal.toFixed(2)}`
                   {selectedProtocol.show_coa_button && (
                     <button
                       type="button"
-                      onClick={() => setProtocolTab("coa")}
+                      onClick={() => {
+                        setProtocolTab("coa");
+                        setSelectedCoaImageUrl("");
+                      }}
                       className={`rounded-full px-5 py-2 text-sm font-bold shadow-sm transition-all active:scale-95 ${protocolTab === "coa"
                         ? "bg-[#A79B8E] text-white"
                         : "border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] hover:bg-[#E6E0D8]"
@@ -2413,13 +2468,85 @@ Total: $${cartTotal.toFixed(2)}`
               )}
 
               {/* Image */}
-              <div className="overflow-hidden rounded-[24px] border border-[#E6E0D8] bg-[#FBFAF8] p-2 shadow-sm sm:p-4">
-                <img
-                  src={selectedProtocol.protocolImages[protocolTab]}
-                  alt={`${selectedProtocol.name} ${protocolTab}`}
-                  className="mx-auto w-full rounded-[18px] object-contain"
-                />
-              </div>
+              {protocolTab === "protocol" && (
+                <div className="overflow-hidden rounded-[24px] border border-[#E6E0D8] bg-[#FBFAF8] p-2 shadow-sm sm:p-4">
+                  {selectedProtocol.protocolImages.protocol ? (
+                    <img
+                      src={selectedProtocol.protocolImages.protocol}
+                      alt={`${selectedProtocol.name} protocol`}
+                      className="mx-auto w-full rounded-[18px] object-contain"
+                    />
+                  ) : (
+                    <div className="rounded-[20px] bg-white p-6 text-center text-sm font-semibold text-[#6F655C]">
+                      Protocol image has not been added yet.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {protocolTab === "coa" && (
+                <div className="rounded-[24px] border border-[#E6E0D8] bg-[#FBFAF8] p-3 shadow-sm sm:p-4">
+                  {selectedCoaImageUrl ? (
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCoaImageUrl("")}
+                        className="mb-4 rounded-full border border-[#D8D1C8] bg-white px-4 py-2 text-sm font-bold text-[#A79B8E] shadow-sm transition-all hover:bg-[#F8F5F1] active:scale-95"
+                      >
+                        ← Back to COA List
+                      </button>
+
+                      <div className="overflow-hidden rounded-[20px] border border-[#E6E0D8] bg-white p-2">
+                        <img
+                          src={selectedCoaImageUrl}
+                          alt={`${selectedProtocol.name} COA`}
+                          className="mx-auto w-full rounded-[16px] object-contain"
+                        />
+                      </div>
+                    </div>
+                  ) : selectedProtocol.coaList && selectedProtocol.coaList.length > 0 ? (
+                    <div className="overflow-hidden rounded-[20px] border border-[#E6E0D8] bg-white">
+                      <div className="grid grid-cols-[1.4fr_0.8fr_0.7fr] gap-2 border-b border-[#E6E0D8] bg-[#F8F5F1] px-4 py-3 text-xs font-bold uppercase tracking-wide text-[#8F8276]">
+                        <p>COA Name</p>
+                        <p>Date</p>
+                        <p className="text-right">Purity</p>
+                      </div>
+
+                      <div className="divide-y divide-[#EFEAE4]">
+                        {selectedProtocol.coaList.map((coa, index) => (
+                          <button
+                            key={`${coa.imageUrl}-${index}`}
+                            type="button"
+                            onClick={() => setSelectedCoaImageUrl(coa.imageUrl)}
+                            className="grid w-full grid-cols-[1.4fr_0.8fr_0.7fr] gap-2 px-4 py-4 text-left text-sm transition hover:bg-[#FBFAF8] active:scale-[0.99]"
+                          >
+                            <div>
+                              <p className="font-bold text-[#5F554C]">
+                                {coa.name || "Certificate of Analysis"}
+                              </p>
+                              <p className="mt-1 text-xs font-semibold text-[#A79B8E]">
+                                Tap to view COA
+                              </p>
+                            </div>
+
+                            <p className="font-semibold text-[#6F655C]">
+                              {coa.date || "—"}
+                            </p>
+
+                            <p className="text-right font-bold text-green-700">
+                              {coa.purity || "—"}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-[20px] bg-white p-6 text-center text-sm font-semibold text-[#6F655C]">
+                      No COAs have been added for this product yet.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
