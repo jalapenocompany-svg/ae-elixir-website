@@ -1330,13 +1330,13 @@ Total: $${cartTotal.toFixed(2)}`
 
 
 
-                    <div className="mt-3 text-xs font-semibold">
+                    <div className="mt-3 text-sm font-semibold">
                       {isOutOfStock ? (
                         <span className="text-red-600">Out of stock</span>
                       ) : isLowStock ? (
                         <span className="text-orange-500">Stock: {stock}</span>
                       ) : (
-                        <span className="mt-2 text-sm font-semibold text-[#6F655C]">Stock: {stock}</span>
+                        <span className="text-[#6F655C]">Stock: {stock}</span>
                       )}
                     </div>
 
