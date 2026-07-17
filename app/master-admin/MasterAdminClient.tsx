@@ -3761,7 +3761,7 @@ export default function MasterAdminClient() {
                                 Add New COA
                               </p>
 
-                              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                              <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-3">
                                 <label className="text-xs text-gray-500">
                                   Net Content
                                   <input
@@ -3777,11 +3777,11 @@ export default function MasterAdminClient() {
                                   />
                                 </label>
 
-                                <label className="text-xs text-gray-500">
+                                <label className="min-w-0 text-xs text-gray-500">
                                   Date
                                   <input
                                     type="date"
-                                    className="mt-1 w-full rounded-xl border border-gray-200 p-3 text-sm text-black outline-none focus:border-[#A79B8E]"
+                                    className="mt-1 block h-[52px] min-w-0 max-w-full appearance-none rounded-xl border border-gray-200 bg-white px-3 text-base text-black outline-none focus:border-[#A79B8E]"
                                     value={newCoaDrafts[variant.id]?.date ?? ""}
                                     onChange={(e) =>
                                       updateNewCoaDraft(variant.id, {
