@@ -3780,8 +3780,11 @@ export default function MasterAdminClient() {
 <label className="block min-w-0 w-full text-xs text-gray-500">
   Date
   <input
-    type="date"
-    className="mt-1 block h-[52px] w-full min-w-0 max-w-full rounded-xl border border-gray-200 bg-white px-3 text-base text-black outline-none focus:border-[#A79B8E]"
+    type="text"
+    inputMode="numeric"
+    autoComplete="off"
+    placeholder="YYYY-MM-DD"
+    className="mt-1 block h-[52px] w-full min-w-0 max-w-full box-border rounded-xl border border-gray-200 bg-white px-3 text-base text-black outline-none focus:border-[#A79B8E]"
     value={newCoaDrafts[variant.id]?.date ?? ""}
     onChange={(e) =>
       updateNewCoaDraft(variant.id, {
