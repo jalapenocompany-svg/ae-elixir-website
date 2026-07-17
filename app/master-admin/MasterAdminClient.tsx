@@ -3663,24 +3663,7 @@ export default function MasterAdminClient() {
                             />
                           </label>
 
-                          <label className="text-xs text-gray-500">
-                            COA Image URL
-                            <input
-                              type="text"
-                              className="mt-1 w-full rounded-xl border p-3 text-sm text-black"
-                              value={
-                                variantDrafts[variant.id]?.coa_image_url ??
-                                variant.coa_image_url ??
-                                ""
-                              }
-                              onChange={(e) =>
-                                updateVariantDraft(variant.id, {
-                                  coa_image_url: e.target.value,
-                                })
-                              }
-                              placeholder="Upload image or paste URL"
-                            />
-                          </label>
+
 
                           <div className="mt-3 rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] p-4">
                             <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -3777,22 +3760,22 @@ export default function MasterAdminClient() {
                                   />
                                 </label>
 
-<label className="block min-w-0 w-full text-xs text-gray-500">
-  Date
-  <input
-    type="text"
-    inputMode="numeric"
-    autoComplete="off"
-    placeholder="YYYY-MM-DD"
-    className="mt-1 block h-[52px] w-full min-w-0 max-w-full box-border rounded-xl border border-gray-200 bg-white px-3 text-base text-black outline-none focus:border-[#A79B8E]"
-    value={newCoaDrafts[variant.id]?.date ?? ""}
-    onChange={(e) =>
-      updateNewCoaDraft(variant.id, {
-        date: e.target.value,
-      })
-    }
-  />
-</label>
+                                <label className="block min-w-0 w-full text-xs text-gray-500">
+                                  Date
+                                  <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    autoComplete="off"
+                                    placeholder="YYYY-MM-DD"
+                                    className="mt-1 block h-[52px] w-full min-w-0 max-w-full box-border rounded-xl border border-gray-200 bg-white px-3 text-base text-black outline-none focus:border-[#A79B8E]"
+                                    value={newCoaDrafts[variant.id]?.date ?? ""}
+                                    onChange={(e) =>
+                                      updateNewCoaDraft(variant.id, {
+                                        date: e.target.value,
+                                      })
+                                    }
+                                  />
+                                </label>
 
                                 <label className="text-xs text-gray-500">
                                   Purity %
@@ -3920,9 +3903,40 @@ export default function MasterAdminClient() {
                           </div>
                         )}
 
-                        <div className="col-span-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                          <label className="cursor-pointer rounded-2xl border border-gray-200 bg-white p-4 text-sm font-semibold text-gray-700 shadow-sm transition active:scale-95">
-                            Product Image
+                        <div className="col-span-2 grid grid-cols-2 gap-3">
+                          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-[#D8D1C8] bg-white p-4 text-sm font-bold text-[#5F554C] shadow-sm transition hover:bg-[#F8F5F1] active:scale-95">
+                            <svg
+                              className="h-5 w-5 text-[#A79B8E]"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              aria-hidden="true"
+                            >
+                              <rect
+                                x="4"
+                                y="5"
+                                width="16"
+                                height="14"
+                                rx="2"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                              />
+                              <path
+                                d="M8 14l2.2-2.2a1 1 0 0 1 1.4 0L14 14l1.2-1.2a1 1 0 0 1 1.4 0L20 16"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <circle
+                                cx="9"
+                                cy="9"
+                                r="1.2"
+                                fill="currentColor"
+                              />
+                            </svg>
+
+                            <span className="text-xs sm:text-sm">Product Image</span>
+
                             <input
                               type="file"
                               accept="image/*"
@@ -3935,8 +3949,37 @@ export default function MasterAdminClient() {
                             />
                           </label>
 
-                          <label className="cursor-pointer rounded-2xl border border-gray-200 bg-white p-4 text-sm font-semibold text-gray-700 shadow-sm transition active:scale-95">
-                            Protocol Image
+                          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-[#D8D1C8] bg-white p-4 text-sm font-bold text-[#5F554C] shadow-sm transition hover:bg-[#F8F5F1] active:scale-95">
+                            <svg
+                              className="h-5 w-5 text-[#A79B8E]"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M7 3.75h7.25L18 7.5v12.75H7V3.75Z"
+                                stroke="currentColor"
+                                strokeWidth="1.7"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <path
+                                d="M14.25 3.75V7.5H18"
+                                stroke="currentColor"
+                                strokeWidth="1.7"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <path
+                                d="M9.5 11h6M9.5 14h6M9.5 17h3.75"
+                                stroke="currentColor"
+                                strokeWidth="1.7"
+                                strokeLinecap="round"
+                              />
+                            </svg>
+
+                            <span className="text-xs sm:text-sm">Protocol Image</span>
+
                             <input
                               type="file"
                               accept="image/*"
@@ -3953,38 +3996,30 @@ export default function MasterAdminClient() {
                               }}
                             />
                           </label>
-
-                          <label className="cursor-pointer rounded-2xl border border-gray-200 bg-white p-4 text-sm font-semibold text-gray-700 shadow-sm transition active:scale-95">
-                            COA Image
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (!file) return;
-                                uploadVariantFile(variant.id, file, "coa-images", "coa_image_url");
-                              }}
-                            />
-                          </label>
                         </div>
 
 
 
                         <div className="col-span-2 grid grid-cols-2 gap-3">
                           <button
+                            type="button"
                             onClick={() =>
                               updateVariantDraft(variant.id, {
                                 active: !currentActive,
                               })
                             }
-                            className={`flex items-center justify-center gap-2 rounded-full border py-2 text-sm font-semibold transition ${currentActive
-                              ? "border-black bg-black text-white"
-                              : "border-gray-300 bg-white text-gray-700"
+                            className={`flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border px-3 py-3 text-xs font-bold shadow-sm transition-all active:scale-95 sm:text-sm ${currentActive
+                                ? "border-[#A79B8E] bg-[#A79B8E] text-white"
+                                : "border-[#D8D1C8] bg-white text-[#7F756B] hover:bg-[#F8F5F1]"
                               }`}
                           >
-                            <span className="flex h-5 w-5 items-center justify-center rounded-full border border-current">
-                              <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none">
+                            <span
+                              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${currentActive
+                                  ? "bg-white/20 text-white"
+                                  : "bg-[#F8F5F1] text-[#A79B8E]"
+                                }`}
+                            >
+                              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
                                 <path
                                   d="M5 13l4 4L19 7"
                                   stroke="currentColor"
@@ -3994,23 +4029,29 @@ export default function MasterAdminClient() {
                                 />
                               </svg>
                             </span>
-                            Active: {currentActive ? "Yes" : "No"}
+
+                            <span>Active: {currentActive ? "Yes" : "No"}</span>
                           </button>
 
                           <button
+                            type="button"
                             onClick={() =>
                               updateVariantDraft(variant.id, {
-                                visible_when_out_of_stock:
-                                  !currentVisibleWhenOut,
+                                visible_when_out_of_stock: !currentVisibleWhenOut,
                               })
                             }
-                            className={`flex items-center justify-center gap-2 rounded-full border py-2 text-sm font-semibold transition ${currentVisibleWhenOut
-                              ? "border-black bg-black text-white"
-                              : "border-gray-300 bg-white text-gray-700"
+                            className={`flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border px-3 py-3 text-xs font-bold shadow-sm transition-all active:scale-95 sm:text-sm ${currentVisibleWhenOut
+                                ? "border-[#A79B8E] bg-[#A79B8E] text-white"
+                                : "border-[#D8D1C8] bg-white text-[#7F756B] hover:bg-[#F8F5F1]"
                               }`}
                           >
-                            <span className="flex h-5 w-5 items-center justify-center rounded-full border border-current">
-                              <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none">
+                            <span
+                              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${currentVisibleWhenOut
+                                  ? "bg-white/20 text-white"
+                                  : "bg-[#F8F5F1] text-[#A79B8E]"
+                                }`}
+                            >
+                              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
                                 <path
                                   d="M4 12s3-5 8-5 8 5 8 5-3 5-8 5-8-5-8-5Z"
                                   stroke="currentColor"
@@ -4026,7 +4067,8 @@ export default function MasterAdminClient() {
                                 />
                               </svg>
                             </span>
-                            Show if Out: {currentVisibleWhenOut ? "Yes" : "No"}
+
+                            <span>Show if Out: {currentVisibleWhenOut ? "Yes" : "No"}</span>
                           </button>
                         </div>
 
