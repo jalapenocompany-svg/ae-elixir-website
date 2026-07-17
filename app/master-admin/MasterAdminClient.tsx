@@ -3777,19 +3777,19 @@ export default function MasterAdminClient() {
                                   />
                                 </label>
 
-                                <label className="min-w-0 text-xs text-gray-500">
-                                  Date
-                                  <input
-                                    type="date"
-                                    className="mt-1 block h-[52px] min-w-0 max-w-full appearance-none rounded-xl border border-gray-200 bg-white px-3 text-base text-black outline-none focus:border-[#A79B8E]"
-                                    value={newCoaDrafts[variant.id]?.date ?? ""}
-                                    onChange={(e) =>
-                                      updateNewCoaDraft(variant.id, {
-                                        date: e.target.value,
-                                      })
-                                    }
-                                  />
-                                </label>
+<label className="block min-w-0 w-full text-xs text-gray-500">
+  Date
+  <input
+    type="date"
+    className="mt-1 block h-[52px] w-full min-w-0 max-w-full rounded-xl border border-gray-200 bg-white px-3 text-base text-black outline-none focus:border-[#A79B8E]"
+    value={newCoaDrafts[variant.id]?.date ?? ""}
+    onChange={(e) =>
+      updateNewCoaDraft(variant.id, {
+        date: e.target.value,
+      })
+    }
+  />
+</label>
 
                                 <label className="text-xs text-gray-500">
                                   Purity %
