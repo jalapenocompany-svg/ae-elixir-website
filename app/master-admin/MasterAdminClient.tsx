@@ -540,6 +540,10 @@ export default function MasterAdminClient() {
     new Date().toISOString().slice(0, 7)
   );
 
+  const [marginSection, setMarginSection] = useState<"sales" | "inventory">(
+    "sales"
+  );
+
   async function loadOrders({
     page = 0,
     append = false,
@@ -2655,13 +2659,291 @@ export default function MasterAdminClient() {
 
         {activeTab === "inventory-margins" && (
           <div className="space-y-5">
-            {activeTab === "inventory-margins" && (
+            <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-3 shadow-sm">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMarginSection("sales")}
+                  className={`rounded-full px-4 py-3 text-sm font-bold shadow-sm transition-all active:scale-95 ${
+                    marginSection === "sales"
+                      ? "bg-[#A79B8E] text-white"
+                      : "border border-[#D8D1C8] bg-white text-[#7F756B] hover:bg-[#F8F5F1]"
+                  }`}
+                >
+                  Sales Performance
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMarginSection("inventory")}
+                  className={`rounded-full px-4 py-3 text-sm font-bold shadow-sm transition-all active:scale-95 ${
+                    marginSection === "inventory"
+                      ? "bg-[#A79B8E] text-white"
+                      : "border border-[#D8D1C8] bg-white text-[#7F756B] hover:bg-[#F8F5F1]"
+                  }`}
+                >
+                  Inventory Snapshot
+                </button>
+              </div>
+            </div>
+
+            {marginSection === "sales" && (
               <div className="space-y-5">
                 <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-5 shadow-sm">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
-                        Profit Analysis
+                        Sales Reporting
+                      </p>
+
+                      <h2 className="mt-1 text-xl font-bold text-[#5F554C]">
+                        Sales Performance
+                      </h2>
+
+                      <p className="mt-2 text-sm leading-6 text-[#6F655C]">
+                        View actual units sold, revenue, product cost, gross profit,
+                        and margin by selected month or all time. Only paid orders are counted.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={exportSalesPerformanceCsv}
+                      className="rounded-full bg-[#A79B8E] px-5 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
+                    >
+                      Export Sales CSV
+                    </button>
+                  </div>
+
+                  <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <select
+                      value={salesPeriod}
+                      onChange={(e) =>
+                        setSalesPeriod(
+                          e.target.value as "all" | "this-month" | "last-month" | "custom"
+                        )
+                      }
+                      className="rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                    >
+                      <option value="all">All Time</option>
+                      <option value="this-month">This Month</option>
+                      <option value="last-month">Last Month</option>
+                      <option value="custom">Custom Month</option>
+                    </select>
+
+                    <input
+                      type="month"
+                      value={salesMonth}
+                      onChange={(e) => setSalesMonth(e.target.value)}
+                      disabled={salesPeriod !== "custom"}
+                      className="rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20 disabled:bg-gray-100 disabled:text-gray-400"
+                    />
+
+                    <div className="rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] px-4 py-3 text-sm font-semibold text-[#6F655C]">
+                      Orders Counted:{" "}
+                      <span className="font-bold text-[#5F554C]">
+                        {salesSummary.ordersCount}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+                  <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                      Units Sold
+                    </p>
+                    <p className="mt-2 text-xl font-bold text-[#5F554C]">
+                      {salesSummary.unitsSold}
+                    </p>
+                  </div>
+
+                  <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                      Revenue
+                    </p>
+                    <p className="mt-2 text-xl font-bold text-[#5F554C]">
+                      {formatCurrency(salesSummary.revenue)}
+                    </p>
+                  </div>
+
+                  <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                      Product Cost
+                    </p>
+                    <p className="mt-2 text-xl font-bold text-[#5F554C]">
+                      {formatCurrency(salesSummary.cost)}
+                    </p>
+                  </div>
+
+                  <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                      Gross Profit
+                    </p>
+                    <p className="mt-2 text-xl font-bold text-green-700">
+                      {formatCurrency(salesSummary.profit)}
+                    </p>
+                  </div>
+
+                  <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                      Avg. Margin
+                    </p>
+                    <p className="mt-2 text-xl font-bold text-[#5F554C]">
+                      {formatPercent(salesAverageMargin)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="hidden rounded-[24px] border border-[#E6E0D8] bg-white shadow-sm lg:block">
+                  <div className="grid grid-cols-[1.8fr_1fr_0.7fr_1fr_1fr_1fr_0.8fr] items-center gap-4 border-b border-[#E6E0D8] px-4 py-3 text-xs font-bold uppercase tracking-wide text-[#7F756B]">
+                    <p>Product</p>
+                    <p>Product Code</p>
+                    <p className="text-center">Sold</p>
+                    <p className="text-right">Revenue</p>
+                    <p className="text-right">Cost</p>
+                    <p className="text-right">Profit</p>
+                    <p className="text-right">Margin</p>
+                  </div>
+
+                  <div className="divide-y divide-[#EFEAE4]">
+                    {salesRows.length === 0 ? (
+                      <div className="px-4 py-6 text-center text-sm font-semibold text-[#6F655C]">
+                        No paid sales found for this period.
+                      </div>
+                    ) : (
+                      salesRows.map((row) => {
+                        const rowMargin =
+                          row.revenue > 0 ? (row.profit / row.revenue) * 100 : 0;
+
+                        return (
+                          <div
+                            key={row.productCode}
+                            className="grid grid-cols-[1.8fr_1fr_0.7fr_1fr_1fr_1fr_0.8fr] items-center gap-4 px-4 py-4 text-sm text-[#5F554C]"
+                          >
+                            <div>
+                              <p className="font-bold text-[#1F1A17]">
+                                {row.productName}
+                              </p>
+                            </div>
+
+                            <p className="text-xs font-semibold text-[#9A9188]">
+                              {row.productCode}
+                            </p>
+
+                            <p className="text-center font-bold">
+                              {row.quantitySold}
+                            </p>
+
+                            <p className="text-right font-semibold">
+                              {formatCurrency(row.revenue)}
+                            </p>
+
+                            <p className="text-right">
+                              {formatCurrency(row.cost)}
+                            </p>
+
+                            <p
+                              className={`text-right font-bold ${
+                                row.profit >= 0 ? "text-green-700" : "text-red-600"
+                              }`}
+                            >
+                              {formatCurrency(row.profit)}
+                            </p>
+
+                            <p className="text-right font-bold">
+                              {formatPercent(rowMargin)}
+                            </p>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-3 lg:hidden">
+                  {salesRows.length === 0 ? (
+                    <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-5 text-center text-sm text-[#6F655C] shadow-sm">
+                      No paid sales found for this period.
+                    </div>
+                  ) : (
+                    salesRows.map((row) => {
+                      const rowMargin =
+                        row.revenue > 0 ? (row.profit / row.revenue) * 100 : 0;
+
+                      return (
+                        <div
+                          key={row.productCode}
+                          className="rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm"
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <p className="text-lg font-bold text-[#1F1A17]">
+                                {row.productName}
+                              </p>
+
+                              <p className="mt-1 text-xs font-semibold text-[#9A9188]">
+                                {row.productCode}
+                              </p>
+                            </div>
+
+                            <span className="rounded-full bg-[#F8F5F1] px-3 py-1 text-xs font-bold text-[#7F756B]">
+                              Sold: {row.quantitySold}
+                            </span>
+                          </div>
+
+                          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                            <div className="rounded-2xl bg-[#FBFAF8] p-3">
+                              <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                                Revenue
+                              </p>
+                              <p className="mt-1 font-bold text-[#5F554C]">
+                                {formatCurrency(row.revenue)}
+                              </p>
+                            </div>
+
+                            <div className="rounded-2xl bg-[#FBFAF8] p-3">
+                              <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                                Cost
+                              </p>
+                              <p className="mt-1 font-bold text-[#5F554C]">
+                                {formatCurrency(row.cost)}
+                              </p>
+                            </div>
+
+                            <div className="rounded-2xl bg-[#FBFAF8] p-3">
+                              <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                                Profit
+                              </p>
+                              <p className="mt-1 font-bold text-green-700">
+                                {formatCurrency(row.profit)}
+                              </p>
+                            </div>
+
+                            <div className="rounded-2xl bg-[#FBFAF8] p-3">
+                              <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                                Margin
+                              </p>
+                              <p className="mt-1 font-bold text-[#5F554C]">
+                                {formatPercent(rowMargin)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+
+            {marginSection === "inventory" && (
+              <div className="space-y-5">
+                <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-5 shadow-sm">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                        Inventory Snapshot
                       </p>
 
                       <h2 className="mt-1 text-xl font-bold text-[#5F554C]">
@@ -2669,8 +2951,9 @@ export default function MasterAdminClient() {
                       </h2>
 
                       <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6F655C]">
-                        Track product cost, sale price, inventory value, profit per unit,
-                        estimated margin, and potential earnings from current stock.
+                        Track current product cost, sale price, inventory value,
+                        profit per unit, estimated margin, and potential earnings
+                        from current stock.
                       </p>
                     </div>
 
@@ -2764,7 +3047,9 @@ export default function MasterAdminClient() {
                           className="grid grid-cols-[1.6fr_0.7fr_0.55fr_1fr_0.85fr_0.85fr_0.75fr_0.9fr_0.9fr_0.9fr] items-center gap-4 px-4 py-4 text-sm text-[#5F554C]"
                         >
                           <div>
-                            <p className="font-bold text-[#1F1A17]">{row.productName}</p>
+                            <p className="font-bold text-[#1F1A17]">
+                              {row.productName}
+                            </p>
                             <p className="mt-1 text-xs text-[#9A9188]">
                               {row.productCode}
                             </p>
@@ -2795,21 +3080,31 @@ export default function MasterAdminClient() {
                             onBlur={() => formatMarginCostInput(row.variant.id)}
                           />
 
-                          <p className="text-right font-semibold">{formatCurrency(row.price)}</p>
+                          <p className="text-right font-semibold">
+                            {formatCurrency(row.price)}
+                          </p>
 
                           <p
-                            className={`text-right font-bold ${row.profitPerUnit >= 0 ? "text-green-700" : "text-red-600"
-                              }`}
+                            className={`text-right font-bold ${
+                              row.profitPerUnit >= 0
+                                ? "text-green-700"
+                                : "text-red-600"
+                            }`}
                           >
                             {formatCurrency(row.profitPerUnit)}
                           </p>
 
-                          <p className="text-right font-bold">{formatPercent(row.marginPercent)}</p>
+                          <p className="text-right font-bold">
+                            {formatPercent(row.marginPercent)}
+                          </p>
 
-                          <p className="text-right">{formatCurrency(row.inventoryCostValue)}</p>
+                          <p className="text-right">
+                            {formatCurrency(row.inventoryCostValue)}
+                          </p>
 
-
-                          <p className="text-right">{formatCurrency(row.potentialRevenue)}</p>
+                          <p className="text-right">
+                            {formatCurrency(row.potentialRevenue)}
+                          </p>
 
                           <div className="text-right">
                             <p className="font-bold text-green-700">
@@ -2853,12 +3148,13 @@ export default function MasterAdminClient() {
                           </div>
 
                           <span
-                            className={`rounded-full px-3 py-1 text-xs font-bold ${row.stock <= 0
-                              ? "bg-red-100 text-red-700"
-                              : row.stock <= Number(row.variant.low_stock_threshold || 0)
+                            className={`rounded-full px-3 py-1 text-xs font-bold ${
+                              row.stock <= 0
+                                ? "bg-red-100 text-red-700"
+                                : row.stock <= Number(row.variant.low_stock_threshold || 0)
                                 ? "bg-yellow-100 text-yellow-700"
                                 : "bg-green-100 text-green-700"
-                              }`}
+                            }`}
                           >
                             Stock: {row.stock}
                           </span>
@@ -2903,8 +3199,11 @@ export default function MasterAdminClient() {
                               Profit / Unit
                             </p>
                             <p
-                              className={`mt-1 text-lg font-bold ${row.profitPerUnit >= 0 ? "text-green-700" : "text-red-600"
-                                }`}
+                              className={`mt-1 text-lg font-bold ${
+                                row.profitPerUnit >= 0
+                                  ? "text-green-700"
+                                  : "text-red-600"
+                              }`}
                             >
                               {formatCurrency(row.profitPerUnit)}
                             </p>
@@ -2961,10 +3260,11 @@ export default function MasterAdminClient() {
                             type="button"
                             onClick={() => saveProductVariant(row.variant.id)}
                             disabled={!hasDraft}
-                            className={`rounded-full py-3 text-sm font-bold transition-all active:scale-95 ${hasDraft
-                              ? "bg-[#A79B8E] text-white shadow-sm"
-                              : "bg-gray-100 text-gray-400"
-                              }`}
+                            className={`rounded-full py-3 text-sm font-bold transition-all active:scale-95 ${
+                              hasDraft
+                                ? "bg-[#A79B8E] text-white shadow-sm"
+                                : "bg-gray-100 text-gray-400"
+                            }`}
                           >
                             Save
                           </button>
@@ -2984,187 +3284,6 @@ export default function MasterAdminClient() {
                 </div>
               </div>
             )}
-
-            <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-5 shadow-sm">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
-                    Sales Reporting
-                  </p>
-
-                  <h2 className="mt-1 text-xl font-bold text-[#5F554C]">
-                    Sales Performance
-                  </h2>
-
-                  <p className="mt-2 text-sm leading-6 text-[#6F655C]">
-                    View units sold, revenue, product cost, and gross profit by selected
-                    month or all time. Only paid orders are counted.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={exportSalesPerformanceCsv}
-                  className="rounded-full bg-[#A79B8E] px-5 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
-                >
-                  Export Sales CSV
-                </button>
-              </div>
-
-              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <select
-                  value={salesPeriod}
-                  onChange={(e) =>
-                    setSalesPeriod(
-                      e.target.value as "all" | "this-month" | "last-month" | "custom"
-                    )
-                  }
-                  className="rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
-                >
-                  <option value="all">All Time</option>
-                  <option value="this-month">This Month</option>
-                  <option value="last-month">Last Month</option>
-                  <option value="custom">Custom Month</option>
-                </select>
-
-                <input
-                  type="month"
-                  value={salesMonth}
-                  onChange={(e) => setSalesMonth(e.target.value)}
-                  disabled={salesPeriod !== "custom"}
-                  className="rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20 disabled:bg-gray-100 disabled:text-gray-400"
-                />
-
-                <div className="rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] px-4 py-3 text-sm font-semibold text-[#6F655C]">
-                  Orders Counted:{" "}
-                  <span className="font-bold text-[#5F554C]">
-                    {salesSummary.ordersCount}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-              <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
-                  Units Sold
-                </p>
-                <p className="mt-2 text-xl font-bold text-[#5F554C]">
-                  {salesSummary.unitsSold}
-                </p>
-              </div>
-
-              <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
-                  Revenue
-                </p>
-                <p className="mt-2 text-xl font-bold text-[#5F554C]">
-                  {formatCurrency(salesSummary.revenue)}
-                </p>
-              </div>
-
-              <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
-                  Product Cost
-                </p>
-                <p className="mt-2 text-xl font-bold text-[#5F554C]">
-                  {formatCurrency(salesSummary.cost)}
-                </p>
-              </div>
-
-              <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
-                  Gross Profit
-                </p>
-                <p className="mt-2 text-xl font-bold text-green-700">
-                  {formatCurrency(salesSummary.profit)}
-                </p>
-              </div>
-
-              <div className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
-                  Avg. Margin
-                </p>
-                <p className="mt-2 text-xl font-bold text-[#5F554C]">
-                  {formatPercent(salesAverageMargin)}
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {salesRows.length === 0 ? (
-                <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-5 text-center text-sm text-[#6F655C] shadow-sm">
-                  No paid sales found for this period.
-                </div>
-              ) : (
-                salesRows.map((row) => {
-                  const rowMargin = row.revenue > 0 ? (row.profit / row.revenue) * 100 : 0;
-
-                  return (
-                    <div
-                      key={row.productCode}
-                      className="rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <p className="text-lg font-bold text-[#1F1A17]">
-                            {row.productName}
-                          </p>
-
-                          <p className="mt-1 text-xs font-semibold text-[#9A9188]">
-                            {row.productCode}
-                          </p>
-                        </div>
-
-                        <span className="rounded-full bg-[#F8F5F1] px-3 py-1 text-xs font-bold text-[#7F756B]">
-                          Sold: {row.quantitySold}
-                        </span>
-                      </div>
-
-                      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                        <div className="rounded-2xl bg-[#FBFAF8] p-3">
-                          <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
-                            Revenue
-                          </p>
-                          <p className="mt-1 font-bold text-[#5F554C]">
-                            {formatCurrency(row.revenue)}
-                          </p>
-                        </div>
-
-                        <div className="rounded-2xl bg-[#FBFAF8] p-3">
-                          <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
-                            Cost
-                          </p>
-                          <p className="mt-1 font-bold text-[#5F554C]">
-                            {formatCurrency(row.cost)}
-                          </p>
-                        </div>
-
-                        <div className="rounded-2xl bg-[#FBFAF8] p-3">
-                          <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
-                            Profit
-                          </p>
-                          <p className="mt-1 font-bold text-green-700">
-                            {formatCurrency(row.profit)}
-                          </p>
-                        </div>
-
-                        <div className="rounded-2xl bg-[#FBFAF8] p-3">
-                          <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
-                            Margin
-                          </p>
-                          <p className="mt-1 font-bold text-[#5F554C]">
-                            {formatPercent(rowMargin)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
-
           </div>
         )}
 
