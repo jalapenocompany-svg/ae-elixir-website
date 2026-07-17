@@ -265,30 +265,7 @@ export default function SiteHeader({
                 </svg>
               </a>
 
-              <a
-                href={tiktokUrl || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-12 w-12 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
-                title="TikTok"
-              >
-                <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M14 4v9.2a4.2 4.2 0 1 1-4.2-4.2"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M14 4c.6 2.8 2.4 4.6 5 5"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </a>
+
             </div>
           </div>
         </div>
