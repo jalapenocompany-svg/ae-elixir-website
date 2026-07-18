@@ -99,8 +99,7 @@ export default function AgeGate() {
             </h2>
 
             <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-[#6F655C]">
-              Your access is restricted because of your age. Please refresh the
-              page if you need to verify again.
+              Your access is restricted because of your age.
             </p>
           </div>
         </div>
