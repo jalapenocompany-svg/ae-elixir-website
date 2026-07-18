@@ -81,7 +81,7 @@ export default function AgeGate() {
                 onClick={handleYes}
                 className="rounded-full bg-[#A79B8E] px-5 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
               >
-                I am 21 or older
+                I am 18 or older
               </button>
 
               <button
@@ -89,7 +89,7 @@ export default function AgeGate() {
                 onClick={handleNo}
                 className="rounded-full border border-[#D8D1C8] bg-white px-5 py-3 text-sm font-bold text-[#7F756B] shadow-sm transition-all hover:bg-[#F8F5F1] active:scale-95"
               >
-                I am under 21
+                I am under 18
               </button>
             </div>
           </div>
