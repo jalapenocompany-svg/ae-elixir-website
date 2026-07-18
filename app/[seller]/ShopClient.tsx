@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import SiteHeader from "@/components/SiteHeader";
+import AgeGate from "@/components/AgeGate";
 
 type Product = {
   id: number;
@@ -1024,7 +1025,9 @@ Total: $${cartTotal.toFixed(2)}`
 
 
   return (
+    
     <div className="min-h-screen bg-gray-50 text-black">
+         <AgeGate />
       <SiteHeader
 
         showCart={true}
