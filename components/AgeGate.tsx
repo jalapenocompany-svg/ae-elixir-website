@@ -4,27 +4,44 @@ import { useEffect, useState } from "react";
 
 type AgeGateStatus = "checking" | "allowed" | "ask" | "forbidden";
 
-const AGE_GATE_KEY = "ae_elixir_age_confirmed";
+const AGE_GATE_KEY = "ae_elixir_age_confirmed_at";
+
+// 24 hours
+const AGE_GATE_EXPIRATION_MS = 24 * 60 * 60 * 1000;
 
 export default function AgeGate() {
   const [status, setStatus] = useState<AgeGateStatus>("checking");
 
   useEffect(() => {
-    const confirmed = localStorage.getItem(AGE_GATE_KEY);
+    const savedTimestamp = localStorage.getItem(AGE_GATE_KEY);
 
-    if (confirmed === "yes") {
+    if (!savedTimestamp) {
+      setStatus("ask");
+      return;
+    }
+
+    const confirmedAt = Number(savedTimestamp);
+    const now = Date.now();
+
+    const isStillValid =
+      !Number.isNaN(confirmedAt) &&
+      now - confirmedAt < AGE_GATE_EXPIRATION_MS;
+
+    if (isStillValid) {
       setStatus("allowed");
     } else {
+      localStorage.removeItem(AGE_GATE_KEY);
       setStatus("ask");
     }
   }, []);
 
   function handleYes() {
-    localStorage.setItem(AGE_GATE_KEY, "yes");
+    localStorage.setItem(AGE_GATE_KEY, String(Date.now()));
     setStatus("allowed");
   }
 
   function handleNo() {
+    localStorage.removeItem(AGE_GATE_KEY);
     setStatus("forbidden");
   }
 
@@ -99,7 +116,7 @@ export default function AgeGate() {
             </h2>
 
             <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-[#6F655C]">
-              Your access is restricted because of your age.
+              Your access is restricted because of your age. 
             </p>
           </div>
         </div>
