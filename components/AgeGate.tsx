@@ -67,11 +67,11 @@ export default function AgeGate() {
             </p>
 
             <h2 className="mt-2 text-3xl font-bold text-[#1F1A17]">
-              Are you over 21?
+              Are you over 18?
             </h2>
 
             <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-[#6F655C]">
-              You must be 21 years of age or older to view this website.
+              You must be 18 years of age or older to view this website.
               Please verify your age to continue.
             </p>
 
