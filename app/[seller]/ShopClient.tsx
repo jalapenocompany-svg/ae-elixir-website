@@ -186,6 +186,13 @@ const fallbackProducts: Product[] = [
 
 
 const STORE_REFERENCE_CODE = "AEELIXIR";
+const STAFF_SHIPPING_UNLOCK_CODE = "PICKUP26";
+
+const STAFF_ONLY_SHIPPING_NAMES = [
+  "local-pickup",
+  "local-delivery",
+  "local-delivery-pickup",
+];
 
 export default function ShopClient({ seller }: { seller?: string }) {
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -234,6 +241,11 @@ export default function ShopClient({ seller }: { seller?: string }) {
     paymentMethod: "",
   });
 
+  const [shippingUnlockClicks, setShippingUnlockClicks] = useState(0);
+  const [showShippingCodeModal, setShowShippingCodeModal] = useState(false);
+  const [shippingUnlockCode, setShippingUnlockCode] = useState("");
+  const [staffShippingUnlocked, setStaffShippingUnlocked] = useState(false);
+
 
 
 
@@ -243,13 +255,28 @@ export default function ShopClient({ seller }: { seller?: string }) {
     0
   );
 
-  const selectedShippingMethod = shippingMethods.find(
-    (method) => method.id === selectedShippingMethodId
-  );
+const selectedShippingMethod = shippingMethods.find(
+  (method) => method.id === selectedShippingMethodId
+);
 
-  const shippingPrice = Number(selectedShippingMethod?.price || 0);
+const visibleShippingMethods = shippingMethods.filter((method) => {
+  const methodName = method.name.toLowerCase();
 
-  const cartTotal = cartSubtotal + shippingPrice;
+  const isStaffOnly =
+    STAFF_ONLY_SHIPPING_NAMES.includes(methodName) ||
+    methodName.includes("pickup") ||
+    methodName.includes("local");
+
+  if (isStaffOnly) {
+    return staffShippingUnlocked;
+  }
+
+  return true;
+});
+
+const shippingPrice = Number(selectedShippingMethod?.price || 0);
+
+const cartTotal = cartSubtotal + shippingPrice;
 
   useEffect(() => {
     const savedCart = localStorage.getItem("pepmistry_cart");
@@ -1025,9 +1052,9 @@ Total: $${cartTotal.toFixed(2)}`
 
 
   return (
-    
+
     <div className="min-h-screen bg-gray-50 text-black">
-         <AgeGate />
+      <AgeGate />
       <SiteHeader
 
         showCart={true}
@@ -1901,51 +1928,66 @@ Total: $${cartTotal.toFixed(2)}`
                 </div>
 
                 <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
-                  <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
-                    <svg
-                      className="h-4 w-4"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="M4 7h10v9H4V7Z"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M14 10h3.5L20 13v3h-6v-6Z"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinejoin="round"
-                      />
-                      <circle
-                        cx="7"
-                        cy="18"
-                        r="1.5"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                      />
-                      <circle
-                        cx="17"
-                        cy="18"
-                        r="1.5"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                      />
-                    </svg>
+<button
+  type="button"
+  onClick={() => {
+    setShippingUnlockClicks((current) => {
+      const next = current + 1;
 
-                    <span>Shipping Method</span>
-                  </div>
+      if (next >= 5) {
+        setShowShippingCodeModal(true);
+        return 0;
+      }
 
-                  {shippingMethods.length === 0 ? (
+      return next;
+    });
+  }}
+  className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[#A79B8E]"
+>
+  <svg
+    className="h-4 w-4"
+    viewBox="0 0 24 24"
+    fill="none"
+    aria-hidden="true"
+  >
+    <path
+      d="M4 7h10v9H4V7Z"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M14 10h3.5L20 13v3h-6v-6Z"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    />
+    <circle
+      cx="7"
+      cy="18"
+      r="1.5"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    />
+    <circle
+      cx="17"
+      cy="18"
+      r="1.5"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    />
+  </svg>
+
+  <span>Shipping Method</span>
+</button>
+
+                  {visibleShippingMethods.length === 0 ? (
                     <div className="rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] p-4 text-sm font-semibold text-[#6F655C]">
                       Shipping options are currently unavailable.
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {shippingMethods.map((method) => {
+                      {visibleShippingMethods.map((method) => {
                         const isSelected = selectedShippingMethodId === method.id;
 
                         return (
@@ -2132,6 +2174,81 @@ Total: $${cartTotal.toFixed(2)}`
           )}
         </div>
       </div>
+
+            {showShippingCodeModal && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 px-5 backdrop-blur-[2px]">
+          <div className="w-full max-w-sm rounded-[28px] border border-[#E6E0D8] bg-white p-6 shadow-2xl">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+              Staff Shipping Unlock
+            </p>
+
+            <h2 className="mt-2 text-2xl font-bold text-[#5F554C]">
+              Enter staff code
+            </h2>
+
+            <p className="mt-2 text-sm leading-6 text-[#6F655C]">
+              This unlocks the staff-only Local Delivery / Pickup shipping
+              option for this checkout session.
+            </p>
+
+            <input
+              type="password"
+              value={shippingUnlockCode}
+              onChange={(e) => setShippingUnlockCode(e.target.value)}
+              placeholder="Enter code"
+              className="mt-5 w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-base font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+            />
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowShippingCodeModal(false);
+                  setShippingUnlockCode("");
+                }}
+                className="rounded-full border border-[#D8D1C8] bg-white py-3 text-sm font-bold text-[#A79B8E] shadow-sm transition-all hover:bg-[#F3F0EC] active:scale-95"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (
+                    shippingUnlockCode.trim().toUpperCase() !==
+                    STAFF_SHIPPING_UNLOCK_CODE
+                  ) {
+                    alert("Invalid staff code.");
+                    return;
+                  }
+
+                  const staffMethod = shippingMethods.find((method) => {
+                    const methodName = method.name.toLowerCase();
+
+                    return (
+                      STAFF_ONLY_SHIPPING_NAMES.includes(methodName) ||
+                      methodName.includes("pickup") ||
+                      methodName.includes("local")
+                    );
+                  });
+
+                  setStaffShippingUnlocked(true);
+
+                  if (staffMethod) {
+                    setSelectedShippingMethodId(staffMethod.id);
+                  }
+
+                  setShowShippingCodeModal(false);
+                  setShippingUnlockCode("");
+                }}
+                className="rounded-full bg-[#A79B8E] py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
+              >
+                Unlock
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
 
       {orderNotice && (
