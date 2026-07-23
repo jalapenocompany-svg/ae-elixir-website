@@ -149,7 +149,8 @@ type TabName =
 const MASTER_PASSWORD = "@eeLixir26";
 
 const PRODUCT_CATEGORIES = [
-  "Weight Loss",
+  "GLP-1 / Weight Loss",
+  "Beauty",
   "Longevity",
   "Healing / Recovery",
   "Performance",
