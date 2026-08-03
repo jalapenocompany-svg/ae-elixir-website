@@ -71,7 +71,7 @@ const sections = [
         <p>By purchasing products from AE Elixir, you represent that:</p>
 
         <ul className="mt-3 list-disc space-y-2 pl-5">
-          <li>You are at least 21 years of age.</li>
+          <li>You are at least 18 years of age.</li>
           <li>
             You are purchasing products solely for legitimate research
             purposes.
