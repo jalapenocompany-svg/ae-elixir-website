@@ -1300,15 +1300,15 @@ Total: $${cartTotal.toFixed(2)}`
                 <div className="p-4">
                   <div className="mb-3">
                     {/* Name + Price */}
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="text-sm font-semibold text-gray-800">
-                        {product.name.split(" ")[0]}
-                      </h3>
+<div className="flex min-h-[40px] items-start justify-between gap-2">
+  <h3 className="line-clamp-2 min-w-0 flex-1 text-sm font-semibold leading-5 text-gray-800">
+    {product.name}
+  </h3>
 
-                      <p className="text-sm font-semibold text-gray-900">
-                        ${displayPrice}
-                      </p>
-                    </div>
+  <p className="shrink-0 text-sm font-semibold text-gray-900">
+    ${displayPrice}
+  </p>
+</div>
                     {/* MG / Spec */}
                     <div className="mt-2 h-8 -ml-1">
                       {product.variants ? (
