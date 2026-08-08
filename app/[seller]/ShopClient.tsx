@@ -215,6 +215,7 @@ export default function ShopClient({ seller }: { seller?: string }) {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
   const [addressLoading, setAddressLoading] = useState(false);
+  const [addressSuggestionsOpen, setAddressSuggestionsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [recentOrdersOpen, setRecentOrdersOpen] = useState(false);
   const [recentOrders, setRecentOrders] = useState<LocalOrder[]>([]);
@@ -235,7 +236,11 @@ export default function ShopClient({ seller }: { seller?: string }) {
 
   const [form, setForm] = useState({
     fullName: "",
-    address: "",
+    address1: "",
+    address2: "",
+    city: "",
+    state: "",
+    zip: "",
     email: "",
     phone: "",
     paymentMethod: "",
@@ -255,28 +260,28 @@ export default function ShopClient({ seller }: { seller?: string }) {
     0
   );
 
-const selectedShippingMethod = shippingMethods.find(
-  (method) => method.id === selectedShippingMethodId
-);
+  const selectedShippingMethod = shippingMethods.find(
+    (method) => method.id === selectedShippingMethodId
+  );
 
-const visibleShippingMethods = shippingMethods.filter((method) => {
-  const methodName = method.name.toLowerCase();
+  const visibleShippingMethods = shippingMethods.filter((method) => {
+    const methodName = method.name.toLowerCase();
 
-  const isStaffOnly =
-    STAFF_ONLY_SHIPPING_NAMES.includes(methodName) ||
-    methodName.includes("pickup") ||
-    methodName.includes("local");
+    const isStaffOnly =
+      STAFF_ONLY_SHIPPING_NAMES.includes(methodName) ||
+      methodName.includes("pickup") ||
+      methodName.includes("local");
 
-  if (isStaffOnly) {
-    return staffShippingUnlocked;
-  }
+    if (isStaffOnly) {
+      return staffShippingUnlocked;
+    }
 
-  return true;
-});
+    return true;
+  });
 
-const shippingPrice = Number(selectedShippingMethod?.price || 0);
+  const shippingPrice = Number(selectedShippingMethod?.price || 0);
 
-const cartTotal = cartSubtotal + shippingPrice;
+  const cartTotal = cartSubtotal + shippingPrice;
 
   useEffect(() => {
     const savedCart = localStorage.getItem("pepmistry_cart");
@@ -652,18 +657,27 @@ const cartTotal = cartSubtotal + shippingPrice;
 
 
   async function searchAddressSuggestions(value: string) {
-    setForm({ ...form, address: value });
+    setForm((current) => ({
+      ...current,
+      address1: value,
+    }));
 
     if (value.length < 4) {
       setAddressSuggestions([]);
+      setAddressSuggestionsOpen(false);
       return;
     }
 
     const apiKey = process.env.NEXT_PUBLIC_GEOAPIFY_KEY;
 
-    if (!apiKey) return;
+    if (!apiKey) {
+      setAddressSuggestions([]);
+      setAddressSuggestionsOpen(false);
+      return;
+    }
 
     setAddressLoading(true);
+    setAddressSuggestionsOpen(true);
 
     try {
       const response = await fetch(
@@ -674,12 +688,64 @@ const cartTotal = cartSubtotal + shippingPrice;
 
       const data = await response.json();
       setAddressSuggestions(data.features || []);
+      setAddressSuggestionsOpen(true);
     } catch (error) {
       console.error(error);
       setAddressSuggestions([]);
+      setAddressSuggestionsOpen(false);
     } finally {
       setAddressLoading(false);
     }
+  }
+
+  function selectAddressSuggestion(suggestion: any) {
+    const properties = suggestion.properties || {};
+
+    const address1 =
+      properties.address_line1 ||
+      [properties.housenumber, properties.street].filter(Boolean).join(" ") ||
+      String(properties.formatted || "").split(",")[0] ||
+      "";
+
+    const city =
+      properties.city ||
+      properties.town ||
+      properties.village ||
+      properties.municipality ||
+      "";
+
+    const state = properties.state_code || properties.state || "";
+    const zip = properties.postcode || "";
+
+    setForm((current) => ({
+      ...current,
+      address1,
+      address2: current.address2,
+      city,
+      state,
+      zip,
+    }));
+
+    setAddressSuggestions([]);
+    setAddressSuggestionsOpen(false);
+  }
+
+  function buildCustomerAddress() {
+    const streetLine = [form.address1.trim(), form.address2.trim()]
+      .filter(Boolean)
+      .join(" ");
+
+    const cityStateZip = [
+      form.city.trim(),
+      form.state.trim(),
+      form.zip.trim(),
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    return [streetLine, cityStateZip, "United States"]
+      .filter(Boolean)
+      .join(", ");
   }
 
   async function handleOrderSubmit() {
@@ -688,9 +754,14 @@ const cartTotal = cartSubtotal + shippingPrice;
       return;
     }
 
+    const customerAddress = buildCustomerAddress();
+
     if (
       !form.fullName ||
-      !form.address ||
+      !form.address1 ||
+      !form.city ||
+      !form.state ||
+      !form.zip ||
       !form.email ||
       !form.phone ||
       !selectedShippingMethodId ||
@@ -727,7 +798,7 @@ const cartTotal = cartSubtotal + shippingPrice;
     const orderPayload = {
       seller_code: validSellerCode || defaultSellerCode,
       customer_name: form.fullName,
-      customer_address: form.address,
+      customer_address: customerAddress,
       customer_email: form.email,
       customer_phone: form.phone,
       payment_method: form.paymentMethod,
@@ -787,7 +858,7 @@ Customer:
 Name: ${form.fullName}
 Phone: ${form.phone}
 Email: ${form.email}
-Address: ${form.address}
+Address: ${customerAddress}
 
 Payment: ${selectedPaymentMethod?.display_label || form.paymentMethod}
 Shipping: ${selectedShippingMethod?.display_label || ""} - $${shippingPrice.toFixed(2)}
@@ -892,7 +963,11 @@ Total: $${cartTotal.toFixed(2)}`
 
     setForm({
       fullName: "",
-      address: "",
+      address1: "",
+      address2: "",
+      city: "",
+      state: "",
+      zip: "",
       email: "",
       phone: "",
       paymentMethod: "",
@@ -1300,15 +1375,15 @@ Total: $${cartTotal.toFixed(2)}`
                 <div className="p-4">
                   <div className="mb-3">
                     {/* Name + Price */}
-<div className="flex min-h-[40px] items-start justify-between gap-2">
-  <h3 className="line-clamp-2 min-w-0 flex-1 text-sm font-semibold leading-5 text-gray-800">
-    {product.name}
-  </h3>
+                    <div className="flex min-h-[40px] items-start justify-between gap-2">
+                      <h3 className="line-clamp-2 min-w-0 flex-1 text-sm font-semibold leading-5 text-gray-800">
+                        {product.name}
+                      </h3>
 
-  <p className="shrink-0 text-sm font-semibold text-gray-900">
-    ${displayPrice}
-  </p>
-</div>
+                      <p className="shrink-0 text-sm font-semibold text-gray-900">
+                        ${displayPrice}
+                      </p>
+                    </div>
                     {/* MG / Spec */}
                     <div className="mt-2 h-8 -ml-1">
                       {product.variants ? (
@@ -1869,34 +1944,61 @@ Total: $${cartTotal.toFixed(2)}`
                       }
                     />
 
-                    <div className="relative">
-                      <textarea
-                        placeholder="Shipping Address"
-                        className="min-h-[88px] w-full resize-none rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold leading-6 text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
-                        value={form.address}
-                        onChange={(e) =>
-                          searchAddressSuggestions(e.target.value)
+                    <div
+                      className="relative"
+                      onBlur={(e) => {
+                        const nextFocus = e.relatedTarget as Node | null;
+
+                        if (!nextFocus || !e.currentTarget.contains(nextFocus)) {
+                          setTimeout(() => {
+                            setAddressSuggestionsOpen(false);
+                          }, 150);
                         }
+                      }}
+                    >
+                      <input
+                        className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                        placeholder="Address Line 1"
+                        value={form.address1}
+                        onFocus={() => {
+                          if (addressSuggestions.length > 0) {
+                            setAddressSuggestionsOpen(true);
+                          }
+                        }}
+                        onChange={(e) => searchAddressSuggestions(e.target.value)}
                       />
 
-                      {addressSuggestions.length > 0 && (
-                        <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-56 overflow-y-auto rounded-2xl border border-[#E6E0D8] bg-white shadow-lg">
-                          {addressSuggestions.map((suggestion) => (
-                            <button
-                              key={suggestion.properties.place_id}
-                              type="button"
-                              onClick={() => {
-                                setForm({
-                                  ...form,
-                                  address: suggestion.properties.formatted,
-                                });
-                                setAddressSuggestions([]);
-                              }}
-                              className="w-full border-b border-[#F0ECE6] px-4 py-3 text-left text-sm leading-5 text-[#5F554C] last:border-b-0 hover:bg-[#F8F5F1]"
-                            >
-                              {suggestion.properties.formatted}
-                            </button>
-                          ))}
+                      {addressSuggestionsOpen && (
+                        <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-64 overflow-y-auto rounded-2xl border border-[#E6E0D8] bg-white shadow-lg">
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              setAddressSuggestions([]);
+                              setAddressSuggestionsOpen(false);
+                            }}
+                            className="w-full border-b border-[#F0ECE6] bg-[#FBFAF8] px-4 py-3 text-left text-sm font-bold leading-5 text-[#A79B8E] hover:bg-[#F8F5F1]"
+                          >
+                            Use typed address
+                          </button>
+
+                          {addressSuggestions.length > 0 ? (
+                            addressSuggestions.map((suggestion) => (
+                              <button
+                                key={suggestion.properties.place_id}
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => selectAddressSuggestion(suggestion)}
+                                className="w-full border-b border-[#F0ECE6] px-4 py-3 text-left text-sm leading-5 text-[#5F554C] last:border-b-0 hover:bg-[#F8F5F1]"
+                              >
+                                {suggestion.properties.formatted}
+                              </button>
+                            ))
+                          ) : (
+                            <div className="px-4 py-3 text-sm leading-5 text-[#6F655C]">
+                              No exact match found. You can continue using the typed address.
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -1905,6 +2007,58 @@ Total: $${cartTotal.toFixed(2)}`
                           Searching addresses...
                         </p>
                       )}
+                    </div>
+
+                    <input
+                      className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                      placeholder="Apartment, Suite, Unit, Floor, etc. optional"
+                      value={form.address2}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          address2: e.target.value,
+                        })
+                      }
+                    />
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <input
+                        className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                        placeholder="City"
+                        value={form.city}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            city: e.target.value,
+                          })
+                        }
+                      />
+
+                      <input
+                        className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                        placeholder="State"
+                        maxLength={2}
+                        value={form.state}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            state: e.target.value.toUpperCase(),
+                          })
+                        }
+                      />
+
+                      <input
+                        className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                        placeholder="ZIP"
+                        inputMode="numeric"
+                        value={form.zip}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            zip: e.target.value,
+                          })
+                        }
+                      />
                     </div>
 
                     <input
@@ -1928,58 +2082,58 @@ Total: $${cartTotal.toFixed(2)}`
                 </div>
 
                 <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
-<button
-  type="button"
-  onClick={() => {
-    setShippingUnlockClicks((current) => {
-      const next = current + 1;
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShippingUnlockClicks((current) => {
+                        const next = current + 1;
 
-      if (next >= 5) {
-        setShowShippingCodeModal(true);
-        return 0;
-      }
+                        if (next >= 5) {
+                          setShowShippingCodeModal(true);
+                          return 0;
+                        }
 
-      return next;
-    });
-  }}
-  className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[#A79B8E]"
->
-  <svg
-    className="h-4 w-4"
-    viewBox="0 0 24 24"
-    fill="none"
-    aria-hidden="true"
-  >
-    <path
-      d="M4 7h10v9H4V7Z"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M14 10h3.5L20 13v3h-6v-6Z"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinejoin="round"
-    />
-    <circle
-      cx="7"
-      cy="18"
-      r="1.5"
-      stroke="currentColor"
-      strokeWidth="1.8"
-    />
-    <circle
-      cx="17"
-      cy="18"
-      r="1.5"
-      stroke="currentColor"
-      strokeWidth="1.8"
-    />
-  </svg>
+                        return next;
+                      });
+                    }}
+                    className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[#A79B8E]"
+                  >
+                    <svg
+                      className="h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M4 7h10v9H4V7Z"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M14 10h3.5L20 13v3h-6v-6Z"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinejoin="round"
+                      />
+                      <circle
+                        cx="7"
+                        cy="18"
+                        r="1.5"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                      />
+                      <circle
+                        cx="17"
+                        cy="18"
+                        r="1.5"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                      />
+                    </svg>
 
-  <span>Shipping Method</span>
-</button>
+                    <span>Shipping Method</span>
+                  </button>
 
                   {visibleShippingMethods.length === 0 ? (
                     <div className="rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] p-4 text-sm font-semibold text-[#6F655C]">
@@ -2175,7 +2329,7 @@ Total: $${cartTotal.toFixed(2)}`
         </div>
       </div>
 
-            {showShippingCodeModal && (
+      {showShippingCodeModal && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 px-5 backdrop-blur-[2px]">
           <div className="w-full max-w-sm rounded-[28px] border border-[#E6E0D8] bg-white p-6 shadow-2xl">
             <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
