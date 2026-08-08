@@ -2021,9 +2021,9 @@ Total: $${cartTotal.toFixed(2)}`
                       }
                     />
 
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                       <input
-                        className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                        className="col-span-2 w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20 sm:col-span-1"
                         placeholder="City"
                         value={form.city}
                         onChange={(e) =>
