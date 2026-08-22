@@ -487,6 +487,12 @@ export default function MasterAdminClient() {
     Record<string, Partial<Order>>
   >({});
 
+  const [openEmailMenuOrderId, setOpenEmailMenuOrderId] = useState<string | null>(
+    null
+  );
+
+  const [emailSendingKey, setEmailSendingKey] = useState<string | null>(null);
+
   const [orderSearch, setOrderSearch] = useState("");
   const [orderStatusFilter, setOrderStatusFilter] = useState("all");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");
@@ -979,6 +985,129 @@ export default function MasterAdminClient() {
       delete copy[orderId];
       return copy;
     });
+  }
+
+  function getOrderPaymentMethod(order: Order) {
+    const savedPayment = String(order.payment_method || "").toLowerCase();
+
+    return paymentMethods.find((method) => {
+      const methodName = String(method.name || "").toLowerCase();
+      const methodLabel = String(method.display_label || "").toLowerCase();
+
+      return methodName === savedPayment || methodLabel === savedPayment;
+    });
+  }
+
+  async function resendNewOrderEmail(order: Order) {
+    if (!order.customer_email) {
+      alert("This order does not have a customer email.");
+      return;
+    }
+
+    const orderNumber =
+      order.order_number || order.id.slice(0, 8).toUpperCase();
+
+    const selectedPaymentMethod = getOrderPaymentMethod(order);
+
+    const sendingKey = `${order.id}-new-order`;
+
+    setEmailSendingKey(sendingKey);
+
+    try {
+      const response = await fetch("/api/send-order-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          orderNumber,
+          customerName: order.customer_name || "",
+          customerEmail: order.customer_email,
+          paymentMethod: order.payment_method || "",
+          paymentMethodLabel:
+            selectedPaymentMethod?.display_label || order.payment_method || "",
+          paymentAccountValue: selectedPaymentMethod?.account_value || "",
+          paymentInstructions: selectedPaymentMethod?.instructions || "",
+          whatsAppUrl: "",
+          items: order.items || [],
+          subtotal: Number(order.subtotal ?? order.total ?? 0),
+          shippingMethodLabel: order.shipping_label || "Shipping",
+          shippingDescription: order.shipping_description || "",
+          shippingPrice: Number(order.shipping_price || 0),
+          total: Number(order.total || 0),
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error("Resend order email failed:", result);
+        alert(result?.error || "Could not resend the order email.");
+        return;
+      }
+
+      alert(`Order confirmation resent to ${order.customer_email}.`);
+      setOpenEmailMenuOrderId(null);
+    } catch (error) {
+      console.error("Resend order email error:", error);
+      alert("Could not resend the order email.");
+    } finally {
+      setEmailSendingKey(null);
+    }
+  }
+
+  async function resendTrackingEmail(order: Order) {
+    const trackingNumber = String(
+      orderDrafts[order.id]?.tracking_number ?? order.tracking_number ?? ""
+    ).trim();
+
+    if (!order.customer_email) {
+      alert("This order does not have a customer email.");
+      return;
+    }
+
+    if (!trackingNumber) {
+      alert("Add a tracking number before resending the tracking email.");
+      return;
+    }
+
+    const orderNumber =
+      order.order_number || order.id.slice(0, 8).toUpperCase();
+
+    const sendingKey = `${order.id}-tracking`;
+
+    setEmailSendingKey(sendingKey);
+
+    try {
+      const response = await fetch("/api/send-tracking-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          orderNumber,
+          customerName: order.customer_name || "",
+          customerEmail: order.customer_email,
+          trackingNumber,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error("Resend tracking email failed:", result);
+        alert(result?.error || "Could not resend the tracking email.");
+        return;
+      }
+
+      alert(`Tracking email resent to ${order.customer_email}.`);
+      setOpenEmailMenuOrderId(null);
+    } catch (error) {
+      console.error("Resend tracking email error:", error);
+      alert("Could not resend the tracking email.");
+    } finally {
+      setEmailSendingKey(null);
+    }
   }
 
   async function updateOrder(orderId: string, updates: Partial<Order>) {
@@ -2559,13 +2688,13 @@ export default function MasterAdminClient() {
                       }
                     />
 
-                    <div className="flex gap-3 pt-2">
+                    <div className="flex flex-wrap gap-3 pt-2">
                       <button
                         onClick={() => saveOrder(order.id)}
                         disabled={!orderDrafts[order.id]}
                         className={`rounded-xl px-4 py-3 text-sm font-semibold ${orderDrafts[order.id]
-                          ? "border border-green-200 bg-green-50 text-green-700"
-                          : "border border-gray-200 bg-gray-50 text-gray-400"
+                            ? "border border-green-200 bg-green-50 text-green-700"
+                            : "border border-gray-200 bg-gray-50 text-gray-400"
                           }`}
                       >
                         Save Order
@@ -2584,6 +2713,76 @@ export default function MasterAdminClient() {
                       >
                         Cancel
                       </button>
+
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOpenEmailMenuOrderId((current) =>
+                              current === order.id ? null : order.id
+                            )
+                          }
+                          className="rounded-xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold text-[#A79B8E] shadow-sm transition-all hover:bg-[#F8F5F1] active:scale-95"
+                        >
+                          Resend Email ▾
+                        </button>
+
+                        {openEmailMenuOrderId === order.id && (
+                          <div className="absolute left-0 top-full z-50 mt-2 w-72 overflow-hidden rounded-2xl border border-[#E6E0D8] bg-white shadow-xl">
+                            <button
+                              type="button"
+                              onClick={() => resendNewOrderEmail(order)}
+                              disabled={emailSendingKey === `${order.id}-new-order`}
+                              className="flex w-full items-start gap-3 border-b border-[#EFEAE4] px-4 py-3 text-left text-sm transition hover:bg-[#F8F5F1] disabled:opacity-60"
+                            >
+                              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F8F5F1] text-[#A79B8E]">
+                                ✉️
+                              </span>
+
+                              <span>
+                                <span className="block font-bold text-[#5F554C]">
+                                  {emailSendingKey === `${order.id}-new-order`
+                                    ? "Sending..."
+                                    : "Resend New Order Email"}
+                                </span>
+
+                                <span className="mt-1 block text-xs leading-5 text-[#8F8276]">
+                                  Sends the original order confirmation to the current customer email.
+                                </span>
+                              </span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => resendTrackingEmail(order)}
+                              disabled={
+                                !String(
+                                  orderDrafts[order.id]?.tracking_number ??
+                                  order.tracking_number ??
+                                  ""
+                                ).trim() || emailSendingKey === `${order.id}-tracking`
+                              }
+                              className="flex w-full items-start gap-3 px-4 py-3 text-left text-sm transition hover:bg-[#F8F5F1] disabled:cursor-not-allowed disabled:bg-gray-50 disabled:opacity-50"
+                            >
+                              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F8F5F1] text-[#A79B8E]">
+                                📦
+                              </span>
+
+                              <span>
+                                <span className="block font-bold text-[#5F554C]">
+                                  {emailSendingKey === `${order.id}-tracking`
+                                    ? "Sending..."
+                                    : "Resend Tracking Email"}
+                                </span>
+
+                                <span className="mt-1 block text-xs leading-5 text-[#8F8276]">
+                                  Requires a tracking number before sending.
+                                </span>
+                              </span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2665,11 +2864,10 @@ export default function MasterAdminClient() {
                 <button
                   type="button"
                   onClick={() => setMarginSection("sales")}
-                  className={`rounded-full px-4 py-3 text-sm font-bold shadow-sm transition-all active:scale-95 ${
-                    marginSection === "sales"
-                      ? "bg-[#A79B8E] text-white"
-                      : "border border-[#D8D1C8] bg-white text-[#7F756B] hover:bg-[#F8F5F1]"
-                  }`}
+                  className={`rounded-full px-4 py-3 text-sm font-bold shadow-sm transition-all active:scale-95 ${marginSection === "sales"
+                    ? "bg-[#A79B8E] text-white"
+                    : "border border-[#D8D1C8] bg-white text-[#7F756B] hover:bg-[#F8F5F1]"
+                    }`}
                 >
                   Sales Performance
                 </button>
@@ -2677,11 +2875,10 @@ export default function MasterAdminClient() {
                 <button
                   type="button"
                   onClick={() => setMarginSection("inventory")}
-                  className={`rounded-full px-4 py-3 text-sm font-bold shadow-sm transition-all active:scale-95 ${
-                    marginSection === "inventory"
-                      ? "bg-[#A79B8E] text-white"
-                      : "border border-[#D8D1C8] bg-white text-[#7F756B] hover:bg-[#F8F5F1]"
-                  }`}
+                  className={`rounded-full px-4 py-3 text-sm font-bold shadow-sm transition-all active:scale-95 ${marginSection === "inventory"
+                    ? "bg-[#A79B8E] text-white"
+                    : "border border-[#D8D1C8] bg-white text-[#7F756B] hover:bg-[#F8F5F1]"
+                    }`}
                 >
                   Inventory Snapshot
                 </button>
@@ -2845,9 +3042,8 @@ export default function MasterAdminClient() {
                             </p>
 
                             <p
-                              className={`text-right font-bold ${
-                                row.profit >= 0 ? "text-green-700" : "text-red-600"
-                              }`}
+                              className={`text-right font-bold ${row.profit >= 0 ? "text-green-700" : "text-red-600"
+                                }`}
                             >
                               {formatCurrency(row.profit)}
                             </p>
@@ -3086,11 +3282,10 @@ export default function MasterAdminClient() {
                           </p>
 
                           <p
-                            className={`text-right font-bold ${
-                              row.profitPerUnit >= 0
-                                ? "text-green-700"
-                                : "text-red-600"
-                            }`}
+                            className={`text-right font-bold ${row.profitPerUnit >= 0
+                              ? "text-green-700"
+                              : "text-red-600"
+                              }`}
                           >
                             {formatCurrency(row.profitPerUnit)}
                           </p>
@@ -3149,13 +3344,12 @@ export default function MasterAdminClient() {
                           </div>
 
                           <span
-                            className={`rounded-full px-3 py-1 text-xs font-bold ${
-                              row.stock <= 0
-                                ? "bg-red-100 text-red-700"
-                                : row.stock <= Number(row.variant.low_stock_threshold || 0)
+                            className={`rounded-full px-3 py-1 text-xs font-bold ${row.stock <= 0
+                              ? "bg-red-100 text-red-700"
+                              : row.stock <= Number(row.variant.low_stock_threshold || 0)
                                 ? "bg-yellow-100 text-yellow-700"
                                 : "bg-green-100 text-green-700"
-                            }`}
+                              }`}
                           >
                             Stock: {row.stock}
                           </span>
@@ -3200,11 +3394,10 @@ export default function MasterAdminClient() {
                               Profit / Unit
                             </p>
                             <p
-                              className={`mt-1 text-lg font-bold ${
-                                row.profitPerUnit >= 0
-                                  ? "text-green-700"
-                                  : "text-red-600"
-                              }`}
+                              className={`mt-1 text-lg font-bold ${row.profitPerUnit >= 0
+                                ? "text-green-700"
+                                : "text-red-600"
+                                }`}
                             >
                               {formatCurrency(row.profitPerUnit)}
                             </p>
@@ -3261,11 +3454,10 @@ export default function MasterAdminClient() {
                             type="button"
                             onClick={() => saveProductVariant(row.variant.id)}
                             disabled={!hasDraft}
-                            className={`rounded-full py-3 text-sm font-bold transition-all active:scale-95 ${
-                              hasDraft
-                                ? "bg-[#A79B8E] text-white shadow-sm"
-                                : "bg-gray-100 text-gray-400"
-                            }`}
+                            className={`rounded-full py-3 text-sm font-bold transition-all active:scale-95 ${hasDraft
+                              ? "bg-[#A79B8E] text-white shadow-sm"
+                              : "bg-gray-100 text-gray-400"
+                              }`}
                           >
                             Save
                           </button>
@@ -4129,14 +4321,14 @@ export default function MasterAdminClient() {
                               })
                             }
                             className={`flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border px-3 py-3 text-xs font-bold shadow-sm transition-all active:scale-95 sm:text-sm ${currentActive
-                                ? "border-[#A79B8E] bg-[#A79B8E] text-white"
-                                : "border-[#D8D1C8] bg-white text-[#7F756B] hover:bg-[#F8F5F1]"
+                              ? "border-[#A79B8E] bg-[#A79B8E] text-white"
+                              : "border-[#D8D1C8] bg-white text-[#7F756B] hover:bg-[#F8F5F1]"
                               }`}
                           >
                             <span
                               className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${currentActive
-                                  ? "bg-white/20 text-white"
-                                  : "bg-[#F8F5F1] text-[#A79B8E]"
+                                ? "bg-white/20 text-white"
+                                : "bg-[#F8F5F1] text-[#A79B8E]"
                                 }`}
                             >
                               <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
@@ -4161,14 +4353,14 @@ export default function MasterAdminClient() {
                               })
                             }
                             className={`flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border px-3 py-3 text-xs font-bold shadow-sm transition-all active:scale-95 sm:text-sm ${currentVisibleWhenOut
-                                ? "border-[#A79B8E] bg-[#A79B8E] text-white"
-                                : "border-[#D8D1C8] bg-white text-[#7F756B] hover:bg-[#F8F5F1]"
+                              ? "border-[#A79B8E] bg-[#A79B8E] text-white"
+                              : "border-[#D8D1C8] bg-white text-[#7F756B] hover:bg-[#F8F5F1]"
                               }`}
                           >
                             <span
                               className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${currentVisibleWhenOut
-                                  ? "bg-white/20 text-white"
-                                  : "bg-[#F8F5F1] text-[#A79B8E]"
+                                ? "bg-white/20 text-white"
+                                : "bg-[#F8F5F1] text-[#A79B8E]"
                                 }`}
                             >
                               <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
