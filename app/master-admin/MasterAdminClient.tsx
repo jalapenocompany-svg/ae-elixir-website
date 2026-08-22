@@ -1035,6 +1035,7 @@ export default function MasterAdminClient() {
           shippingDescription: order.shipping_description || "",
           shippingPrice: Number(order.shipping_price || 0),
           total: Number(order.total || 0),
+          suppressAdminEmail: true,
         }),
       });
 
@@ -2728,7 +2729,7 @@ export default function MasterAdminClient() {
                         </button>
 
                         {openEmailMenuOrderId === order.id && (
-                          <div className="absolute left-0 top-full z-50 mt-2 w-72 overflow-hidden rounded-2xl border border-[#E6E0D8] bg-white shadow-xl">
+                          <div className="absolute right-0 top-full z-50 mt-2 w-[calc(100vw-3rem)] max-w-[20rem] overflow-hidden rounded-2xl border border-[#E6E0D8] bg-white shadow-xl sm:w-80">
                             <button
                               type="button"
                               onClick={() => resendNewOrderEmail(order)}

@@ -143,6 +143,7 @@ export async function POST(req: Request) {
       shippingDescription,
       shippingPrice,
       total,
+      suppressAdminEmail,
     } = await req.json();
 
     if (
@@ -459,7 +460,7 @@ export async function POST(req: Request) {
 
     const adminEmail = process.env.ADMIN_ORDER_EMAIL;
 
-    if (adminEmail) {
+    if (adminEmail && !suppressAdminEmail) {
       const adminHtml = `
         <div style="
           margin:0;
