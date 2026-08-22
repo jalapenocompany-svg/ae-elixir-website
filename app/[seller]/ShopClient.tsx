@@ -381,11 +381,20 @@ export default function ShopClient({ seller }: { seller?: string }) {
 
       const mappedProducts: Product[] = (productRows || [])
         .map((product: any, index: number) => {
-          const activeVariants = (variantRows || [])
-            .filter((variant: any) => variant.product_id === product.id)
+          const displayVariants = (variantRows || [])
+            .filter((variant: any) => {
+              if (variant.product_id !== product.id) return false;
+
+              const stock = Number(variant.stock_quantity || 0);
+              const showIfOut = variant.visible_when_out_of_stock !== false;
+
+              if (stock <= 0 && !showIfOut) return false;
+
+              return true;
+            })
             .sort((a: any, b: any) => Number(a.sort_order || 0) - Number(b.sort_order || 0));
 
-          const firstVariant = activeVariants[0];
+          const firstVariant = displayVariants[0];
 
           if (!firstVariant) return null;
 
@@ -403,7 +412,7 @@ export default function ShopClient({ seller }: { seller?: string }) {
             },
             image: firstVariant.image_url || "/placeholder.png",
 
-            variants: activeVariants.map((variant: any) => ({
+            variants: displayVariants.map((variant: any) => ({
               label: variant.label,
               product_code: variant.product_code,
               image: variant.image_url || "/placeholder.png",
