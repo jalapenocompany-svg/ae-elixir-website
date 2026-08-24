@@ -2688,7 +2688,7 @@ export default function MasterAdminClient() {
                 >
                   <div className="mb-3 flex items-start justify-between gap-4">
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="mb-1 flex items-center gap-2">
                         <p className="text-xl font-bold text-[#1F1A17]">
                           #{orderNumber}
                         </p>
@@ -2722,7 +2722,7 @@ export default function MasterAdminClient() {
                         </button>
                       </div>
 
-                      <p className="text-xs text-[#8F8276]">
+                      <p className="mt-0.5 text-xs text-[#8F8276]">
                         {new Date(order.created_at).toLocaleString()}
                       </p>
 
