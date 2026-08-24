@@ -67,6 +67,21 @@ type Order = {
   inventory_restocked: boolean;
 };
 
+type OrderEditDraft = {
+  id: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string;
+  customer_address: string;
+  payment_method: string;
+  shipping_method: string;
+  shipping_label: string;
+  shipping_description: string;
+  shipping_price: number;
+  subtotal: number;
+  total: number;
+};
+
 type SiteSettings = {
   id: string;
   site_name: string;
@@ -487,6 +502,12 @@ export default function MasterAdminClient() {
     Record<string, Partial<Order>>
   >({});
 
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
+  const [editOrderDraft, setEditOrderDraft] = useState<OrderEditDraft | null>(
+    null
+  );
+  const [savingOrderEdit, setSavingOrderEdit] = useState(false);
+
   const [openEmailMenuOrderId, setOpenEmailMenuOrderId] = useState<string | null>(
     null
   );
@@ -875,6 +896,122 @@ export default function MasterAdminClient() {
         ...updates,
       },
     }));
+  }
+
+  function openOrderEditModal(order: Order) {
+    const subtotal = Number(
+      order.subtotal ?? Number(order.total || 0) - Number(order.shipping_price || 0)
+    );
+
+    setEditingOrderId(order.id);
+
+    setEditOrderDraft({
+      id: order.id,
+      customer_name: order.customer_name || "",
+      customer_email: order.customer_email || "",
+      customer_phone: order.customer_phone || "",
+      customer_address: order.customer_address || "",
+      payment_method: order.payment_method || "",
+      shipping_method: order.shipping_method || "",
+      shipping_label: order.shipping_label || "",
+      shipping_description: order.shipping_description || "",
+      shipping_price: Number(order.shipping_price || 0),
+      subtotal,
+      total: subtotal + Number(order.shipping_price || 0),
+    });
+  }
+
+  function closeOrderEditModal() {
+    setEditingOrderId(null);
+    setEditOrderDraft(null);
+    setSavingOrderEdit(false);
+  }
+
+  function updateOrderEditDraft(updates: Partial<OrderEditDraft>) {
+    setEditOrderDraft((current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        ...updates,
+      };
+    });
+  }
+
+  function handleEditShippingChange(shippingMethodName: string) {
+    const selectedShipping = shippingMethods.find(
+      (method) => method.name === shippingMethodName
+    );
+
+    setEditOrderDraft((current) => {
+      if (!current) return current;
+
+      const shippingPrice = Number(selectedShipping?.price || 0);
+      const subtotal = Number(current.subtotal || 0);
+
+      return {
+        ...current,
+        shipping_method: selectedShipping?.name || "",
+        shipping_label: selectedShipping?.display_label || "",
+        shipping_description: selectedShipping?.description || "",
+        shipping_price: shippingPrice,
+        total: subtotal + shippingPrice,
+      };
+    });
+  }
+
+  async function saveOrderEdit() {
+    if (!editOrderDraft) return;
+
+    if (
+      !editOrderDraft.customer_name.trim() ||
+      !editOrderDraft.customer_email.trim() ||
+      !editOrderDraft.customer_phone.trim() ||
+      !editOrderDraft.customer_address.trim()
+    ) {
+      alert("Customer name, email, phone, and address are required.");
+      return;
+    }
+
+    setSavingOrderEdit(true);
+
+    const updates: Partial<Order> = {
+      customer_name: editOrderDraft.customer_name.trim(),
+      customer_email: editOrderDraft.customer_email.trim(),
+      customer_phone: editOrderDraft.customer_phone.trim(),
+      customer_address: editOrderDraft.customer_address.trim(),
+      payment_method: editOrderDraft.payment_method,
+      shipping_method: editOrderDraft.shipping_method,
+      shipping_label: editOrderDraft.shipping_label,
+      shipping_description: editOrderDraft.shipping_description,
+      shipping_price: Number(editOrderDraft.shipping_price || 0),
+      subtotal: Number(editOrderDraft.subtotal || 0),
+      total: Number(editOrderDraft.total || 0),
+    };
+
+    const { error } = await supabase
+      .from("orders")
+      .update(updates)
+      .eq("id", editOrderDraft.id);
+
+    if (error) {
+      alert(error.message);
+      setSavingOrderEdit(false);
+      return;
+    }
+
+    setOrders((current) =>
+      current.map((order) =>
+        order.id === editOrderDraft.id
+          ? {
+            ...order,
+            ...updates,
+          }
+          : order
+      )
+    );
+
+    closeOrderEditModal();
   }
 
   async function saveOrder(orderId: string) {
@@ -2551,9 +2688,39 @@ export default function MasterAdminClient() {
                 >
                   <div className="mb-3 flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-xl font-bold text-[#1F1A17]">
-                        #{orderNumber}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xl font-bold text-[#1F1A17]">
+                          #{orderNumber}
+                        </p>
+
+                        <button
+                          type="button"
+                          onClick={() => openOrderEditModal(order)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#F8F5F1] text-[#A79B8E] shadow-sm transition-all hover:bg-[#EFE8E1] active:scale-95"
+                          aria-label="Edit order details"
+                        >
+                          <svg
+                            className="h-4 w-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0 0-3L17.5 5.5a2.1 2.1 0 0 0-3 0L4 16v4Z"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                            <path
+                              d="M13.5 6.5l4 4"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </button>
+                      </div>
 
                       <p className="text-xs text-[#8F8276]">
                         {new Date(order.created_at).toLocaleString()}
@@ -2694,8 +2861,8 @@ export default function MasterAdminClient() {
                         onClick={() => saveOrder(order.id)}
                         disabled={!orderDrafts[order.id]}
                         className={`rounded-xl px-4 py-3 text-sm font-semibold ${orderDrafts[order.id]
-                            ? "border border-green-200 bg-green-50 text-green-700"
-                            : "border border-gray-200 bg-gray-50 text-gray-400"
+                          ? "border border-green-200 bg-green-50 text-green-700"
+                          : "border border-gray-200 bg-gray-50 text-gray-400"
                           }`}
                       >
                         Save Order
@@ -4920,6 +5087,178 @@ export default function MasterAdminClient() {
 
 
 
+        {editingOrderId && editOrderDraft && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-4 py-6 backdrop-blur-[2px]">
+            <div className="max-h-[90dvh] w-full max-w-2xl overflow-y-auto rounded-[28px] border border-[#E6E0D8] bg-white p-5 shadow-2xl">
+              <div className="mb-5 flex items-start justify-between gap-4 border-b border-[#E6E0D8] pb-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                    Edit Order
+                  </p>
+
+                  <h2 className="mt-1 text-2xl font-bold text-[#5F554C]">
+                    Customer & Shipping Details
+                  </h2>
+
+                  <p className="mt-1 text-sm leading-6 text-[#6F655C]">
+                    Update customer information, payment method, or shipping method.
+                    This does not change products or inventory.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={closeOrderEditModal}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#D8D1C8] bg-white text-[#7F756B] shadow-sm transition hover:bg-[#F8F5F1] active:scale-95"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <label className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                  Customer Name
+                  <input
+                    className="mt-1 w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-base font-semibold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                    value={editOrderDraft.customer_name}
+                    onChange={(e) =>
+                      updateOrderEditDraft({
+                        customer_name: e.target.value,
+                      })
+                    }
+                  />
+                </label>
+
+                <label className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                  Customer Email
+                  <input
+                    className="mt-1 w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-base font-semibold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                    value={editOrderDraft.customer_email}
+                    onChange={(e) =>
+                      updateOrderEditDraft({
+                        customer_email: e.target.value,
+                      })
+                    }
+                  />
+                </label>
+
+                <label className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                  Phone
+                  <input
+                    className="mt-1 w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-base font-semibold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                    value={editOrderDraft.customer_phone}
+                    onChange={(e) =>
+                      updateOrderEditDraft({
+                        customer_phone: e.target.value,
+                      })
+                    }
+                  />
+                </label>
+
+                <label className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                  Payment Method
+                  <select
+                    className="mt-1 w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-base font-bold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                    value={editOrderDraft.payment_method}
+                    onChange={(e) =>
+                      updateOrderEditDraft({
+                        payment_method: e.target.value,
+                      })
+                    }
+                  >
+                    <option value="">Select payment method</option>
+
+                    {paymentMethods.map((method) => (
+                      <option key={method.id} value={method.name}>
+                        {method.display_label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="text-xs font-bold uppercase tracking-wide text-[#9A9188] sm:col-span-2">
+                  Customer Address
+                  <textarea
+                    className="mt-1 min-h-[100px] w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-base font-semibold leading-6 text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                    value={editOrderDraft.customer_address}
+                    onChange={(e) =>
+                      updateOrderEditDraft({
+                        customer_address: e.target.value,
+                      })
+                    }
+                  />
+                </label>
+
+                <label className="text-xs font-bold uppercase tracking-wide text-[#9A9188] sm:col-span-2">
+                  Shipping Method
+                  <select
+                    className="mt-1 w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-base font-bold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                    value={editOrderDraft.shipping_method}
+                    onChange={(e) => handleEditShippingChange(e.target.value)}
+                  >
+                    <option value="">No shipping selected</option>
+
+                    {shippingMethods.map((method) => (
+                      <option key={method.id} value={method.name}>
+                        {method.display_label} — {formatCurrency(Number(method.price || 0))}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <div className="mt-5 rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] p-4">
+                <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                      Subtotal
+                    </p>
+                    <p className="mt-1 text-lg font-bold text-[#5F554C]">
+                      {formatCurrency(editOrderDraft.subtotal)}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                      Shipping
+                    </p>
+                    <p className="mt-1 text-lg font-bold text-[#5F554C]">
+                      {formatCurrency(editOrderDraft.shipping_price)}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                      New Total
+                    </p>
+                    <p className="mt-1 text-lg font-bold text-green-700">
+                      {formatCurrency(editOrderDraft.total)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={closeOrderEditModal}
+                  className="rounded-full border border-[#D8D1C8] bg-white py-3 text-sm font-bold text-[#A79B8E] shadow-sm transition-all hover:bg-[#F8F5F1] active:scale-95"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={saveOrderEdit}
+                  disabled={savingOrderEdit}
+                  className="rounded-full bg-[#A79B8E] py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95 disabled:opacity-60"
+                >
+                  {savingOrderEdit ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
