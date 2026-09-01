@@ -498,6 +498,7 @@ export default function MasterAdminClient() {
     Record<string, Partial<ShippingMethod>>
   >({});
   const [orders, setOrders] = useState<Order[]>([]);
+  const [reportOrders, setReportOrders] = useState<Order[]>([]);
   const [orderDrafts, setOrderDrafts] = useState<
     Record<string, Partial<Order>>
   >({});
@@ -632,13 +633,31 @@ export default function MasterAdminClient() {
   }
 
 
+  async function loadReportOrders() {
+    const { data, error } = await supabase
+      .from("orders")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .range(0, 9999);
+
+    if (error) {
+      console.error("REPORT ORDERS LOAD ERROR:", error);
+      return;
+    }
+
+    setReportOrders(data || []);
+  }
+
   async function loadData() {
     setLoading(true);
 
-    await loadOrders({
-      page: 0,
-      append: false,
-    });
+    await Promise.all([
+      loadOrders({
+        page: 0,
+        append: false,
+      }),
+      loadReportOrders(),
+    ]);
 
     const { data: settingsData, error: settingsError } = await supabase
       .from("site_settings")
@@ -1749,18 +1768,20 @@ export default function MasterAdminClient() {
     return sellers.find((seller) => seller.seller_code === sellerCode);
   }
 
-  const totalSales = orders.reduce(
+  const totalSales = reportOrders.reduce(
     (sum, order) => sum + Number(order.total || 0),
     0
   );
 
-  const unpaidSellerOrders = orders.filter((order) => !order.seller_paid);
+  const unpaidSellerOrders = reportOrders.filter((order) => !order.seller_paid);
 
-  const pendingOrders = orders.filter(
+  const pendingOrders = reportOrders.filter(
     (order) => order.order_status === "pending" || !order.order_status
   );
 
-  const paidOrders = orders.filter((order) => order.payment_status === "paid");
+  const paidOrders = reportOrders.filter(
+    (order) => order.payment_status === "paid"
+  );
 
   const lowStockItems = productVariants.filter(
     (item) => item.stock_quantity > 0 && item.stock_quantity <= item.low_stock_threshold
@@ -1769,7 +1790,7 @@ export default function MasterAdminClient() {
   const outOfStockItems = productVariants.filter((item) => item.stock_quantity <= 0);
 
   const sellerSummaries = sellers.map((seller) => {
-    const sellerOrders = orders.filter(
+    const sellerOrders = reportOrders.filter(
       (order) => order.seller_code === seller.seller_code
     );
 
@@ -2030,7 +2051,7 @@ export default function MasterAdminClient() {
 
   const selectedSalesRange = getMonthRange(salesPeriod, salesMonth);
 
-  const salesOrders = orders.filter((order) => {
+  const salesOrders = reportOrders.filter((order) => {
     if (!orderCountsForSales(order)) return false;
 
     if (!selectedSalesRange) return true;
@@ -2473,7 +2494,7 @@ export default function MasterAdminClient() {
 
         {activeTab === "dashboard" && (
           <div className="space-y-5">
-            <SalesChart orders={orders} />
+            <SalesChart orders={reportOrders} />
 
             <div className="grid grid-cols-2 gap-4">
               <div className="rounded-2xl bg-white p-4 shadow-sm">
