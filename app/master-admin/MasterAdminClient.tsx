@@ -2499,7 +2499,7 @@ export default function MasterAdminClient() {
             <div className="grid grid-cols-2 gap-4">
               <div className="rounded-2xl bg-white p-4 shadow-sm">
                 <p className="text-xs text-gray-500">Total Orders</p>
-                <p className="text-2xl font-bold">{orders.length}</p>
+                <p className="text-2xl font-bold">{reportOrders.length}</p>
               </div>
 
               <div className="rounded-2xl bg-white p-4 shadow-sm">
