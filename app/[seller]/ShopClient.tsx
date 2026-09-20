@@ -907,29 +907,43 @@ Total: $${cartTotal.toFixed(2)}`
         ? `https://wa.me/${cleanWhatsApp}?text=${message}`
         : "";
 
-    await fetch("/api/send-order-email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        orderNumber: shortOrderNumber,
-        customerName: form.fullName,
-        customerEmail: form.email,
-        paymentMethod: form.paymentMethod,
-        paymentMethodLabel:
-          selectedPaymentMethod?.display_label || form.paymentMethod,
-        paymentAccountValue:
-          selectedPaymentMethod?.account_value || "",
-        paymentInstructions:
-          selectedPaymentMethod?.instructions || "",
-        whatsAppUrl: orderWhatsAppUrl,
-        items: orderItemsWithMargins,
-        subtotal: cartSubtotal,
-        shippingMethodLabel: selectedShippingMethod?.display_label || "",
-        shippingDescription: selectedShippingMethod?.description || "",
-        shippingPrice,
-        total: cartTotal,
-      }),
-    });
+    let orderEmailSent = true;
+
+    try {
+      const emailResponse = await fetch("/api/send-order-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderNumber: shortOrderNumber,
+          customerName: form.fullName,
+          customerEmail: form.email,
+          paymentMethod: form.paymentMethod,
+          paymentMethodLabel:
+            selectedPaymentMethod?.display_label || form.paymentMethod,
+          paymentAccountValue:
+            selectedPaymentMethod?.account_value || "",
+          paymentInstructions:
+            selectedPaymentMethod?.instructions || "",
+          whatsAppUrl: orderWhatsAppUrl,
+          items: orderItemsWithMargins,
+          subtotal: cartSubtotal,
+          shippingMethodLabel: selectedShippingMethod?.display_label || "",
+          shippingDescription: selectedShippingMethod?.description || "",
+          shippingPrice,
+          total: cartTotal,
+        }),
+      });
+
+      const emailResult = await emailResponse.json().catch(() => null);
+
+      if (!emailResponse.ok) {
+        orderEmailSent = false;
+        console.error("Order email failed:", emailResult);
+      }
+    } catch (emailError) {
+      orderEmailSent = false;
+      console.error("Order email request error:", emailError);
+    }
 
     saveOrderLocally({
       id: data.id,
@@ -960,8 +974,12 @@ Total: $${cartTotal.toFixed(2)}`
       setWhatsAppUrl(orderWhatsAppUrl);
       setOrderNotice(
         orderWhatsAppUrl
-          ? "Order saved. Tap below to open WhatsApp and send your order."
-          : "Order saved, but WhatsApp contact is not configured."
+          ? orderEmailSent
+            ? "Order saved. Tap below to open WhatsApp and send your order."
+            : "Order saved. Tap below to open WhatsApp and send your order. The email confirmation could not be sent."
+          : orderEmailSent
+            ? "Order saved, but WhatsApp contact is not configured."
+            : "Order saved, but WhatsApp contact is not configured and the email confirmation could not be sent."
       );
       resetCheckoutAfterSuccessfulOrder();
       setIsSubmitting(false);
@@ -970,7 +988,9 @@ Total: $${cartTotal.toFixed(2)}`
 
     setWhatsAppUrl("");
     setOrderNotice(
-      "Order saved. Payment instructions will be sent to your email. If you do not see the message in your inbox, please check your junk or spam folder."
+      orderEmailSent
+        ? "Order saved. Payment instructions will be sent to your email. If you do not see the message in your inbox, please check your junk or spam folder."
+        : "Order saved, but the confirmation email could not be sent. Please contact support if you need a copy of your order."
     );
     resetCheckoutAfterSuccessfulOrder();
     setIsSubmitting(false);
