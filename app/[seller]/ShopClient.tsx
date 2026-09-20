@@ -772,6 +772,7 @@ export default function ShopClient({ seller }: { seller?: string }) {
       !form.state ||
       !form.zip ||
       !form.email ||
+
       !form.phone ||
       !selectedShippingMethodId ||
       !form.paymentMethod
@@ -779,6 +780,13 @@ export default function ShopClient({ seller }: { seller?: string }) {
       alert(
         "Please complete all checkout fields, select a shipping method, and select a payment method."
       );
+      return;
+    }
+
+    const cleanEmail = form.email.trim();
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      alert("Please enter a valid email address before placing your order.");
       return;
     }
 

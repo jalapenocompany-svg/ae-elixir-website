@@ -17,6 +17,10 @@ type EmailItem = {
   quantity: number;
 };
 
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 function getPaymentInstructions({
   paymentMethod,
   paymentMethodLabel,
@@ -165,11 +169,14 @@ export async function POST(req: Request) {
 
 
     const heroImage = `${siteUrl}/order-received.png`;
-    const logoUrl = `${siteUrl}/order-received.png`;
+    const logoUrl = `${siteUrl}/email-logo.png`;
+
+    const cleanCustomerEmail = String(customerEmail || "").trim();
+    const customerEmailIsValid = isValidEmail(cleanCustomerEmail);
 
     const trackingUrl = `${siteUrl}/order-lookup?order=${encodeURIComponent(
       orderNumber
-    )}&email=${encodeURIComponent(customerEmail)}`;
+    )}&email=${encodeURIComponent(cleanCustomerEmail)}`;
 
     const adminUrl = `${siteUrl}/master-admin`;
 
@@ -219,6 +226,13 @@ export async function POST(req: Request) {
         `
       )
       .join("");
+
+    const itemsText = (items as EmailItem[])
+      .map((item) => {
+        const lineTotal = Number(item.price) * Number(item.quantity);
+        return `- ${item.quantity} x ${item.name}: $${lineTotal.toFixed(2)}`;
+      })
+      .join("\n");
 
     const customerHtml = `
       <div style="
@@ -441,21 +455,56 @@ export async function POST(req: Request) {
       </div>
     `;
 
-    const { data, error } = await resend.emails.send({
-      from: fromEmail,
-      to: [customerEmail],
-      replyTo: SUPPORT_EMAIL,
-      subject: `${BRAND_NAME} Order Confirmation #${orderNumber}`,
-      html: customerHtml,
-    });
+    const customerText = `
+${BRAND_NAME} Order Confirmation #${orderNumber}
 
-    if (error) {
-      console.error("Customer email error:", error);
+Hi ${customerName},
 
-      return Response.json(
-        { error },
-        { status: 500 }
-      );
+Your order has been received.
+
+Order Summary:
+${itemsText}
+
+Subtotal: $${safeSubtotal.toFixed(2)}
+${safeShippingLabel}: $${safeShippingPrice.toFixed(2)}
+Total: $${safeTotal.toFixed(2)}
+
+Payment:
+${paymentMethodLabel || paymentMethod}
+${paymentAccountValue ? `Payment info: ${paymentAccountValue}` : ""}
+${paymentInstructions || "Complete your payment using the selected method."}
+Include your order number: #${orderNumber}
+
+View your order:
+${trackingUrl}
+
+Need help? Contact us at ${SUPPORT_EMAIL}
+
+You are receiving this email because an order was placed at aeelixir.com.
+`.trim();
+
+    let data = null;
+    let customerEmailError: unknown = null;
+
+    if (customerEmailIsValid) {
+      const customerSend = await resend.emails.send({
+        from: fromEmail,
+        to: [cleanCustomerEmail],
+        replyTo: SUPPORT_EMAIL,
+        subject: `${BRAND_NAME} Order Confirmation #${orderNumber}`,
+        html: customerHtml,
+        text: customerText,
+      });
+
+      data = customerSend.data;
+      customerEmailError = customerSend.error;
+
+      if (customerEmailError) {
+        console.error("Customer email error:", customerEmailError);
+      }
+    } else {
+      customerEmailError = `Invalid customer email: ${cleanCustomerEmail}`;
+      console.error("Customer email skipped:", customerEmailError);
     }
 
     const adminEmail = process.env.ADMIN_ORDER_EMAIL;
@@ -525,7 +574,7 @@ export async function POST(req: Request) {
 
                 <p style="margin:5px 0;color:${BODY_TEXT};">
                   <strong style="color:${DARK_TEXT};">Email:</strong>
-                  ${customerEmail}
+                  ${cleanCustomerEmail}${customerEmailIsValid ? "" : " (INVALID EMAIL - CUSTOMER COPY WAS NOT SENT)"}
                 </p>
 
                 <p style="margin:5px 0;color:${BODY_TEXT};">
@@ -581,18 +630,64 @@ export async function POST(req: Request) {
         </div>
       `;
 
+      const adminText = `
+New ${BRAND_NAME} Order #${orderNumber}
+
+Customer: ${customerName}
+Email: ${cleanCustomerEmail}${customerEmailIsValid ? "" : " (INVALID EMAIL - CUSTOMER COPY WAS NOT SENT)"}
+Payment: ${paymentMethod}
+Shipping: ${safeShippingLabel} - $${safeShippingPrice.toFixed(2)}
+Total: $${safeTotal.toFixed(2)}
+
+Items Ordered:
+${itemsText}
+
+Open Master Admin:
+${adminUrl}
+`.trim();
+
       const { error: adminEmailError } =
         await resend.emails.send({
           from: fromEmail,
           to: [adminEmail],
           replyTo: SUPPORT_EMAIL,
-subject: `New ${BRAND_NAME} Order #${orderNumber} — $${safeTotal.toFixed(2)}`,
+          subject: `New ${BRAND_NAME} Order #${orderNumber} — $${safeTotal.toFixed(2)}`,
           html: adminHtml,
+          text: adminText,
         });
 
       if (adminEmailError) {
         console.error("Admin email error:", adminEmailError);
+
+        if (!customerEmailIsValid || customerEmailError) {
+          return Response.json(
+            {
+              error: "Customer email could not be sent and admin email also failed.",
+              customerEmailError,
+              adminEmailError,
+            },
+            { status: 500 }
+          );
+        }
       }
+    }
+
+    if (!customerEmailIsValid || customerEmailError) {
+      if (suppressAdminEmail || !adminEmail) {
+        return Response.json(
+          {
+            error: "Customer email could not be sent.",
+            customerEmailError,
+          },
+          { status: customerEmailIsValid ? 500 : 400 }
+        );
+      }
+
+      return Response.json({
+        data,
+        warning: "Customer email could not be sent. Admin notification was attempted.",
+        customerEmailError,
+      });
     }
 
     return Response.json({ data });
