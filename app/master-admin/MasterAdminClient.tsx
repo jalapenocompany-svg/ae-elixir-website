@@ -534,6 +534,9 @@ export default function MasterAdminClient() {
   >({});
   const [marginCostInputs, setMarginCostInputs] = useState<Record<string, string>>({});
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [editingProductNameId, setEditingProductNameId] = useState<string | null>(null);
+  const [productNameDraft, setProductNameDraft] = useState("");
+  const [savingProductName, setSavingProductName] = useState(false);
 
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
   const [siteSettingsDraft, setSiteSettingsDraft] = useState<Partial<SiteSettings>>({});
@@ -1556,6 +1559,69 @@ export default function MasterAdminClient() {
         ...updates,
       },
     }));
+  }
+
+  function openProductNameEditModal(productId: string, currentName: string) {
+    setEditingProductNameId(productId);
+    setProductNameDraft(currentName || "");
+  }
+
+  function closeProductNameEditModal() {
+    setEditingProductNameId(null);
+    setProductNameDraft("");
+    setSavingProductName(false);
+  }
+
+  async function saveProductNameEdit() {
+    const cleanName = productNameDraft.trim();
+
+    if (!editingProductNameId) return;
+
+    if (!cleanName) {
+      alert("Product name is required.");
+      return;
+    }
+
+    setSavingProductName(true);
+
+    const { data, error } = await supabase
+      .from("products")
+      .update({ name: cleanName })
+      .eq("id", editingProductNameId)
+      .select("*")
+      .single();
+
+    if (error) {
+      alert(error.message);
+      setSavingProductName(false);
+      return;
+    }
+
+    const updatedName = data?.name || cleanName;
+
+    setAdminProducts((current) =>
+      current.map((product) =>
+        product.id === editingProductNameId
+          ? {
+              ...product,
+              name: updatedName,
+            }
+          : product
+      )
+    );
+
+    setProductVariants((current) =>
+      current.map((variant) =>
+        variant.product_id === editingProductNameId
+          ? {
+              ...variant,
+              product_name: updatedName,
+            }
+          : variant
+      )
+    );
+
+    closeProductNameEditModal();
   }
 
   async function updateProductButtonSetting(
@@ -3987,9 +4053,48 @@ export default function MasterAdminClient() {
                       )}
 
                       <div className="min-w-0">
-                        <p className="break-words text-base font-bold leading-tight text-[#1F1A17] sm:text-lg">
-                          {variant.product_name} {variant.label}
-                        </p>
+                        <div className="flex min-w-0 items-start gap-2">
+                          <p className="break-words text-base font-bold leading-tight text-[#1F1A17] sm:text-lg">
+                            {variant.product_name} {variant.label}
+                          </p>
+
+                          {parentProduct && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openProductNameEditModal(
+                                  parentProduct.id,
+                                  parentProduct.name || variant.product_name || ""
+                                )
+                              }
+                              className="mt-[-2px] flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#F8F5F1] text-[#A79B8E] shadow-sm transition-all hover:bg-[#EFE8E1] active:scale-95"
+                              aria-label="Edit product name"
+                              title="Edit product name"
+                            >
+                              <svg
+                                className="h-4 w-4"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                aria-hidden="true"
+                              >
+                                <path
+                                  d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0 0-3L17.5 5.5a2.1 2.1 0 0 0-3 0L4 16v4Z"
+                                  stroke="currentColor"
+                                  strokeWidth="1.8"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                                <path
+                                  d="M13.5 6.5l4 4"
+                                  stroke="currentColor"
+                                  strokeWidth="1.8"
+                                  strokeLinecap="round"
+                                />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+
                         <p className="mt-1 break-words text-xs leading-5 text-[#9A9188]">
                           {variant.product_code}
                         </p>
@@ -5107,6 +5212,77 @@ export default function MasterAdminClient() {
         )}
 
 
+
+        {editingProductNameId && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-4 py-6 backdrop-blur-[2px]">
+            <div className="w-full max-w-md rounded-[28px] border border-[#E6E0D8] bg-white p-5 shadow-2xl">
+              <div className="mb-5 flex items-start justify-between gap-4 border-b border-[#E6E0D8] pb-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                    Edit Product Name
+                  </p>
+
+                  <h2 className="mt-1 text-2xl font-bold text-[#5F554C]">
+                    Product Name
+                  </h2>
+
+                  <p className="mt-2 text-sm leading-6 text-[#6F655C]">
+                    This updates the parent product name for every variant under this product.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={closeProductNameEditModal}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#D8D1C8] bg-white text-xl font-bold text-[#A79B8E] shadow-sm transition-all hover:bg-[#F8F5F1] active:scale-95"
+                  aria-label="Close product name editor"
+                >
+                  ×
+                </button>
+              </div>
+
+              <label className="block text-xs font-bold uppercase tracking-wide text-[#9A9188]">
+                Product Name
+                <input
+                  type="text"
+                  value={productNameDraft}
+                  onChange={(e) => setProductNameDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      saveProductNameEdit();
+                    }
+                  }}
+                  className="mt-2 w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-base font-semibold text-[#5F554C] outline-none transition focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                  placeholder="Example: PT-141"
+                  autoFocus
+                />
+              </label>
+
+              <div className="mt-4 rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] p-4 text-sm leading-6 text-[#6F655C]">
+                Keep the product name clean, for example <b>PT-141</b>. Put strength/dosage like <b>10MG</b> in the variant label only.
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={closeProductNameEditModal}
+                  className="rounded-full border border-[#D8D1C8] bg-white py-3 text-sm font-bold text-[#A79B8E] shadow-sm transition-all hover:bg-[#F8F5F1] active:scale-95"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={saveProductNameEdit}
+                  disabled={savingProductName}
+                  className="rounded-full bg-[#A79B8E] py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95 disabled:opacity-60"
+                >
+                  {savingProductName ? "Saving..." : "Save Name"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {editingOrderId && editOrderDraft && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-4 py-6 backdrop-blur-[2px]">
