@@ -5259,7 +5259,7 @@ export default function MasterAdminClient() {
               </label>
 
               <div className="mt-4 rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] p-4 text-sm leading-6 text-[#6F655C]">
-                Keep the product name clean, for example <b>PT-141</b>. Put strength/dosage like <b>10MG</b> in the variant label only.
+                Product name change will affect all variants under this Product.
               </div>
 
               <div className="mt-5 grid grid-cols-2 gap-3">
