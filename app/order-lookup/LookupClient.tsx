@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import SiteHeader from "@/components/SiteHeader";
+import { getTrackingCarrier, getTrackingUrl } from "@/lib/tracking";
 
 type OrderItem = {
   id: number;
@@ -25,6 +26,7 @@ type Order = {
   order_status: string | null;
   payment_status: string | null;
   tracking_number: string | null;
+  tracking_carrier: "ups" | "usps" | null;
 };
 
 function statusBadgeClass(status: string | null) {
@@ -256,17 +258,17 @@ export default function LookupClient() {
               Tracking:
             </span>{" "}
 
-            {order.tracking_number ? (
+            {order.tracking_number && getTrackingUrl(order.tracking_number, order.tracking_carrier) ? (
               <a
-                href={`https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(
-                  order.tracking_number
-                )}`}
+                href={getTrackingUrl(order.tracking_number, order.tracking_carrier)!}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-semibold text-[#A79B8E] underline decoration-[#A79B8E]/40 underline-offset-2"
               >
-                {order.tracking_number}
+                {order.tracking_number} · Track with {getTrackingCarrier(order.tracking_number, order.tracking_carrier)?.toUpperCase()}
               </a>
+            ) : order.tracking_number ? (
+              <span>{order.tracking_number} — Contact support for a tracking link.</span>
             ) : (
               "N/A"
             )}

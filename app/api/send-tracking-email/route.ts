@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { getTrackingCarrier, getTrackingUrl } from "@/lib/tracking";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -85,10 +86,19 @@ if (missingFields.length > 0) {
 
     const shippedImageUrl = `${siteUrl}/email-shipped.png`;
 
-    const trackingUrl =
-      `https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(
-        trackingNumber
-      )}`;
+    const trackingCarrier = getTrackingCarrier(
+      trackingNumber,
+      body.trackingCarrier ?? body.tracking_carrier
+    );
+    const trackingUrl = getTrackingUrl(trackingNumber, trackingCarrier);
+
+    if (!trackingCarrier || !trackingUrl) {
+      return Response.json(
+        { error: "Tracking carrier is unknown. Select UPS or USPS in the admin order first." },
+        { status: 400 }
+      );
+    }
+    const carrierLabel = trackingCarrier.toUpperCase();
 
     const safeOrderNumber = escapeHtml(orderNumber);
     const safeCustomerName = escapeHtml(customerName || "there");
@@ -215,7 +225,7 @@ if (missingFields.length > 0) {
                     letter-spacing:0.6px;
                     text-transform:uppercase;
                   ">
-                    USPS Tracking Number
+                    ${carrierLabel} Tracking Number
                   </p>
 
                   <p style="

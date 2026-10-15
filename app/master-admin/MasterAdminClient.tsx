@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import SiteHeader from "@/components/SiteHeader";
+import { detectTrackingCarrier, getTrackingCarrier, getTrackingUrl } from "@/lib/tracking";
 
 type OrderItem = {
   id: number;
@@ -61,6 +62,7 @@ type Order = {
   order_status: string | null;
   payment_status: string | null;
   tracking_number: string | null;
+  tracking_carrier: "ups" | "usps" | null;
   seller_paid: boolean | null;
   payout_date: string | null;
   payout_reference: string | null;
@@ -1088,7 +1090,31 @@ export default function MasterAdminClient() {
       }
     }
 
-    await updateOrder(orderId, updates);
+    const numberToSave = String(
+      updates.tracking_number !== undefined
+        ? updates.tracking_number || ""
+        : order.tracking_number || ""
+    ).trim();
+    const carrierToSave = getTrackingCarrier(
+      numberToSave,
+      updates.tracking_carrier !== undefined
+        ? updates.tracking_carrier
+        : order.tracking_carrier
+    );
+
+    if (numberToSave && !carrierToSave) {
+      alert("Select UPS or USPS for this tracking number before saving.");
+      return;
+    }
+
+    // Keep the carrier in the same order record as its tracking number.
+    if (updates.tracking_number !== undefined || updates.tracking_carrier !== undefined) {
+      updates.tracking_number = numberToSave || null;
+      updates.tracking_carrier = numberToSave ? carrierToSave : null;
+    }
+
+    const saved = await updateOrder(orderId, updates);
+    if (!saved) return;
 
     const newTrackingNumber = updates.tracking_number;
     const oldTrackingNumber = order?.tracking_number;
@@ -1114,6 +1140,7 @@ export default function MasterAdminClient() {
             customerName: order.customer_name || "",
             customerEmail: order.customer_email,
             trackingNumber: newTrackingNumber,
+            trackingCarrier: carrierToSave,
           }),
         }
       );
@@ -1217,9 +1244,17 @@ export default function MasterAdminClient() {
   }
 
   async function resendTrackingEmail(order: Order) {
-    const trackingNumber = String(
-      orderDrafts[order.id]?.tracking_number ?? order.tracking_number ?? ""
-    ).trim();
+    // Resend only the saved tracking information, never unsaved changes.
+    if (
+      orderDrafts[order.id]?.tracking_number !== undefined ||
+      orderDrafts[order.id]?.tracking_carrier !== undefined
+    ) {
+      alert("Save the tracking changes before resending the email.");
+      return;
+    }
+
+    const trackingNumber = String(order.tracking_number || "").trim();
+    const trackingCarrier = getTrackingCarrier(trackingNumber, order.tracking_carrier);
 
     if (!order.customer_email) {
       alert("This order does not have a customer email.");
@@ -1228,6 +1263,11 @@ export default function MasterAdminClient() {
 
     if (!trackingNumber) {
       alert("Add a tracking number before resending the tracking email.");
+      return;
+    }
+
+    if (!trackingCarrier) {
+      alert("Select UPS or USPS and save the order before resending tracking.");
       return;
     }
 
@@ -1249,6 +1289,7 @@ export default function MasterAdminClient() {
           customerName: order.customer_name || "",
           customerEmail: order.customer_email,
           trackingNumber,
+          trackingCarrier,
         }),
       });
 
@@ -1291,7 +1332,7 @@ export default function MasterAdminClient() {
             ? error.message
             : "Could not restock inventory."
         );
-        return;
+        return false;
       }
     }
 
@@ -1302,7 +1343,7 @@ export default function MasterAdminClient() {
 
     if (error) {
       alert(error.message);
-      return;
+      return false;
     }
 
     setOrders((current) =>
@@ -1312,6 +1353,7 @@ export default function MasterAdminClient() {
     );
 
     await loadData();
+    return true;
   }
 
   async function updateInventory(itemId: string, updates: Partial<InventoryItem>) {
@@ -2924,24 +2966,67 @@ export default function MasterAdminClient() {
                       <option value="refunded">Refunded</option>
                     </select>
 
-                    <input
-                      disabled={isCancelledOrder}
-                      className={`w-full rounded-xl border border-[#D8D1C8] p-3 text-sm font-semibold ${isCancelledOrder
-                        ? "cursor-not-allowed bg-gray-100 text-gray-400"
-                        : "bg-white text-[#5F554C]"
+                    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_112px] gap-2 sm:grid-cols-[minmax(0,1fr)_160px]">
+                      <input
+                        disabled={isCancelledOrder}
+                        aria-label="Tracking number"
+                        className={`min-w-0 w-full rounded-xl border border-[#D8D1C8] p-3 text-sm font-semibold ${isCancelledOrder
+                          ? "cursor-not-allowed bg-gray-100 text-gray-400"
+                          : "bg-white text-[#5F554C]"
                         }`}
-                      placeholder="Tracking Number"
-                      value={
-                        orderDrafts[order.id]?.tracking_number ??
-                        order.tracking_number ??
-                        ""
-                      }
-                      onChange={(e) =>
-                        updateOrderDraft(order.id, {
-                          tracking_number: e.target.value || null,
-                        })
-                      }
-                    />
+                        placeholder="Tracking Number"
+                        value={
+                          orderDrafts[order.id]?.tracking_number !== undefined
+                            ? orderDrafts[order.id]?.tracking_number || ""
+                            : order.tracking_number || ""
+                        }
+                        onChange={(e) => {
+                          const nextNumber = e.target.value;
+                          updateOrderDraft(order.id, {
+                            tracking_number: nextNumber,
+                            // A new number should not inherit the previous carrier.
+                            tracking_carrier: nextNumber
+                              ? detectTrackingCarrier(nextNumber)
+                              : null,
+                          });
+                        }}
+                      />
+                      <select
+                        disabled={isCancelledOrder}
+                        aria-label="Tracking carrier"
+                        value={getTrackingCarrier(
+                          orderDrafts[order.id]?.tracking_number !== undefined
+                            ? orderDrafts[order.id]?.tracking_number || ""
+                            : order.tracking_number || "",
+                          orderDrafts[order.id]?.tracking_carrier !== undefined
+                            ? orderDrafts[order.id]?.tracking_carrier
+                            : order.tracking_carrier
+                        ) || ""}
+                        onChange={(e) =>
+                          updateOrderDraft(order.id, {
+                            tracking_carrier: (e.target.value || null) as "ups" | "usps" | null,
+                          })
+                        }
+                        className={`min-w-0 w-full rounded-xl border border-[#D8D1C8] p-3 text-sm font-semibold ${isCancelledOrder
+                          ? "cursor-not-allowed bg-gray-100 text-gray-400"
+                          : "bg-white text-[#5F554C]"
+                        }`}
+                      >
+                        <option value="">Carrier</option>
+                        <option value="ups">UPS</option>
+                        <option value="usps">USPS</option>
+                      </select>
+                    </div>
+                    {order.tracking_number && getTrackingUrl(order.tracking_number, order.tracking_carrier) && (
+                      <a
+                        href={getTrackingUrl(order.tracking_number, order.tracking_carrier)!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-fit text-xs font-semibold text-[#A79B8E] underline underline-offset-2"
+                      >
+                        View saved tracking with {getTrackingCarrier(order.tracking_number, order.tracking_carrier)?.toUpperCase()}
+                      </a>
+                    )}
 
                     <div className="flex flex-wrap gap-3 pt-2">
                       <button
