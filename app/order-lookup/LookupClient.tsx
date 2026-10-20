@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import SiteHeader from "@/components/SiteHeader";
+import UnpaidOrderCountdown from "@/components/UnpaidOrderCountdown";
 import { getTrackingCarrier, getTrackingUrl } from "@/lib/tracking";
 
 type OrderItem = {
@@ -16,6 +17,8 @@ type OrderItem = {
 type Order = {
   id: string;
   created_at: string;
+  payment_due_at: string | null;
+  payment_reminder_sent_at: string | null;
   seller_code: string;
   customer_name: string;
   customer_email: string;
@@ -207,6 +210,14 @@ export default function LookupClient() {
             Payment: {order.payment_status || "pending"}
           </span>
         </div>
+
+        <UnpaidOrderCountdown
+          createdAt={order.created_at}
+          dueAt={order.payment_due_at}
+          reminderSentAt={order.payment_reminder_sent_at}
+          paymentStatus={order.payment_status}
+          orderStatus={order.order_status}
+        />
 
         <div className="mb-4 rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] p-4 text-sm leading-6 text-[#6F655C]">
           <p>
