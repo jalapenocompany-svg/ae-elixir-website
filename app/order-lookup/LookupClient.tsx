@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import SiteHeader from "@/components/SiteHeader";
-import { getTrackingUrl } from "@/lib/tracking";
+import { getTrackingCarrier, getTrackingUrl } from "@/lib/tracking";
 
 type OrderItem = {
   id: number;
@@ -265,7 +265,7 @@ export default function LookupClient() {
                 rel="noopener noreferrer"
                 className="font-semibold text-[#A79B8E] underline decoration-[#A79B8E]/40 underline-offset-2"
               >
-                {order.tracking_number} 
+                {order.tracking_number} · Track with {getTrackingCarrier(order.tracking_number, order.tracking_carrier)?.toUpperCase()}
               </a>
             ) : order.tracking_number ? (
               <span>{order.tracking_number} — Contact support for a tracking link.</span>
