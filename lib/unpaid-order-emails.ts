@@ -64,7 +64,7 @@ function customerFirstName(order: UnpaidOrderEmailData): string {
   return clean ? clean.split(/\s+/)[0] : "there";
 }
 
-function siteLinks(siteUrl: string): { lookup: string; logo: string; admin: string } {
+function siteLinks(siteUrl: string): { lookup: string; admin: string } {
   let site: URL;
   try {
     site = new URL(siteUrl);
@@ -76,7 +76,6 @@ function siteLinks(siteUrl: string): { lookup: string; logo: string; admin: stri
   }
   return {
     lookup: new URL("/order-lookup", site).toString(),
-    logo: new URL("/email-logo.png", site).toString(),
     admin: new URL("/master-admin", site).toString(),
   };
 }
@@ -90,6 +89,7 @@ function layout({
   siteUrl,
   actionLabel,
   actionUrl,
+  imageFile,
   isAdmin = false,
 }: {
   heading: string;
@@ -100,10 +100,12 @@ function layout({
   siteUrl: string;
   actionLabel: string;
   actionUrl: string;
+  imageFile: "payment-reminder.png" | "order-cancelled.png" | "auto-cancellation-admin.png";
   isAdmin?: boolean;
 }): string {
   const num = escapeHtml(orderNumber(order));
-  const links = siteLinks(siteUrl);
+  // Use the public image from the site domain for the correct email type.
+  const imageUrl = new URL(`/${imageFile}`, siteUrl).toString();
   const due = escapeHtml(dueDate(order.payment_due_at));
   const cost = Number(order.total ?? 0);
   const formattedTotal = Number.isFinite(cost) ? `$${cost.toFixed(2)}` : "N/A";
@@ -117,8 +119,13 @@ function layout({
 <body style="margin:0;background:${SOFT};font-family:Arial,Helvetica,sans-serif;color:${BODY};">
   <div style="padding:24px 12px;background:${SOFT};">
     <div style="max-width:580px;margin:0 auto;background:white;border:1px solid ${BORDER};border-radius:22px;overflow:hidden;">
-      <div style="padding:24px 20px 8px;text-align:center;">
-        <img src="${escapeHtml(links.logo)}" alt="AE Elixir" width="170" style="max-width:170px;width:100%;height:auto;border:0;display:inline-block;" />
+      <div style="background:#ffffff;text-align:center;">
+        <img
+          src="${escapeHtml(imageUrl)}"
+          alt="${escapeHtml(heading)} — AE Elixir"
+          width="580"
+          style="display:block;width:100%;max-width:580px;height:auto;margin:0 auto;border:0;"
+        />
       </div>
       <div style="padding:18px 24px 28px;">
         <p style="text-align:center;color:${BRAND_COLOR};font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;margin:0 0 10px;">${escapeHtml(eyebrow)}</p>
@@ -156,7 +163,17 @@ export function buildPaymentReminderEmail(order: UnpaidOrderEmailData, siteUrl: 
   ];
   return {
     subject: `${BRAND} Payment Reminder — Order #${num}`,
-    html: layout({ heading: "Payment Reminder", eyebrow: "Your order is awaiting payment", greeting: `Hi ${name},`, paragraphs, order, siteUrl, actionLabel: "View Your Order", actionUrl: lookup }),
+    html: layout({
+      heading: "Payment Reminder",
+      eyebrow: "Your order is awaiting payment",
+      greeting: `Hi ${name},`,
+      paragraphs,
+      order,
+      siteUrl,
+      actionLabel: "View Your Order",
+      actionUrl: lookup,
+      imageFile: "payment-reminder.png",
+    }),
     text: [`${BRAND} Payment Reminder — Order #${num}`, "", `Hi ${name},`, "", ...paragraphs, "", `Order: #${num}`, `Payment deadline: ${deadline}`, `Order lookup: ${lookup}`, `Support: ${SUPPORT_EMAIL}`].join("\n")
   };
 }
@@ -172,7 +189,17 @@ export function buildCustomerAutoCancellationEmail(order: UnpaidOrderEmailData, 
   const lookup = siteLinks(siteUrl).lookup;
   return {
     subject: `${BRAND} Order #${num} Cancelled — Payment Not Confirmed`,
-    html: layout({ heading: "Your Order Was Cancelled", eyebrow: "Unpaid order update", greeting: `Hi ${name},`, paragraphs, order, siteUrl, actionLabel: "View Order Status", actionUrl: lookup }),
+    html: layout({
+      heading: "Your Order Was Cancelled",
+      eyebrow: "Unpaid order update",
+      greeting: `Hi ${name},`,
+      paragraphs,
+      order,
+      siteUrl,
+      actionLabel: "View Order Status",
+      actionUrl: lookup,
+      imageFile: "order-cancelled.png",
+    }),
     text: [`${BRAND} Order #${num} Cancelled — Payment Not Confirmed`, "", `Hi ${name},`, "", ...paragraphs, "", `Order: #${num}`, `Order lookup: ${lookup}`, `Support: ${SUPPORT_EMAIL}`].join("\n")
   };
 }
@@ -187,7 +214,18 @@ export function buildAdminAutoCancellationEmail(order: UnpaidOrderEmailData, sit
   ];
   return {
     subject: `${BRAND} Auto-Cancelled Unpaid Order #${num}`,
-    html: layout({ heading: "Unpaid Order Auto-Cancelled", eyebrow: "Admin notification", greeting: "AE Elixir Support,", paragraphs, order, siteUrl, actionLabel: "Open Admin Portal", actionUrl: adminUrl, isAdmin: true }),
+    html: layout({
+      heading: "Unpaid Order Auto-Cancelled",
+      eyebrow: "Admin notification",
+      greeting: "AE Elixir Support,",
+      paragraphs,
+      order,
+      siteUrl,
+      actionLabel: "Open Admin Portal",
+      actionUrl: adminUrl,
+      imageFile: "auto-cancellation-admin.png",
+      isAdmin: true,
+    }),
     text: [`${BRAND} Auto-Cancelled Unpaid Order #${num}`, "", ...paragraphs, "", `Order: #${num}`, `Customer: ${order.customer_name || "Not provided"}`, `Customer email: ${order.customer_email || "Not provided"}`, `Payment method: ${order.payment_method || "Not specified"}`, `Total: $${Number(order.total ?? 0).toFixed(2)}`, `Admin portal: ${adminUrl}`].join("\n")
   };
 }
