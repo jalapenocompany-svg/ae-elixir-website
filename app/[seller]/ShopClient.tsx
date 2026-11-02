@@ -220,6 +220,7 @@ export default function ShopClient({ seller }: { seller?: string }) {
   const [recentOrdersOpen, setRecentOrdersOpen] = useState(false);
   const [recentOrders, setRecentOrders] = useState<LocalOrder[]>([]);
   const [orderNotice, setOrderNotice] = useState("");
+  const [showEmailReminder, setShowEmailReminder] = useState(false);
   const [whatsAppUrl, setWhatsAppUrl] = useState("");
   const [orderNumber, setOrderNumber] = useState("");
   const [submittedPaymentMethod, setSubmittedPaymentMethod] =
@@ -979,6 +980,7 @@ Total: $${cartTotal.toFixed(2)}`
     });
 
     if (isWhatsAppPayment) {
+      setShowEmailReminder(false);
       setWhatsAppUrl(orderWhatsAppUrl);
       setOrderNotice(
         orderWhatsAppUrl
@@ -995,9 +997,10 @@ Total: $${cartTotal.toFixed(2)}`
     }
 
     setWhatsAppUrl("");
+    setShowEmailReminder(orderEmailSent);
     setOrderNotice(
       orderEmailSent
-        ? "Order saved. Payment instructions will be sent to your email. If you do not see the message in your inbox, please check your junk or spam folder."
+        ? "Order saved. Your order confirmation and payment instructions have been sent to your email address."
         : "Order saved, but the confirmation email could not be sent. Please contact support if you need a copy of your order."
     );
     resetCheckoutAfterSuccessfulOrder();
@@ -2128,6 +2131,9 @@ Total: $${cartTotal.toFixed(2)}`
                         setForm({ ...form, email: e.target.value })
                       }
                     />
+                    <p className="mt-2 px-1 text-xs leading-5 text-[#8F8276]">
+                      Order updates come from <span className="font-semibold text-[#5F554C]">support@aeelixir.com</span>. If missing, check Spam or Junk.
+                    </p>
 
                     <input
                       className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
@@ -2641,8 +2647,8 @@ Total: $${cartTotal.toFixed(2)}`
 
 
       {orderNotice && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/45 px-5 backdrop-blur-[2px]">
-          <div className="w-full max-w-sm rounded-[28px] border border-[#E6E0D8] bg-white p-6 text-center shadow-2xl">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/45 px-5 py-4 backdrop-blur-[2px]">
+          <div className="max-h-[92dvh] w-full max-w-sm overflow-y-auto overscroll-contain rounded-[28px] border border-[#E6E0D8] bg-white p-6 text-center shadow-2xl">
             <h2 className="mb-3 text-2xl font-bold text-[#5F554C]">
               Order Received
             </h2>
@@ -2661,6 +2667,26 @@ Total: $${cartTotal.toFixed(2)}`
             <p className="mb-5 text-sm leading-6 text-[#6F655C]">
               {orderNotice}
             </p>
+
+            {showEmailReminder && (
+              <div className="mb-5 rounded-2xl border border-[#E6BCB7] bg-[#FFF5F3] px-4 py-4 text-left shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#E6BCB7] bg-[#FBE5E2] text-[#A5524D]">
+                    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+                      <rect x="3" y="5" width="18" height="14" rx="2.5" stroke="currentColor" strokeWidth="1.7" />
+                      <path d="m4.5 7 7.5 6 7.5-6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-bold text-[#9C4742]">Important: Check Your Email</h3>
+                    <p className="mt-2 text-sm leading-5 text-[#765A56]">
+                      If you don&apos;t see our message in your inbox, check your <span className="font-bold text-[#A5524D]">Spam or Junk</span> folder and mark it as <span className="font-bold text-[#A5524D]">Not Spam</span> to help future emails reach your inbox.
+                    </p>
+                    <p className="mt-2 break-all text-xs text-[#9B7772]">Sent from support@aeelixir.com</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {submittedPaymentMethod && (
               <div className="mb-5 rounded-2xl border border-[#D8D1C8] bg-[#FBFAF8] p-5 text-sm text-[#6F655C] shadow-sm">
@@ -2709,6 +2735,7 @@ Total: $${cartTotal.toFixed(2)}`
               type="button"
               onClick={() => {
                 setOrderNotice("");
+                setShowEmailReminder(false);
                 setOrderNumber("");
                 setWhatsAppUrl("");
                 setSubmittedPaymentMethod(null);
