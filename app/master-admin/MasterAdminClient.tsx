@@ -1473,26 +1473,59 @@ export default function MasterAdminClient() {
     return [];
   }
 
+  const [coaUploading, setCoaUploading] = useState<Record<string, boolean>>({});
+
   async function uploadCoaListImage(variantId: string, file: File) {
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${variantId}-coa-${Date.now()}.${fileExt}`;
+    if (coaUploading[variantId]) return;
+    setCoaUploading((prev) => ({ ...prev, [variantId]: true }));
+    try {
+      let imageFile = file;
+      const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+      if (isPdf) {
+        if (file.size > 10 * 1024 * 1024) throw new Error("PDF must be 10 MB or smaller.");
+        const pdfjs = await import("pdfjs-dist");
+        pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        const loadingTask = pdfjs.getDocument({ data: bytes });
+        const pdfDocument = await loadingTask.promise;
+        try {
+          if (pdfDocument.numPages !== 1) throw new Error("Please upload a single-page COA PDF.");
+          const page = await pdfDocument.getPage(1);
+          const baseViewport = page.getViewport({ scale: 1 });
+          const scale = Math.min(2.5, 2200 / Math.max(baseViewport.width, baseViewport.height));
+          const viewport = page.getViewport({ scale });
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.ceil(viewport.width);
+          canvas.height = Math.ceil(viewport.height);
+          const context = canvas.getContext("2d");
+          if (!context) throw new Error("Unable to render the PDF.");
+          context.fillStyle = "#ffffff";
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          await page.render({ canvas, canvasContext: context, viewport }).promise;
+          const blob = await new Promise<Blob>((resolve, reject) => {
+            canvas.toBlob((value) => value ? resolve(value) : reject(new Error("Image conversion failed.")), "image/png");
+          });
+          imageFile = new File([blob], file.name.replace(/\.pdf$/i, ".png"), { type: "image/png" });
+        } finally {
+          await loadingTask.destroy();
+        }
+      } else if (!file.type.startsWith("image/")) {
+        throw new Error("Please select an image or a PDF file.");
+      }
+      const fileExt = imageFile.name.split(".").pop()?.toLowerCase() || "png";
+      const fileName = `${variantId}-coa-${Date.now()}.${fileExt}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from("coa-images")
-      .upload(fileName, file, {
-        upsert: true,
-      });
-
-    if (uploadError) {
-      alert(uploadError.message);
-      return;
+      const { error: uploadError } = await supabase.storage
+        .from("coa-images")
+        .upload(fileName, imageFile, { upsert: true, contentType: imageFile.type });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from("coa-images").getPublicUrl(fileName);
+      updateNewCoaDraft(variantId, { imageUrl: data.publicUrl });
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "COA upload failed.");
+    } finally {
+      setCoaUploading((prev) => ({ ...prev, [variantId]: false }));
     }
-
-    const { data } = supabase.storage.from("coa-images").getPublicUrl(fileName);
-
-    updateNewCoaDraft(variantId, {
-      imageUrl: data.publicUrl,
-    });
   }
 
   async function addCoaEntryToVariant(variant: ProductVariant) {
@@ -1648,9 +1681,9 @@ export default function MasterAdminClient() {
       current.map((product) =>
         product.id === editingProductNameId
           ? {
-              ...product,
-              name: updatedName,
-            }
+            ...product,
+            name: updatedName,
+          }
           : product
       )
     );
@@ -1659,9 +1692,9 @@ export default function MasterAdminClient() {
       current.map((variant) =>
         variant.product_id === editingProductNameId
           ? {
-              ...variant,
-              product_name: updatedName,
-            }
+            ...variant,
+            product_name: updatedName,
+          }
           : variant
       )
     );
@@ -2985,7 +3018,7 @@ export default function MasterAdminClient() {
                         className={`min-w-0 w-full rounded-xl border border-[#D8D1C8] p-3 text-sm font-semibold ${isCancelledOrder
                           ? "cursor-not-allowed bg-gray-100 text-gray-400"
                           : "bg-white text-[#5F554C]"
-                        }`}
+                          }`}
                         placeholder="Tracking Number"
                         value={
                           orderDrafts[order.id]?.tracking_number !== undefined
@@ -3022,7 +3055,7 @@ export default function MasterAdminClient() {
                         className={`min-w-0 w-full rounded-xl border border-[#D8D1C8] p-3 text-sm font-semibold ${isCancelledOrder
                           ? "cursor-not-allowed bg-gray-100 text-gray-400"
                           : "bg-white text-[#5F554C]"
-                        }`}
+                          }`}
                       >
                         <option value="">Carrier</option>
                         <option value="ups">UPS</option>
@@ -4498,15 +4531,16 @@ export default function MasterAdminClient() {
 
                               <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
                                 <label className="cursor-pointer rounded-2xl border border-[#D8D1C8] bg-[#F8F5F1] p-4 text-sm font-bold text-[#7F756B] shadow-sm transition active:scale-95">
-                                  Upload COA Image
+                                  {coaUploading[variant.id] ? "Converting / Uploading..." : "Upload COA Image or PDF"}
                                   <input
                                     type="file"
-                                    accept="image/*"
+                                    accept="image/*,application/pdf,.pdf"
                                     className="hidden"
                                     onChange={(e) => {
                                       const file = e.target.files?.[0];
                                       if (!file) return;
-                                      uploadCoaListImage(variant.id, file);
+                                      void uploadCoaListImage(variant.id, file);
+                                      e.target.value = "";
                                     }}
                                   />
                                 </label>
@@ -4514,6 +4548,7 @@ export default function MasterAdminClient() {
                                 <button
                                   type="button"
                                   onClick={() => addCoaEntryToVariant(variant)}
+                                  disabled={!!coaUploading[variant.id]}
                                   className="rounded-full bg-[#A79B8E] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#978D82] active:scale-95"
                                 >
                                   Add COA to List
