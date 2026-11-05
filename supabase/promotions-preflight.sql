@@ -8,7 +8,7 @@ order by table_name, ordinal_position;
 select tablename, policyname, roles, cmd, qual, with_check
 from pg_policies where schemaname = 'public'
   and tablename in ('orders', 'products', 'product_variants', 'shipping_methods');
-select tgname, pg_get_triggerdef(oid) as definition
+select tgname, pg_get_triggerdef(oid) as definition, pg_get_functiondef(tgfoid) as function_definition
 from pg_trigger where tgrelid = 'public.orders'::regclass and not tgisinternal;
 select product_code, count(*) from public.product_variants group by product_code having count(*) > 1;
 select name, count(*) from public.shipping_methods group by name having count(*) > 1;

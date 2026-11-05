@@ -1,10 +1,7 @@
-// Run: npm install --prefix /tmp/ae-promo-validation @electric-sql/pglite
-// PGLITE_MODULE=/tmp/ae-promo-validation/node_modules/@electric-sql/pglite/dist/index.js node tests/promotions-database.mjs
 // Uses disposable PostgreSQL, NEVER the configured Supabase database.
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { pathToFileURL } from 'node:url';
-const { PGlite } = await import(pathToFileURL(process.env.PGLITE_MODULE || '/tmp/ae-promo-validation/node_modules/@electric-sql/pglite/dist/index.js').href);
+import { PGlite } from '@electric-sql/pglite';
 const db = new PGlite();
 await db.exec(`
   create role anon; create role authenticated; create role service_role;
@@ -42,6 +39,7 @@ await db.exec(`insert into promotions(code, percent_off, minimum_subtotal, start
 await check('10% on exactly $100, shipping excluded, normalized code', async () => {
   const {rows:[{q}]} = await db.query(quote(' active '));
   assert.equal(q.code,'ACTIVE'); assert.equal(q.subtotal,100); assert.equal(q.discount_amount,10); assert.equal(q.total,100); assert.equal(q.shipping_price,10);
+  assert(Number.isFinite(Date.parse(q.server_now)));
 });
 await check('shipping cannot satisfy minimum', () => fails(quote('ACTIVE', '[{"product_code":"LOW","quantity":2}]'), /at least/));
 await check('future, expired, disabled and unknown codes rejected', async () => {
@@ -104,7 +102,18 @@ await check('anonymous roles cannot manage promotions or read schedule table', a
   await fails(`update promotions set percent_off=100`, /permission denied/);
   await fails(`select * from promotions`, /permission denied/);
   await db.query('select * from active_storefront_promotions()');
+  const {rows:[{schedule}]}=await db.query('select storefront_promotion_schedule() as schedule');
+  assert(Number.isFinite(Date.parse(schedule.server_now)));
+  assert(schedule.next_change_at);
+  assert(!schedule.promotions.some(row=>['FUTURE','EXPIRED','OFF'].includes(row.code)));
   await db.exec('reset role');
+});
+await check('string quantities, markup codes, and nonfinite catalog prices are rejected',async()=>{
+  await fails(quote('ROUND','[{"product_code":"TEST","quantity":"2"}]'),/quantity/);
+  await fails(quote('<SCRIPT>'),/not valid/);
+  await db.exec("update product_variants set price_zone1='NaN'::numeric where product_code='TEST'");
+  await fails(quote('ROUND'),/Invalid product price/);
+  await db.exec("update product_variants set price_zone1=50 where product_code='TEST'");
 });
 await db.close();
 console.log(`${passed} database checks passed; no remote database used.`);

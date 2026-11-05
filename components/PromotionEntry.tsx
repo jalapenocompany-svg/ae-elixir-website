@@ -15,7 +15,7 @@ export default function PromotionEntry({ promotion }: { promotion: ReturnType<ty
         className="rounded-xl bg-[#A79B8E] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">
         {promotion.busy ? "Checking…" : "Apply"}
       </button>
-      {promotion.quote && <button type="button" onClick={promotion.remove} className="text-sm text-[#6F655C] underline">Remove</button>}
+      {promotion.input.trim() && <button type="button" onClick={promotion.remove} className="text-sm text-[#6F655C] underline">Remove</button>}
     </div>
     <p aria-live="polite" className="mt-2 text-sm text-[#6F655C]">
       {promotion.notice || (promotion.quote ? `${promotion.quote.code} applied. Shipping is excluded from the discount.` : "Discounts apply to merchandise only.")}

@@ -7,6 +7,7 @@ import AgeGate from "@/components/AgeGate";
 import PromotionBanner from "@/components/PromotionBanner";
 import PromotionEntry from "@/components/PromotionEntry";
 import { usePromotion } from "@/lib/use-promotion";
+import { PROMOTIONS_ENABLED } from "@/lib/promotion-settings";
 
 type Product = {
   id: number;
@@ -2370,7 +2371,7 @@ Total: $${cartTotal.toFixed(2)}`
                     Order Total
                   </p>
 
-                  <PromotionEntry promotion={promotion} />
+                  {PROMOTIONS_ENABLED && <PromotionEntry promotion={promotion} />}
                   <div className="space-y-2 text-sm text-[#6F655C]">
                     <div className="flex items-center justify-between">
                       <span>Subtotal</span>
@@ -2408,7 +2409,7 @@ Total: $${cartTotal.toFixed(2)}`
                 <button
                   type="button"
                   onClick={openOrderReviewModal}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || promotion.busy || promotion.needsReapply}
                   className="w-full rounded-full bg-[#A79B8E] py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95 disabled:opacity-50"
                 >
                   Review Order
@@ -2655,6 +2656,9 @@ Total: $${cartTotal.toFixed(2)}`
             </div>
 
             <div className="sticky bottom-0 shrink-0 border-t border-[#E6E0D8] bg-white p-4 shadow-[0_-8px_20px_rgba(0,0,0,0.04)]">
+              {(promotion.busy || promotion.needsReapply) && <p role="status" className="mb-3 text-sm text-[#6F655C]">
+                {promotion.busy ? "Checking your promotion…" : "Your code needs to be applied again. Go back to edit or remove it before placing your order."}
+              </p>}
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
@@ -2671,7 +2675,7 @@ Total: $${cartTotal.toFixed(2)}`
                     setShowOrderReviewModal(false);
                     handleOrderSubmit();
                   }}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || promotion.busy || promotion.needsReapply}
                   className="rounded-full bg-[#A79B8E] px-3 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95 disabled:opacity-50"
                 >
                   {isSubmitting ? "Saving..." : "Place Order"}
