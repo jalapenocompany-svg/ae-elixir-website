@@ -26,6 +26,8 @@ type Order = {
   payment_method: string;
   items: OrderItem[];
   total: number;
+  promotion_code?: string | null;
+  discount_amount?: number;
   order_status: string | null;
   payment_status: string | null;
   tracking_number: string | null;
@@ -191,6 +193,7 @@ export default function LookupClient() {
           <p className="text-lg font-bold text-[#5F554C]">
             ${Number(order.total).toFixed(2)}
           </p>
+          {order.promotion_code && <p className="text-sm text-green-700">{order.promotion_code}: −${Number(order.discount_amount || 0).toFixed(2)}</p>}
         </div>
 
         <div className="mb-5 flex flex-wrap gap-2">

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { allocateDiscount } from "@/lib/promotion-reporting";
 import SiteHeader from "@/components/SiteHeader";
 import UnpaidOrderCountdown from "@/components/UnpaidOrderCountdown";
 import { detectTrackingCarrier, getTrackingCarrier, getTrackingUrl } from "@/lib/tracking";
@@ -57,6 +58,8 @@ type Order = {
   payment_method: string;
   items: OrderItem[];
   subtotal: number | null;
+  promotion_code?: string | null;
+  discount_amount?: number;
   shipping_method: string | null;
   shipping_label: string | null;
   shipping_description: string | null;
@@ -84,6 +87,7 @@ type OrderEditDraft = {
   shipping_description: string;
   shipping_price: number;
   subtotal: number;
+  discount_amount: number;
   total: number;
 };
 
@@ -944,7 +948,8 @@ export default function MasterAdminClient() {
       shipping_description: order.shipping_description || "",
       shipping_price: Number(order.shipping_price || 0),
       subtotal,
-      total: subtotal + Number(order.shipping_price || 0),
+      discount_amount: Number(order.discount_amount || 0),
+      total: subtotal - Number(order.discount_amount || 0) + Number(order.shipping_price || 0),
     });
   }
 
@@ -982,7 +987,7 @@ export default function MasterAdminClient() {
         shipping_label: selectedShipping?.display_label || "",
         shipping_description: selectedShipping?.description || "",
         shipping_price: shippingPrice,
-        total: subtotal + shippingPrice,
+        total: subtotal - Number(current.discount_amount || 0) + shippingPrice,
       };
     });
   }
@@ -1210,6 +1215,9 @@ export default function MasterAdminClient() {
         },
         body: JSON.stringify({
           orderNumber,
+          orderId: order.id,
+          promotionCode: order.promotion_code,
+          discountAmount: Number(order.discount_amount || 0),
           customerName: order.customer_name || "",
           customerEmail: order.customer_email,
           paymentMethod: order.payment_method || "",
@@ -2228,11 +2236,12 @@ export default function MasterAdminClient() {
   >();
 
   salesOrders.forEach((order) => {
-    (order.items || []).forEach((item) => {
+    const discounts = allocateDiscount((order.items || []).map((item) => Number(item.line_total ?? item.price * item.quantity)), Number(order.discount_amount || 0));
+    (order.items || []).forEach((item, index) => {
       const productCode = item.product_code || item.name;
       const quantity = Number(item.quantity || 0);
       const price = Number(item.price || 0);
-      const revenue = Number(item.line_total ?? price * quantity);
+      const revenue = Number(item.line_total ?? price * quantity) - discounts[index];
 
       const fallbackCostPerUnit = productCostByCode.get(productCode) || 0;
       const cost = Number(
@@ -2240,7 +2249,7 @@ export default function MasterAdminClient() {
         Number(item.cost_per_unit_at_sale ?? fallbackCostPerUnit) * quantity
       );
 
-      const profit = Number(item.total_profit_at_sale ?? revenue - cost);
+      const profit = order.discount_amount ? revenue - cost : Number(item.total_profit_at_sale ?? revenue - cost);
 
       const existing = salesMap.get(productCode) || {
         productCode,
@@ -2910,9 +2919,10 @@ export default function MasterAdminClient() {
                       </div>
                     </div>
 
-                    <p className="shrink-0 text-lg font-bold text-[#1F1A17]">
-                      ${Number(order.total).toFixed(2)}
-                    </p>
+                    <div className="shrink-0 text-right">
+                      <p className="text-lg font-bold text-[#1F1A17]">${Number(order.total).toFixed(2)}</p>
+                      {order.promotion_code && <p className="text-sm text-green-700">{order.promotion_code}: −${Number(order.discount_amount || 0).toFixed(2)}</p>}
+                    </div>
                   </div>
 
                   <UnpaidOrderCountdown
@@ -5545,6 +5555,7 @@ export default function MasterAdminClient() {
                     <p className="mt-1 text-lg font-bold text-[#5F554C]">
                       {formatCurrency(editOrderDraft.subtotal)}
                     </p>
+                    {editOrderDraft.discount_amount > 0 && <p className="mt-1 text-green-700">Promotion: −{formatCurrency(editOrderDraft.discount_amount)}</p>}
                   </div>
 
                   <div>

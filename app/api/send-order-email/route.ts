@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { supabase } from "@/lib/supabaseClient";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -133,6 +134,9 @@ function getPaymentInstructions({
 export async function POST(req: Request) {
   try {
     const {
+      orderId,
+      promotionCode: requestedPromotionCode,
+      discountAmount: requestedDiscountAmount,
       orderNumber,
       customerName,
       customerEmail,
@@ -142,13 +146,18 @@ export async function POST(req: Request) {
       paymentInstructions,
       whatsAppUrl,
       items,
-      subtotal,
+      subtotal: requestedSubtotal,
       shippingMethodLabel,
       shippingDescription,
-      shippingPrice,
-      total,
+      shippingPrice: requestedShippingPrice,
+      total: requestedTotal,
       suppressAdminEmail,
     } = await req.json();
+    let subtotal = requestedSubtotal;
+    let shippingPrice = requestedShippingPrice;
+    let total = requestedTotal;
+    let promotionCode = requestedPromotionCode;
+    let discountAmount = requestedDiscountAmount;
 
     if (
       !orderNumber ||
@@ -161,6 +170,23 @@ export async function POST(req: Request) {
         { error: "Missing required order information." },
         { status: 400 }
       );
+    }
+
+    // Promotion amounts in notifications must match the saved, DB-validated order.
+    if (promotionCode || Number(discountAmount || 0) > 0) {
+      if (!orderId) return Response.json({ error: "Missing promotion order ID." }, { status: 400 });
+      const { data: saved, error } = await supabase.from("orders")
+        .select("id, customer_email, subtotal, shipping_price, total, promotion_code, discount_amount")
+        .eq("id", orderId).single();
+      if (error || !saved || saved.customer_email.trim().toLowerCase() !== String(customerEmail).trim().toLowerCase()
+        || saved.id.slice(0, 8).toUpperCase() !== String(orderNumber).toUpperCase()) {
+        return Response.json({ error: "Could not verify the promotion order." }, { status: 400 });
+      }
+      subtotal = saved.subtotal;
+      shippingPrice = saved.shipping_price;
+      total = saved.total;
+      promotionCode = saved.promotion_code;
+      discountAmount = saved.discount_amount;
     }
 
     const siteUrl =
@@ -184,6 +210,10 @@ export async function POST(req: Request) {
       process.env.ORDER_FROM_EMAIL ||
       `${BRAND_NAME} <support@aeelixir.com>`;
 
+    const safeDiscount = Number(discountAmount || 0);
+    const safePromotionCode = String(promotionCode || "").replace(/[^A-Z0-9_-]/gi, "");
+    const discountHtml = safeDiscount > 0 ? `<tr><td style="padding:8px;color:${BODY_TEXT};">Promotion (${safePromotionCode})</td><td style="padding:8px;text-align:right;color:${DARK_TEXT};">−$${safeDiscount.toFixed(2)}</td></tr>` : "";
+    const discountText = safeDiscount > 0 ? `Promotion (${safePromotionCode}): -$${safeDiscount.toFixed(2)}\n` : "";
     const safeSubtotal = Number(subtotal ?? total ?? 0);
     const safeShippingPrice = Number(shippingPrice || 0);
     const safeTotal = Number(total || 0);
@@ -353,6 +383,7 @@ export async function POST(req: Request) {
     $${safeSubtotal.toFixed(2)}
   </td>
 </tr>
+${discountHtml}
 
 <tr>
   <td style="
@@ -466,7 +497,7 @@ Order Summary:
 ${itemsText}
 
 Subtotal: $${safeSubtotal.toFixed(2)}
-${safeShippingLabel}: $${safeShippingPrice.toFixed(2)}
+${discountText}${safeShippingLabel}: $${safeShippingPrice.toFixed(2)}
 Total: $${safeTotal.toFixed(2)}
 
 Payment:
@@ -587,6 +618,7 @@ You are receiving this email because an order was placed at aeelixir.com.
   ${safeShippingLabel} — $${safeShippingPrice.toFixed(2)}
 </p>
 
+${safeDiscount > 0 ? `<p style="margin:5px 0;color:${BODY_TEXT};">Promotion (${safePromotionCode}): −$${safeDiscount.toFixed(2)}</p>` : ""}
 <p style="margin:5px 0;color:${BODY_TEXT};">
   <strong style="color:${DARK_TEXT};">Total:</strong>
   $${safeTotal.toFixed(2)}
@@ -637,7 +669,7 @@ Customer: ${customerName}
 Email: ${cleanCustomerEmail}${customerEmailIsValid ? "" : " (INVALID EMAIL - CUSTOMER COPY WAS NOT SENT)"}
 Payment: ${paymentMethod}
 Shipping: ${safeShippingLabel} - $${safeShippingPrice.toFixed(2)}
-Total: $${safeTotal.toFixed(2)}
+${discountText}Total: $${safeTotal.toFixed(2)}
 
 Items Ordered:
 ${itemsText}

@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import SiteHeader from "@/components/SiteHeader";
 import AgeGate from "@/components/AgeGate";
+import PromotionBanner from "@/components/PromotionBanner";
+import PromotionEntry from "@/components/PromotionEntry";
+import { usePromotion } from "@/lib/use-promotion";
 
 type Product = {
   id: number;
@@ -169,6 +172,8 @@ type LocalOrder = {
   orderNumber: string;
   seller: string;
   subtotal?: number;
+  promotionCode?: string;
+  discountAmount?: number;
   shippingPrice?: number;
   shippingMethod?: string;
   total: number;
@@ -258,9 +263,9 @@ export default function ShopClient({ seller }: { seller?: string }) {
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartSubtotal = cart.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+    (sum, item) => sum + Math.round(item.price * 100) * item.quantity,
     0
-  );
+  ) / 100;
 
   const selectedShippingMethod = shippingMethods.find(
     (method) => method.id === selectedShippingMethodId
@@ -283,7 +288,9 @@ export default function ShopClient({ seller }: { seller?: string }) {
 
   const shippingPrice = Number(selectedShippingMethod?.price || 0);
 
-  const cartTotal = cartSubtotal + shippingPrice;
+  const promotion = usePromotion(cart, selectedShippingMethod?.name || "");
+  const discountAmount = Number(promotion.quote?.discount_amount || 0);
+  const cartTotal = Math.round((cartSubtotal - discountAmount + shippingPrice) * 100) / 100;
 
   useEffect(() => {
     const savedCart = localStorage.getItem("pepmistry_cart");
@@ -793,10 +800,20 @@ export default function ShopClient({ seller }: { seller?: string }) {
 
     setAddressSuggestions([]);
     setAddressSuggestionsOpen(false);
+    if (promotion.busy || promotion.needsReapply) {
+      alert("Please apply your promotion again before reviewing the order.");
+      return;
+    }
     setShowOrderReviewModal(true);
   }
 
   async function handleOrderSubmit() {
+    if (isSubmitting || promotion.busy) return;
+    if (promotion.needsReapply) {
+      setShowOrderReviewModal(false);
+      alert("Your promotion expired or the cart changed. Please apply it again.");
+      return;
+    }
     const customerAddress = buildCustomerAddress();
 
     setIsSubmitting(true);
@@ -806,7 +823,7 @@ export default function ShopClient({ seller }: { seller?: string }) {
       const price = Number(item.price || 0);
       const quantity = Number(item.quantity || 0);
       const cost = Number(item.cost_per_unit || 0);
-      const lineTotal = price * quantity;
+      const lineTotal = Math.round(price * 100) * quantity / 100;
       const profitPerUnit = price - cost;
 
       return {
@@ -837,6 +854,7 @@ export default function ShopClient({ seller }: { seller?: string }) {
       shipping_description: selectedShippingMethod?.description || "",
       shipping_price: shippingPrice,
       total: cartTotal,
+      ...(promotion.quote ? { promotion_code: promotion.quote.code, discount_amount: discountAmount } : {}),
     };
 
     const { data, error } = await supabase
@@ -848,6 +866,7 @@ export default function ShopClient({ seller }: { seller?: string }) {
     if (error) {
       console.error(error);
       alert(error.message);
+      setShowOrderReviewModal(false);
       setIsSubmitting(false);
       return;
     }
@@ -902,7 +921,7 @@ ${cart
         .join("\n")}
 
 Subtotal: $${cartSubtotal.toFixed(2)}
-Shipping: $${shippingPrice.toFixed(2)}
+${promotion.quote ? `Promotion (${promotion.quote.code}): -$${discountAmount.toFixed(2)}\n` : ""}Shipping: $${shippingPrice.toFixed(2)}
 Total: $${cartTotal.toFixed(2)}`
     );
 
@@ -924,6 +943,7 @@ Total: $${cartTotal.toFixed(2)}`
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           orderNumber: shortOrderNumber,
+          orderId: data.id,
           customerName: form.fullName,
           customerEmail: form.email,
           paymentMethod: form.paymentMethod,
@@ -936,6 +956,8 @@ Total: $${cartTotal.toFixed(2)}`
           whatsAppUrl: orderWhatsAppUrl,
           items: orderItemsWithMargins,
           subtotal: cartSubtotal,
+          promotionCode: promotion.quote?.code,
+          discountAmount,
           shippingMethodLabel: selectedShippingMethod?.display_label || "",
           shippingDescription: selectedShippingMethod?.description || "",
           shippingPrice,
@@ -959,6 +981,8 @@ Total: $${cartTotal.toFixed(2)}`
       orderNumber: shortOrderNumber,
       seller: validSellerCode || "AEELIXIR",
       subtotal: cartSubtotal,
+      promotionCode: promotion.quote?.code,
+      discountAmount,
       shippingPrice,
       shippingMethod: selectedShippingMethod?.display_label || "",
       total: cartTotal,
@@ -1008,6 +1032,7 @@ Total: $${cartTotal.toFixed(2)}`
   }
 
   function resetCheckoutAfterSuccessfulOrder() {
+    promotion.remove();
     setCart([]);
     localStorage.removeItem("pepmistry_cart");
 
@@ -1187,6 +1212,7 @@ Total: $${cartTotal.toFixed(2)}`
         onCartClick={() => setCartOpen(true)}
       />
 
+      <PromotionBanner />
       <main className="px-5 py-6">
         {showReferenceCode && siteSettings?.show_reference_code !== false && (
           <div className="mb-6 text-sm text-gray-500">
@@ -1812,6 +1838,7 @@ Total: $${cartTotal.toFixed(2)}`
                         <p className="text-sm font-semibold">
                           ${order.total.toFixed(2)}
                         </p>
+                        {order.promotionCode && <p className="text-sm text-green-700">{order.promotionCode}: −${Number(order.discountAmount || 0).toFixed(2)}</p>}
                       </div>
 
                       <p className="text-xs text-gray-500">
@@ -2343,6 +2370,7 @@ Total: $${cartTotal.toFixed(2)}`
                     Order Total
                   </p>
 
+                  <PromotionEntry promotion={promotion} />
                   <div className="space-y-2 text-sm text-[#6F655C]">
                     <div className="flex items-center justify-between">
                       <span>Subtotal</span>
@@ -2362,6 +2390,11 @@ Total: $${cartTotal.toFixed(2)}`
                         ${shippingPrice.toFixed(2)}
                       </span>
                     </div>
+
+                    {promotion.quote && <div className="flex items-center justify-between text-green-700">
+                      <span>Promotion · {promotion.quote.code}</span>
+                      <span>−${discountAmount.toFixed(2)}</span>
+                    </div>}
 
                     <div className="border-t border-[#E6E0D8] pt-2">
                       <div className="flex items-center justify-between text-base font-bold text-[#1F1A17]">
@@ -2604,6 +2637,11 @@ Total: $${cartTotal.toFixed(2)}`
                         ${shippingPrice.toFixed(2)}
                       </span>
                     </div>
+
+                    {promotion.quote && <div className="flex items-center justify-between text-green-700">
+                      <span>Promotion · {promotion.quote.code}</span>
+                      <span>−${discountAmount.toFixed(2)}</span>
+                    </div>}
 
                     <div className="border-t border-[#E6E0D8] pt-2">
                       <div className="flex items-center justify-between text-base font-bold text-[#1F1A17]">
