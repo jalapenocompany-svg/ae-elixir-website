@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import SiteHeader from "@/components/SiteHeader";
 import AgeGate from "@/components/AgeGate";
+import StorefrontAds from "@/components/StorefrontAds";
 
 type Product = {
   id: number;
@@ -1185,6 +1186,11 @@ Total: $${cartTotal.toFixed(2)}`
         showCart={true}
         cartCount={cartCount}
         onCartClick={() => setCartOpen(true)}
+        searchExpanded={showProductFilters}
+        onSearchClick={() => {
+          if(showProductFilters){setProductSearch("");setSelectedCategory("All");}
+          setShowProductFilters(!showProductFilters);
+        }}
       />
 
       <main className="px-5 py-6">
@@ -1216,33 +1222,10 @@ Total: $${cartTotal.toFixed(2)}`
           </div>
         )}
 
-        {!productsLoading && !showProductFilters && (
-          <div className="mb-5 flex justify-start">
-            <button
-              type="button"
-              onClick={() => setShowProductFilters(true)}
-              aria-label="Search products"
-              className="flex h-12 w-12 items-center justify-center rounded-full border border-[#D8D1C8] bg-white text-[#A79B8E] shadow-sm transition-all hover:bg-[#F8F5F1] active:scale-95"
-            >
-              <svg
-                className="h-5 w-5"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden="true"
-              >
-                <path
-                  d="M10.8 18.2a7.4 7.4 0 1 1 5.2-2.2L21 21"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </button>
-          </div>
-        )}
+        <StorefrontAds />
 
         {!productsLoading && showProductFilters && (
-          <div className="mb-5 rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+          <div id="product-search-panel" className="mb-5 rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wide text-[#A79B8E]">

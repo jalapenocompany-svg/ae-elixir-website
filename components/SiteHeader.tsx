@@ -8,6 +8,8 @@ type SiteHeaderProps = {
   showCart?: boolean;
   cartCount?: number;
   onCartClick?: () => void;
+  onSearchClick?: () => void;
+  searchExpanded?: boolean;
 };
 
 type HeaderSettings = {
@@ -23,6 +25,8 @@ export default function SiteHeader({
   showCart = false,
   cartCount = 0,
   onCartClick,
+  onSearchClick,
+  searchExpanded = false,
 }: SiteHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -62,11 +66,19 @@ export default function SiteHeader({
       <header className="sticky top-0 z-40 border-b border-transparent bg-[#A79B8E]">
         <div className="flex items-center justify-between px-5 py-2">
           <a href={shopUrl} className="flex -ml-3 items-center gap-3">
-            <img src={logoUrl} className="h-12 w-60 object-contain" />
+            <img src={logoUrl} className={`h-12 object-contain ${onSearchClick ? "w-44 sm:w-60" : "w-60"}`} />
             <h1 className="text-2xl font-bold text-white">{siteName}</h1>
           </a>
 
-          <div className="flex items-center gap-1">
+          <div className="flex shrink-0 items-center gap-1">
+            {onSearchClick && (
+            <button type="button" onClick={onSearchClick} aria-label="Search products" aria-expanded={searchExpanded} aria-controls="product-search-panel"
+              className="flex h-11 w-11 items-center justify-center text-white transition-transform duration-150 active:scale-95">
+              <svg className="h-[35px] w-[35px] translate-x-[11px]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M10.5 16a5.5 5.5 0 1 1 3.9-1.6l4.1 4.1" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            )}
             {showCart && (
               <button
                 type="button"

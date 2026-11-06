@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import AdsManager from "@/components/AdsManager";
 import SiteHeader from "@/components/SiteHeader";
 import UnpaidOrderCountdown from "@/components/UnpaidOrderCountdown";
 import { detectTrackingCarrier, getTrackingCarrier, getTrackingUrl } from "@/lib/tracking";
@@ -164,7 +165,8 @@ type TabName =
   | "products"
   | "settings"
   | "payments"
-  | "inventory-margins";
+  | "inventory-margins"
+  | "ads";
 
 const MASTER_PASSWORD = "@eeLixir26";
 
@@ -2547,6 +2549,7 @@ export default function MasterAdminClient() {
         label: "Products",
         icon: <InventoryIcon />,
       },
+      {id: "ads", label: "Ads / Banners", icon: <SettingsIcon />},
       {
         id: "settings",
         label: "Settings",
@@ -2619,7 +2622,7 @@ export default function MasterAdminClient() {
         </div>
 
         <div className="mb-6 border-b border-[#E6E0D8] pb-4">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -2635,6 +2638,8 @@ export default function MasterAdminClient() {
             ))}
           </div>
         </div>
+
+        {activeTab === "ads" && <AdsManager />}
 
         {activeTab === "dashboard" && (
           <div className="space-y-5">
