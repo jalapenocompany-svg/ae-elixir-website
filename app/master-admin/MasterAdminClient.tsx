@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { allocateOrderDiscount } from "@/lib/allocate-order-discount";
+import PromoCodesManager from "@/components/PromoCodesManager";
+import { PROMOTIONS_ENABLED } from "@/lib/promotions";
 import AdsManager from "@/components/AdsManager";
 import SiteHeader from "@/components/SiteHeader";
 import UnpaidOrderCountdown from "@/components/UnpaidOrderCountdown";
@@ -58,6 +61,9 @@ type Order = {
   payment_method: string;
   items: OrderItem[];
   subtotal: number | null;
+  promo_code?: string | null;
+  discount_amount?: number;
+  shipping_discount_amount?: number;
   shipping_method: string | null;
   shipping_label: string | null;
   shipping_description: string | null;
@@ -85,6 +91,9 @@ type OrderEditDraft = {
   shipping_description: string;
   shipping_price: number;
   subtotal: number;
+  promo_code: string | null;
+  discount_amount: number;
+  shipping_discount_amount: number;
   total: number;
 };
 
@@ -166,7 +175,8 @@ type TabName =
   | "settings"
   | "payments"
   | "inventory-margins"
-  | "ads";
+  | "ads"
+  | "promo-codes";
 
 const MASTER_PASSWORD = "@eeLixir26";
 
@@ -223,6 +233,20 @@ function InventoryIcon() {
     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none">
       <path d="M4 7h16M6 7v13h12V7M9 11h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M8 7V4h8v3" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function orderPromoSavings(order: Order) {
+  return Number(order.discount_amount || 0) + Number(order.shipping_discount_amount || 0);
+}
+
+function PriceTagIcon() {
+  return (
+    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 12V5a2 2 0 0 1 2-2h7l9 9-9 9-9-9Z" />
+      <circle cx="8" cy="8" r="1" />
     </svg>
   );
 }
@@ -575,11 +599,13 @@ export default function MasterAdminClient() {
     "all" | "this-month" | "last-month" | "custom"
   >("this-month");
 
+  const [discountCodeFilter, setDiscountCodeFilter] = useState("");
+
   const [salesMonth, setSalesMonth] = useState(
     new Date().toISOString().slice(0, 7)
   );
 
-  const [marginSection, setMarginSection] = useState<"sales" | "inventory">(
+  const [marginSection, setMarginSection] = useState<"sales" | "inventory" | "discounts">(
     "sales"
   );
 
@@ -946,7 +972,10 @@ export default function MasterAdminClient() {
       shipping_description: order.shipping_description || "",
       shipping_price: Number(order.shipping_price || 0),
       subtotal,
-      total: subtotal + Number(order.shipping_price || 0),
+      promo_code: order.promo_code || null,
+      discount_amount: Number(order.discount_amount || 0),
+      shipping_discount_amount: Number(order.shipping_discount_amount || 0),
+      total: subtotal + Number(order.shipping_price || 0) - orderPromoSavings(order),
     });
   }
 
@@ -984,7 +1013,7 @@ export default function MasterAdminClient() {
         shipping_label: selectedShipping?.display_label || "",
         shipping_description: selectedShipping?.description || "",
         shipping_price: shippingPrice,
-        total: subtotal + shippingPrice,
+        total: subtotal - current.discount_amount + shippingPrice,
       };
     });
   }
@@ -1222,6 +1251,9 @@ export default function MasterAdminClient() {
           whatsAppUrl: "",
           items: order.items || [],
           subtotal: Number(order.subtotal ?? order.total ?? 0),
+          promoCode: order.promo_code || null,
+          discountAmount: Number(order.discount_amount || 0),
+          shippingDiscountAmount: Number(order.shipping_discount_amount || 0),
           shippingMethodLabel: order.shipping_label || "Shipping",
           shippingDescription: order.shipping_description || "",
           shippingPrice: Number(order.shipping_price || 0),
@@ -2210,6 +2242,13 @@ export default function MasterAdminClient() {
     );
   });
 
+  const promoOrders = salesOrders.filter((order) => order.promo_code && orderPromoSavings(order) > 0);
+  const promoCodeOptions = Array.from(new Set(reportOrders
+    .filter((order) => orderCountsForSales(order) && order.promo_code && orderPromoSavings(order) > 0)
+    .map((order) => order.promo_code as string))).sort();
+  const discountOrders = promoOrders.filter((order) => !discountCodeFilter || order.promo_code === discountCodeFilter);
+  const totalDiscounts = discountOrders.reduce((sum, order) => sum + orderPromoSavings(order), 0);
+
   const productCostByCode = new Map(
     productVariants.map((variant) => [
       variant.product_code,
@@ -2230,11 +2269,14 @@ export default function MasterAdminClient() {
   >();
 
   salesOrders.forEach((order) => {
-    (order.items || []).forEach((item) => {
+    const items = order.items || [];
+    const lineAmounts = items.map((item) => Number(item.line_total ?? Number(item.price || 0) * Number(item.quantity || 0)));
+    const lineDiscounts = allocateOrderDiscount(lineAmounts, Number(order.discount_amount || 0));
+    items.forEach((item, index) => {
       const productCode = item.product_code || item.name;
       const quantity = Number(item.quantity || 0);
-      const price = Number(item.price || 0);
-      const revenue = Number(item.line_total ?? price * quantity);
+      const grossRevenue = lineAmounts[index];
+      const revenue = grossRevenue - lineDiscounts[index];
 
       const fallbackCostPerUnit = productCostByCode.get(productCode) || 0;
       const cost = Number(
@@ -2242,7 +2284,7 @@ export default function MasterAdminClient() {
         Number(item.cost_per_unit_at_sale ?? fallbackCostPerUnit) * quantity
       );
 
-      const profit = Number(item.total_profit_at_sale ?? revenue - cost);
+      const profit = Number(item.total_profit_at_sale ?? grossRevenue - cost) - lineDiscounts[index];
 
       const existing = salesMap.get(productCode) || {
         productCode,
@@ -2332,6 +2374,21 @@ export default function MasterAdminClient() {
       ];
     });
 
+    downloadReportCsv("sales-performance", headers, rows);
+  }
+
+  function exportDiscountsCsv() {
+    const rows = discountOrders.map((order) => [
+      `#${order.order_number || order.id.slice(0, 8).toUpperCase()}`,
+      order.created_at,
+      order.promo_code || "",
+      orderPromoSavings(order).toFixed(2),
+      Number(order.shipping_discount_amount || 0).toFixed(2),
+    ]);
+    downloadReportCsv("promo-discounts", ["Order", "Order Date", "Promo Code", "Total Discount", "Shipping Discount"], rows);
+  }
+
+  function downloadReportCsv(report: string, headers: string[], rows: (string | number)[][]) {
     const csvContent = [headers, ...rows]
       .map((row) =>
         row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(",")
@@ -2346,7 +2403,7 @@ export default function MasterAdminClient() {
     const link = document.createElement("a");
 
     link.href = url;
-    link.download = `ae-elixir-sales-performance-${new Date()
+    link.download = `ae-elixir-${report}-${new Date()
       .toISOString()
       .slice(0, 10)}.csv`;
 
@@ -2550,6 +2607,7 @@ export default function MasterAdminClient() {
         icon: <InventoryIcon />,
       },
       {id: "ads", label: "Ads / Banners", icon: <SettingsIcon />},
+      ...(PROMOTIONS_ENABLED ? [{ id: "promo-codes" as const, label: "Promo Codes", icon: <PriceTagIcon /> }] : []),
       {
         id: "settings",
         label: "Settings",
@@ -2640,6 +2698,11 @@ export default function MasterAdminClient() {
         </div>
 
         {activeTab === "ads" && <AdsManager />}
+        {PROMOTIONS_ENABLED && (
+          <div hidden={activeTab !== "promo-codes"}>
+            <PromoCodesManager />
+          </div>
+        )}
 
         {activeTab === "dashboard" && (
           <div className="space-y-5">
@@ -2962,6 +3025,9 @@ export default function MasterAdminClient() {
                         ? ` · ${formatCurrency(Number(order.shipping_price || 0))}`
                         : ""}
                     </p>
+                    {orderPromoSavings(order) > 0 && <p className="text-green-700">
+                      <b>{Number(order.shipping_discount_amount) > 0 ? "Free shipping" : "Promotion"}:</b> {order.promo_code} · −{formatCurrency(orderPromoSavings(order))}
+                    </p>}
                   </div>
 
                   <div className="mb-4 rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] p-3">
@@ -3250,28 +3316,20 @@ export default function MasterAdminClient() {
         {activeTab === "inventory-margins" && (
           <div className="space-y-5">
             <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-3 shadow-sm">
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setMarginSection("sales")}
-                  className={`rounded-full px-4 py-3 text-sm font-bold shadow-sm transition-all active:scale-95 ${marginSection === "sales"
-                    ? "bg-[#A79B8E] text-white"
-                    : "border border-[#D8D1C8] bg-white text-[#7F756B] hover:bg-[#F8F5F1]"
-                    }`}
-                >
-                  Sales Performance
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setMarginSection("inventory")}
-                  className={`rounded-full px-4 py-3 text-sm font-bold shadow-sm transition-all active:scale-95 ${marginSection === "inventory"
-                    ? "bg-[#A79B8E] text-white"
-                    : "border border-[#D8D1C8] bg-white text-[#7F756B] hover:bg-[#F8F5F1]"
-                    }`}
-                >
-                  Inventory Snapshot
-                </button>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                {([
+                  ["sales", "Sales Performance"],
+                  ["inventory", "Inventory Snapshot"],
+                  ["discounts", "Discounts"],
+                ] as const).map(([section, label]) => (
+                  <button key={section} type="button" onClick={() => setMarginSection(section)}
+                    aria-pressed={marginSection === section}
+                    className={`rounded-full px-4 py-3 text-sm font-bold shadow-sm transition-all active:scale-95 ${marginSection === section
+                      ? "bg-[#A79B8E] text-white"
+                      : "border border-[#D8D1C8] bg-white text-[#7F756B] hover:bg-[#F8F5F1]"}`}>
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -3290,7 +3348,7 @@ export default function MasterAdminClient() {
 
                       <p className="mt-2 text-sm leading-6 text-[#6F655C]">
                         View actual units sold, revenue, product cost, gross profit,
-                        and margin by selected month or all time. Only paid orders are counted.
+                        and margin for paid orders. Revenue and gross profit reflect promo discounts.
                       </p>
                     </div>
 
@@ -3519,6 +3577,81 @@ export default function MasterAdminClient() {
                         </div>
                       );
                     })
+                  )}
+                </div>
+              </div>
+            )}
+
+            {marginSection === "discounts" && (
+              <div className="space-y-5 text-[#5F554C]">
+                <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-5 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-xl font-bold">Promo Discounts</h2>
+                      <p className="mt-2 text-sm text-[#6F655C]">Merchandise and shipping discounts on paid orders, excluding cancellations.</p>
+                    </div>
+                    <button type="button" onClick={exportDiscountsCsv} disabled={discountOrders.length === 0}
+                      className="rounded-full bg-[#A79B8E] px-5 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-50">
+                      Export Discounts CSV
+                    </button>
+                  </div>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                    <select aria-label="Discount report period" value={salesPeriod}
+                      onChange={(event) => setSalesPeriod(event.target.value as typeof salesPeriod)}
+                      className="min-w-0 rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold">
+                      <option value="all">All Time</option>
+                      <option value="this-month">This Month</option>
+                      <option value="last-month">Last Month</option>
+                      <option value="custom">Custom Month</option>
+                    </select>
+                    <input aria-label="Discount report month" type="month" value={salesMonth}
+                      onChange={(event) => setSalesMonth(event.target.value)} disabled={salesPeriod !== "custom"}
+                      className="min-w-0 rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold disabled:bg-gray-100 disabled:text-gray-400" />
+                    <select aria-label="Filter by promo code" value={discountCodeFilter}
+                      onChange={(event) => setDiscountCodeFilter(event.target.value)}
+                      className="min-w-0 rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold">
+                      <option value="">All promo codes</option>
+                      {promoCodeOptions.map((code) => <option key={code} value={code}>{code}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    ["Total discounts", formatCurrency(totalDiscounts)],
+                    ["Discounted orders", discountOrders.length],
+                  ].map(([label, value]) => (
+                    <div key={label} className="rounded-[22px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
+                      <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">{label}</p>
+                      <p className="mt-2 text-xl font-bold">{value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="overflow-x-auto rounded-[22px] border border-[#E6E0D8] bg-white shadow-sm">
+                  {discountOrders.length === 0 ? (
+                    <p className="p-5 text-sm text-[#6F655C]">No paid orders with promo discounts match these filters.</p>
+                  ) : (
+                    <table className="w-full whitespace-nowrap text-left text-sm">
+                      <thead className="bg-[#FBFAF8] text-xs uppercase tracking-wide">
+                        <tr>
+                          <th scope="col" className="px-4 py-3">Order</th>
+                          <th scope="col" className="px-4 py-3">Date</th>
+                          <th scope="col" className="px-4 py-3">Promo code</th>
+                          <th scope="col" className="px-4 py-3 text-right">Discount</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#E6E0D8]">
+                        {discountOrders.map((order) => (
+                          <tr key={order.id}>
+                            <td className="px-4 py-3 font-bold">#{order.order_number || order.id.slice(0, 8).toUpperCase()}</td>
+                            <td className="px-4 py-3">{new Date(order.created_at).toLocaleDateString()}</td>
+                            <td className="px-4 py-3">{order.promo_code}{Number(order.shipping_discount_amount) > 0 ? " · Free shipping" : ""}</td>
+                            <td className="px-4 py-3 text-right font-bold">{formatCurrency(orderPromoSavings(order))}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   )}
                 </div>
               </div>
@@ -5527,6 +5660,7 @@ export default function MasterAdminClient() {
                   Shipping Method
                   <select
                     className="mt-1 w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-base font-bold text-[#5F554C] outline-none focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                    disabled={editOrderDraft.shipping_discount_amount > 0}
                     value={editOrderDraft.shipping_method}
                     onChange={(e) => handleEditShippingChange(e.target.value)}
                   >
@@ -5538,10 +5672,19 @@ export default function MasterAdminClient() {
                       </option>
                     ))}
                   </select>
+                  {editOrderDraft.shipping_discount_amount > 0 && (
+                    <span className="mt-1 block normal-case">Shipping is locked to the method covered by this promo.</span>
+                  )}
                 </label>
               </div>
 
               <div className="mt-5 rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] p-4">
+                {editOrderDraft.shipping_discount_amount > 0 && <p className="mb-3 text-sm text-green-700">
+                  {editOrderDraft.promo_code} · Free shipping −{formatCurrency(editOrderDraft.shipping_discount_amount)}
+                </p>}
+                {editOrderDraft.discount_amount > 0 && <p className="mb-3 text-sm text-green-700">
+                  {editOrderDraft.promo_code} · Discount −{formatCurrency(editOrderDraft.discount_amount)}
+                </p>}
                 <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wide text-[#9A9188]">

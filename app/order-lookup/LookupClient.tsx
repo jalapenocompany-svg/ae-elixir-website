@@ -26,6 +26,11 @@ type Order = {
   payment_method: string;
   items: OrderItem[];
   total: number;
+  subtotal?: number;
+  shipping_price?: number;
+  promo_code?: string | null;
+  discount_amount?: number;
+  shipping_discount_amount?: number;
   order_status: string | null;
   payment_status: string | null;
   tracking_number: string | null;
@@ -260,6 +265,15 @@ export default function LookupClient() {
         </div>
 
         <div className="mt-4 rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] p-4">
+          {(Number(order.discount_amount || 0) > 0 || Number(order.shipping_discount_amount || 0) > 0) && <div className="mb-4 space-y-2 border-b border-[#E6E0D8] pb-4 text-sm text-[#6F655C]">
+            <p className="flex justify-between"><span>Merchandise</span><span>${Number(order.subtotal || 0).toFixed(2)}</span></p>
+            <p className="flex justify-between gap-3 text-green-700">
+              <span>{Number(order.shipping_discount_amount) > 0 ? "Free shipping" : "Discount"} · {order.promo_code}</span>
+              <span>−${(Number(order.discount_amount || 0) + Number(order.shipping_discount_amount || 0)).toFixed(2)}</span>
+            </p>
+            <p className="flex justify-between"><span>Shipping</span><span>${Number(order.shipping_price || 0).toFixed(2)}</span></p>
+            <p className="flex justify-between font-bold text-[#5F554C]"><span>Total</span><span>${Number(order.total).toFixed(2)}</span></p>
+          </div>}
           <h3 className="mb-2 font-semibold text-[#5F554C]">
             Shipping
           </h3>

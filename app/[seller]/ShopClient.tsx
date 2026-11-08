@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import SiteHeader from "@/components/SiteHeader";
 import AgeGate from "@/components/AgeGate";
 import StorefrontAds from "@/components/StorefrontAds";
+import { useCheckoutPromotion } from "@/lib/useCheckoutPromotion";
 
 type Product = {
   id: number;
@@ -172,6 +173,9 @@ type LocalOrder = {
   subtotal?: number;
   shippingPrice?: number;
   shippingMethod?: string;
+  promoCode?: string | null;
+  discountAmount?: number;
+  shippingDiscountAmount?: number;
   total: number;
   paymentMethod: string;
   createdAt: string;
@@ -224,6 +228,7 @@ export default function ShopClient({ seller }: { seller?: string }) {
   const [showEmailReminder, setShowEmailReminder] = useState(false);
   const [whatsAppUrl, setWhatsAppUrl] = useState("");
   const [orderNumber, setOrderNumber] = useState("");
+  const [submittedDiscount, setSubmittedDiscount] = useState<{ code: string; amount: number; total: number; freeShipping: boolean } | null>(null);
   const [submittedPaymentMethod, setSubmittedPaymentMethod] =
     useState<PaymentMethod | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -283,8 +288,19 @@ export default function ShopClient({ seller }: { seller?: string }) {
   });
 
   const shippingPrice = Number(selectedShippingMethod?.price || 0);
-
-  const cartTotal = cartSubtotal + shippingPrice;
+  const promotion = useCheckoutPromotion(cart);
+  const checkoutSubtotal = promotion.quote?.subtotal ?? cartSubtotal;
+  const discountAmount = promotion.quote?.discount_amount ?? 0;
+  const freeShipping = promotion.quote?.discount_type === "free_shipping";
+  const eligibleShippingMethod = promotion.quote?.eligible_shipping_method;
+  const shippingMethodMatches = !eligibleShippingMethod || selectedShippingMethod?.name === eligibleShippingMethod;
+  const eligibleShippingLabel = shippingMethods.find((method) => method.name === eligibleShippingMethod)?.display_label
+    || "the eligible shipping method";
+  const shippingDiscountAmount = freeShipping && shippingMethodMatches ? Math.max(0, shippingPrice) : 0;
+  const freeShippingMessage = eligibleShippingMethod
+    ? `This code covers ${eligibleShippingLabel} only. Choose that method or remove the code to continue.`
+    : "Select a paid shipping method or remove the free-shipping code to continue.";
+  const cartTotal = checkoutSubtotal - discountAmount + shippingPrice - shippingDiscountAmount;
 
   useEffect(() => {
     const savedCart = localStorage.getItem("pepmistry_cart");
@@ -762,6 +778,10 @@ export default function ShopClient({ seller }: { seller?: string }) {
 
 
   function openOrderReviewModal() {
+    if (!promotion.ready) {
+      alert(promotion.error || "Please wait while your order total is verified.");
+      return;
+    }
     if (cart.length === 0) {
       alert("Your cart is empty.");
       return;
@@ -794,10 +814,20 @@ export default function ShopClient({ seller }: { seller?: string }) {
 
     setAddressSuggestions([]);
     setAddressSuggestionsOpen(false);
+    if (freeShipping && shippingDiscountAmount <= 0) {
+      alert(freeShippingMessage);
+      return;
+    }
+
     setShowOrderReviewModal(true);
   }
 
   async function handleOrderSubmit() {
+    if (isSubmitting || !promotion.ready) return;
+    if (freeShipping && shippingDiscountAmount <= 0) {
+      alert(freeShippingMessage);
+      return;
+    }
     const customerAddress = buildCustomerAddress();
 
     setIsSubmitting(true);
@@ -832,23 +862,31 @@ export default function ShopClient({ seller }: { seller?: string }) {
       customer_phone: form.phone,
       payment_method: form.paymentMethod,
       items: orderItemsWithMargins,
-      subtotal: cartSubtotal,
+      subtotal: checkoutSubtotal,
       shipping_method: selectedShippingMethod?.name || "",
       shipping_label: selectedShippingMethod?.display_label || "",
       shipping_description: selectedShippingMethod?.description || "",
       shipping_price: shippingPrice,
       total: cartTotal,
+      ...(promotion.quote ? { promo_code: promotion.quote.code } : {}),
+      ...(freeShipping ? { shipping_discount_amount: shippingDiscountAmount } : {}),
     };
 
     const { data, error } = await supabase
       .from("orders")
       .insert(orderPayload)
-      .select("id")
-      .single();
+      .select(freeShipping ? "id, subtotal, discount_amount, shipping_discount_amount, promo_code, total"
+        : promotion.quote ? "id, subtotal, discount_amount, promo_code, total" : "id")
+      .single()
+      .overrideTypes<{ id: string; subtotal?: number; discount_amount?: number; shipping_discount_amount?: number; promo_code?: string; total?: number }, { merge: false }>();
 
     if (error) {
       console.error(error);
       alert(error.message);
+      if (promotion.appliedCode) {
+        promotion.refresh();
+        setShowOrderReviewModal(false);
+      }
       setIsSubmitting(false);
       return;
     }
@@ -865,8 +903,21 @@ export default function ShopClient({ seller }: { seller?: string }) {
       );
     }
 
+    // Use the persisted discount and total for a promoted order.
+    const savedSubtotal = Number(data.subtotal ?? checkoutSubtotal);
+    const savedShippingPrice = shippingPrice;
+    const savedTotal = Number(data.total ?? cartTotal);
+    const savedDiscountAmount = Number(data.discount_amount || 0);
+    const savedShippingDiscount = Number(data.shipping_discount_amount || 0);
+    const savedPromoCode: string | null = data.promo_code || null;
+    const savedItems = orderItemsWithMargins;
+    const savedSavings = savedDiscountAmount + savedShippingDiscount;
+    const savingsLabel = savedShippingDiscount > 0 ? "Free shipping" : "Discount";
+    const discountText = savedSavings > 0
+      ? `\n${savingsLabel} (${savedPromoCode}): -$${savedSavings.toFixed(2)}` : "";
     const shortOrderNumber = data.id.slice(0, 8).toUpperCase();
     setOrderNumber(shortOrderNumber);
+    setSubmittedDiscount(savedPromoCode ? { code: savedPromoCode, amount: savedSavings, total: savedTotal, freeShipping: savedShippingDiscount > 0 } : null);
     setSubmittedPaymentMethod(selectedPaymentMethod || null);
 
     const itemsText = cart
@@ -890,10 +941,10 @@ Email: ${form.email}
 Address: ${customerAddress}
 
 Payment: ${selectedPaymentMethod?.display_label || form.paymentMethod}
-Shipping: ${selectedShippingMethod?.display_label || ""} - $${shippingPrice.toFixed(2)}
+Shipping: ${selectedShippingMethod?.display_label || ""} - $${savedShippingPrice.toFixed(2)}
 
 Items:
-${cart
+${savedItems
         .map(
           (item) =>
             `${item.quantity}x ${item.name} - $${(
@@ -902,9 +953,9 @@ ${cart
         )
         .join("\n")}
 
-Subtotal: $${cartSubtotal.toFixed(2)}
-Shipping: $${shippingPrice.toFixed(2)}
-Total: $${cartTotal.toFixed(2)}`
+Subtotal: $${savedSubtotal.toFixed(2)}${discountText}
+Shipping: $${savedShippingPrice.toFixed(2)}
+Total: $${savedTotal.toFixed(2)}`
     );
 
     const isWhatsAppPayment =
@@ -935,12 +986,15 @@ Total: $${cartTotal.toFixed(2)}`
           paymentInstructions:
             selectedPaymentMethod?.instructions || "",
           whatsAppUrl: orderWhatsAppUrl,
-          items: orderItemsWithMargins,
-          subtotal: cartSubtotal,
+          items: savedItems,
+          subtotal: savedSubtotal,
+          promoCode: savedPromoCode,
+          discountAmount: savedDiscountAmount,
+          shippingDiscountAmount: savedShippingDiscount,
           shippingMethodLabel: selectedShippingMethod?.display_label || "",
           shippingDescription: selectedShippingMethod?.description || "",
-          shippingPrice,
-          total: cartTotal,
+          shippingPrice: savedShippingPrice,
+          total: savedTotal,
         }),
       });
 
@@ -959,14 +1013,17 @@ Total: $${cartTotal.toFixed(2)}`
       id: data.id,
       orderNumber: shortOrderNumber,
       seller: validSellerCode || "AEELIXIR",
-      subtotal: cartSubtotal,
-      shippingPrice,
+      subtotal: savedSubtotal,
+      promoCode: savedPromoCode,
+      discountAmount: savedDiscountAmount,
+      shippingDiscountAmount: savedShippingDiscount,
+      shippingPrice: savedShippingPrice,
       shippingMethod: selectedShippingMethod?.display_label || "",
-      total: cartTotal,
+      total: savedTotal,
       paymentMethod: form.paymentMethod,
       createdAt: new Date().toISOString(),
       items: cart.map((item) => {
-        const marginItem = orderItemsWithMargins.find(
+        const marginItem = savedItems.find(
           (orderItem) => orderItem.id === item.id
         );
 
@@ -1009,6 +1066,7 @@ Total: $${cartTotal.toFixed(2)}`
   }
 
   function resetCheckoutAfterSuccessfulOrder() {
+    promotion.remove();
     setCart([]);
     localStorage.removeItem("pepmistry_cart");
 
@@ -1960,16 +2018,17 @@ Total: $${cartTotal.toFixed(2)}`
             </>
           ) : (
             /* Checkout Content */
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-2">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [overflow-anchor:none] px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-2">
               <div className="space-y-4">
                 <div className="rounded-[24px] border border-[#E6E0D8] bg-[#FBFAF8] p-4 shadow-sm">
-                  <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
-                    Customer Details
+                  <p className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3" /><path d="M5 19v-1a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v1" /></svg>
+                    <span>Customer Details</span>
                   </p>
 
                   <div className="space-y-3">
                     <input
-                      className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                      className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-base font-semibold text-[#5F554C] outline-none sm:text-sm transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
                       placeholder="Full Name"
                       value={form.fullName}
                       onChange={(e) =>
@@ -1990,7 +2049,7 @@ Total: $${cartTotal.toFixed(2)}`
                       }}
                     >
                       <input
-                        className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                        className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-base font-semibold text-[#5F554C] outline-none sm:text-sm transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
                         placeholder="Address Line 1"
                         value={form.address1}
                         onFocus={() => {
@@ -2027,7 +2086,9 @@ Total: $${cartTotal.toFixed(2)}`
                             </span>
                           </button>
 
-                          {addressSuggestions.length > 0 ? (
+                          {addressLoading ? (
+                            <p role="status" className="px-4 py-3 text-sm text-[#6F655C]">Searching addresses…</p>
+                          ) : addressSuggestions.length > 0 ? (
                             addressSuggestions.map((suggestion) => (
                               <button
                                 key={suggestion.properties.place_id}
@@ -2046,16 +2107,10 @@ Total: $${cartTotal.toFixed(2)}`
                           )}
                         </div>
                       )}
-
-                      {addressLoading && (
-                        <p className="mt-1 text-xs text-[#9A9188]">
-                          Searching addresses...
-                        </p>
-                      )}
                     </div>
 
                     <input
-                      className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                      className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-base font-semibold text-[#5F554C] outline-none sm:text-sm transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
                       placeholder="Apartment, Suite, Unit, Floor, etc. optional"
                       value={form.address2}
                       onChange={(e) =>
@@ -2068,7 +2123,7 @@ Total: $${cartTotal.toFixed(2)}`
 
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                       <input
-                        className="col-span-2 w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20 sm:col-span-1"
+                        className="col-span-2 w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-base font-semibold text-[#5F554C] outline-none sm:text-sm transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20 sm:col-span-1"
                         placeholder="City"
                         value={form.city}
                         onChange={(e) =>
@@ -2080,7 +2135,7 @@ Total: $${cartTotal.toFixed(2)}`
                       />
 
                       <input
-                        className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                        className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-base font-semibold text-[#5F554C] outline-none sm:text-sm transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
                         placeholder="State"
                         maxLength={2}
                         value={form.state}
@@ -2093,7 +2148,7 @@ Total: $${cartTotal.toFixed(2)}`
                       />
 
                       <input
-                        className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                        className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-base font-semibold text-[#5F554C] outline-none sm:text-sm transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
                         placeholder="ZIP"
                         inputMode="numeric"
                         value={form.zip}
@@ -2107,7 +2162,7 @@ Total: $${cartTotal.toFixed(2)}`
                     </div>
 
                     <input
-                      className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                      className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-base font-semibold text-[#5F554C] outline-none sm:text-sm transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
                       placeholder="Email"
                       value={form.email}
                       onChange={(e) =>
@@ -2119,7 +2174,7 @@ Total: $${cartTotal.toFixed(2)}`
                     </p>
 
                     <input
-                      className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-semibold text-[#5F554C] outline-none transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
+                      className="w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-base font-semibold text-[#5F554C] outline-none sm:text-sm transition placeholder:text-[#B6ADA4] focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20"
                       placeholder="Phone"
                       value={form.phone}
                       onChange={(e) =>
@@ -2240,12 +2295,13 @@ Total: $${cartTotal.toFixed(2)}`
                 </div>
 
                 <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm">
-                  <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
-                    Payment Method
+                  <p className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18m-14 5h3" /></svg>
+                    <span>Payment Method</span>
                   </p>
 
                   <select
-                    className={`w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm font-bold outline-none transition focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20 ${form.paymentMethod
+                    className={`w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-base font-bold outline-none sm:text-sm transition focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20 ${form.paymentMethod
                       ? "text-[#5F554C]"
                       : "text-[#B6ADA4]"
                       }`}
@@ -2321,6 +2377,35 @@ Total: $${cartTotal.toFixed(2)}`
                   )}
                 </div>
 
+                {promotion.enabled && (
+                  <div className="rounded-[24px] border border-[#E6E0D8] bg-white p-4">
+                    <label htmlFor="promotion-code" className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
+                      <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 12V5a2 2 0 0 1 2-2h7l9 9-9 9-9-9Z" /><circle cx="8" cy="8" r="1" /></svg>
+                      <span>Promotion Code</span>
+                    </label>
+                    <div className="flex gap-2">
+                      <input id="promotion-code" autoComplete="off" maxLength={32}
+                        value={promotion.codeInput}
+                        onChange={(event) => promotion.setCodeInput(event.target.value.toUpperCase())}
+                        onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); promotion.apply(); } }}
+                        placeholder="Enter code"
+                        aria-describedby="promotion-status"
+                        className="min-w-0 flex-1 rounded-xl border border-[#D8D1C8] px-3 py-2 text-base text-[#5F554C] outline-none sm:text-sm focus:border-[#A79B8E]" />
+                      <button type="button" onClick={promotion.apply} disabled={!promotion.codeInput.trim() || promotion.checking}
+                        className="rounded-full bg-[#A79B8E] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Apply</button>
+                    </div>
+                    <div id="promotion-status" aria-live="polite" className="mt-2 text-xs leading-5">
+                      {promotion.checking ? <p className="text-[#6F655C]">Verifying order total…</p>
+                        : promotion.error ? <p className="text-red-700">{promotion.error}</p>
+                        : freeShipping && shippingDiscountAmount <= 0 ? <p className="text-[#6F655C]">{freeShippingMessage}</p>
+                        : promotion.quote?.code ? <p className="text-green-700">{promotion.quote.code} applied.</p>
+                        : <p className="text-[#6F655C]">Enter a promo code to see eligible savings.</p>}
+                    </div>
+                    {promotion.appliedCode && <button type="button" onClick={promotion.remove} className="mt-2 text-xs font-semibold text-[#6F655C] underline">Remove code</button>}
+                    {promotion.error && <button type="button" onClick={promotion.refresh} className="ml-3 mt-2 text-xs font-semibold text-[#6F655C] underline">Try again</button>}
+                  </div>
+                )}
+
                 <div className="rounded-[24px] border border-[#E6E0D8] bg-[#FBFAF8] p-4 shadow-sm">
                   <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#A79B8E]">
                     Order Total
@@ -2330,10 +2415,16 @@ Total: $${cartTotal.toFixed(2)}`
                     <div className="flex items-center justify-between">
                       <span>Subtotal</span>
                       <span className="font-bold text-[#5F554C]">
-                        ${cartSubtotal.toFixed(2)}
+                        ${checkoutSubtotal.toFixed(2)}
                       </span>
                     </div>
 
+                    {discountAmount > 0 && <div className="flex items-center justify-between gap-3 text-green-700">
+                      <span>Discount · {promotion.quote?.code}</span><span className="font-bold">−${discountAmount.toFixed(2)}</span>
+                    </div>}
+                    {shippingDiscountAmount > 0 && <div className="flex items-center justify-between gap-3 text-green-700">
+                      <span>Free shipping · {promotion.quote?.code}</span><span className="font-bold">−${shippingDiscountAmount.toFixed(2)}</span>
+                    </div>}
                     <div className="flex items-center justify-between">
                       <span>
                         Shipping
@@ -2358,10 +2449,10 @@ Total: $${cartTotal.toFixed(2)}`
                 <button
                   type="button"
                   onClick={openOrderReviewModal}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !promotion.ready}
                   className="w-full rounded-full bg-[#A79B8E] py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95 disabled:opacity-50"
                 >
-                  Review Order
+                  {promotion.checking ? "Verifying Total…" : "Review Order"}
                 </button>
 
                 <button
@@ -2577,10 +2668,16 @@ Total: $${cartTotal.toFixed(2)}`
                     <div className="flex items-center justify-between">
                       <span>Subtotal</span>
                       <span className="font-bold text-[#5F554C]">
-                        ${cartSubtotal.toFixed(2)}
+                        ${checkoutSubtotal.toFixed(2)}
                       </span>
                     </div>
 
+                    {discountAmount > 0 && <div className="flex items-center justify-between gap-3 text-green-700">
+                      <span>Discount · {promotion.quote?.code}</span><span className="font-bold">−${discountAmount.toFixed(2)}</span>
+                    </div>}
+                    {shippingDiscountAmount > 0 && <div className="flex items-center justify-between gap-3 text-green-700">
+                      <span>Free shipping · {promotion.quote?.code}</span><span className="font-bold">−${shippingDiscountAmount.toFixed(2)}</span>
+                    </div>}
                     <div className="flex items-center justify-between">
                       <span>Shipping Fee</span>
                       <span className="font-bold text-[#5F554C]">
@@ -2600,6 +2697,9 @@ Total: $${cartTotal.toFixed(2)}`
             </div>
 
             <div className="sticky bottom-0 shrink-0 border-t border-[#E6E0D8] bg-white p-4 shadow-[0_-8px_20px_rgba(0,0,0,0.04)]">
+              {promotion.enabled && !promotion.ready && <p role="status" className="mb-3 text-sm text-red-700">
+                {promotion.error || "Verifying your order total…"} {promotion.error && "Return to edit to update or remove the code."}
+              </p>}
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
@@ -2616,7 +2716,7 @@ Total: $${cartTotal.toFixed(2)}`
                     setShowOrderReviewModal(false);
                     handleOrderSubmit();
                   }}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !promotion.ready}
                   className="rounded-full bg-[#A79B8E] px-3 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95 disabled:opacity-50"
                 >
                   {isSubmitting ? "Saving..." : "Place Order"}
@@ -2644,6 +2744,12 @@ Total: $${cartTotal.toFixed(2)}`
                 <p className="text-lg font-bold tracking-wide text-[#5F554C]">
                   #{orderNumber}
                 </p>
+                {submittedDiscount && (
+                  <div className="mt-2 text-sm font-bold">
+                    <p className="text-green-700">{submittedDiscount.freeShipping ? "Free shipping" : "Discount"} ({submittedDiscount.code}) · −${submittedDiscount.amount.toFixed(2)}</p>
+                    <p>Order total · ${submittedDiscount.total.toFixed(2)}</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -2720,6 +2826,7 @@ Total: $${cartTotal.toFixed(2)}`
                 setOrderNotice("");
                 setShowEmailReminder(false);
                 setOrderNumber("");
+                setSubmittedDiscount(null);
                 setWhatsAppUrl("");
                 setSubmittedPaymentMethod(null);
               }}
