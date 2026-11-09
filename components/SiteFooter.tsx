@@ -84,16 +84,16 @@ export default function SiteFooter() {
 
   const cleanWhatsApp = (settings?.whatsapp_number || "").replace(/\D/g, "");
   const contactEmail = (settings?.contact_email || "").trim();
-  const tiktokUrl = (settings?.tiktok_url || "").trim();
+  const instagramUrl = (settings?.tiktok_url || "").trim();
 
   const hasWhatsApp = cleanWhatsApp.length > 0;
   const hasEmail = contactEmail.length > 0;
-  const hasTikTok = tiktokUrl.length > 0;
+  const hasInstagram = instagramUrl.length > 0;
 
   return (
     <footer className="border-t border-gray-100 px-6 py-10">
       <div className="mx-auto max-w-xl text-center">
-        {(hasWhatsApp || hasEmail || hasTikTok) && (
+        {(hasWhatsApp || hasEmail || hasInstagram) && (
           <>
             <p className="mb-4 text-sm font-semibold text-gray-400">
               Contact Us
@@ -149,12 +149,12 @@ export default function SiteFooter() {
                 </a>
               )}
 
-              {hasTikTok && (
+              {hasInstagram && (
                 <a
-                  href={tiktokUrl}
+                  href={instagramUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label="Visit our TikTok"
+                  aria-label="Visit our Instagram"
                   className="flex h-12 w-12 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
                 >
                   <svg
@@ -163,16 +163,17 @@ export default function SiteFooter() {
                     fill="none"
                     aria-hidden="true"
                   >
-                    <path
-                      d="M14 4v9.2a4.2 4.2 0 1 1-4.2-4.2"
+                    <rect
+                      x="3"
+                      y="3"
+                      width="18"
+                      height="18"
+                      rx="5"
                       stroke="currentColor"
-                      strokeWidth="2.2"
+                      strokeWidth="2"
                     />
-                    <path
-                      d="M14 4c.6 2.8 2.4 4.6 5 5"
-                      stroke="currentColor"
-                      strokeWidth="2.2"
-                    />
+                    <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2" />
+                    <circle cx="17.4" cy="6.6" r="1" fill="currentColor" />
                   </svg>
                 </a>
               )}
