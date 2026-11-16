@@ -239,6 +239,8 @@ export default function ShopClient({ seller }: { seller?: string }) {
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
+  const [shippingStatus, setShippingStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [shippingRetry, setShippingRetry] = useState(0);
   const [selectedShippingMethodId, setSelectedShippingMethodId] = useState("");
 
 
@@ -320,9 +322,7 @@ export default function ShopClient({ seller }: { seller?: string }) {
   }, [cart]);
 
   useEffect(() => {
-    async function loadInitialData() {
-
-
+    async function loadSiteSettings() {
       const { data: settingsData } = await supabase
         .from("site_settings")
         .select(
@@ -334,7 +334,9 @@ export default function ShopClient({ seller }: { seller?: string }) {
       if (settingsData) {
         setSiteSettings(settingsData);
       }
+    }
 
+    async function loadPaymentMethods() {
       const { data: paymentData, error: paymentError } = await supabase
         .from("payment_methods")
         .select("*")
@@ -346,20 +348,54 @@ export default function ShopClient({ seller }: { seller?: string }) {
       } else {
         setPaymentMethods(paymentData || []);
       }
+    }
 
-      const { data: shippingData, error: shippingError } = await supabase
-        .from("shipping_methods")
-        .select("*")
-        .eq("enabled", true)
-        .order("sort_order", { ascending: true });
+    void loadSiteSettings();
+    void loadPaymentMethods();
+  }, []);
 
-      if (shippingError) {
-        console.error("SHIPPING METHODS ERROR:", shippingError);
-      } else {
-        setShippingMethods(shippingData || []);
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+    const timeout = window.setTimeout(() => controller.abort(), 12000);
+
+    async function loadShippingMethods() {
+      try {
+        const { data, error } = await supabase
+          .from("shipping_methods")
+          .select("*")
+          .eq("enabled", true)
+          .order("sort_order", { ascending: true })
+          .abortSignal(controller.signal);
+
+        if (!active) return;
+        if (error) throw error;
+
+        const methods = data || [];
+        setShippingMethods(methods);
+        setSelectedShippingMethodId((current) =>
+          methods.some((method) => method.id === current) ? current : "",
+        );
+        setShippingStatus("ready");
+      } catch (error) {
+        if (!active) return;
+        console.error("SHIPPING METHODS ERROR:", error);
+        setShippingStatus("error");
+      } finally {
+        window.clearTimeout(timeout);
       }
+    }
 
+    void loadShippingMethods();
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [shippingRetry]);
 
+  useEffect(() => {
+    async function loadInitialData() {
       setValidSellerCode(STORE_REFERENCE_CODE);
       setShowReferenceCode(false);
       setPriceZone("zone1");
@@ -796,7 +832,7 @@ export default function ShopClient({ seller }: { seller?: string }) {
       !form.email ||
 
       !form.phone ||
-      !selectedShippingMethodId ||
+      !selectedShippingMethod ||
       !form.paymentMethod
     ) {
       alert(
@@ -2238,10 +2274,21 @@ Total: $${savedTotal.toFixed(2)}`
                     <span>Shipping Method</span>
                   </button>
 
-                  {visibleShippingMethods.length === 0 ? (
-                    <div className="rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] p-4 text-sm font-semibold text-[#6F655C]">
-                      Shipping options are currently unavailable.
+                  {shippingStatus === "loading" ? (
+                    <p role="status" className="text-sm text-[#6F655C]">Loading shipping options…</p>
+                  ) : shippingStatus === "error" ? (
+                    <div className="rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] p-4 text-sm text-[#6F655C]">
+                      <p role="alert">We couldn’t load shipping options. Please try again.</p>
+                      <button type="button" className="mt-3 rounded-full border border-[#D8D1C8] px-4 py-2 font-bold"
+                        onClick={() => {
+                          setShippingStatus("loading");
+                          setShippingRetry((attempt) => attempt + 1);
+                        }}>
+                        Retry shipping
+                      </button>
                     </div>
+                  ) : visibleShippingMethods.length === 0 ? (
+                    <p role="status" className="text-sm text-[#6F655C]">No shipping options are currently available.</p>
                   ) : (
                     <div className="space-y-3">
                       {visibleShippingMethods.map((method) => {
@@ -2449,7 +2496,7 @@ Total: $${savedTotal.toFixed(2)}`
                 <button
                   type="button"
                   onClick={openOrderReviewModal}
-                  disabled={isSubmitting || !promotion.ready}
+                  disabled={isSubmitting || !promotion.ready || shippingStatus !== "ready" || visibleShippingMethods.length === 0}
                   className="w-full rounded-full bg-[#A79B8E] py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95 disabled:opacity-50"
                 >
                   {promotion.checking ? "Verifying Total…" : "Review Order"}
