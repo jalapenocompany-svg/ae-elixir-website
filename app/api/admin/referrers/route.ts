@@ -12,8 +12,17 @@ function authorize(request: Request) {
     return adsReply({ error: "Open Referrals from the local admin portal." }, 403);
   }
   const origin = request.headers.get("origin");
-  if (origin && origin !== new URL(request.url).origin) {
-    return adsReply({ error: "Use the same local site to manage referrers." }, 403);
+  // Next.js can normalize request.url to localhost even when the browser uses a LAN address.
+  // Host retains the address and port the browser actually requested.
+  const host = request.headers.get("host") ?? new URL(request.url).host;
+  if (origin) {
+    try {
+      if (new URL(origin).host !== host.toLowerCase()) {
+        return adsReply({ error: "Use the same local site to manage referrers." }, 403);
+      }
+    } catch {
+      return adsReply({ error: "Invalid request origin." }, 403);
+    }
   }
 }
 
