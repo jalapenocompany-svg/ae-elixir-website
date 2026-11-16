@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { allocateOrderDiscount } from "@/lib/allocate-order-discount";
+import ReferrersManager from "@/components/ReferrersManager";
 import PromoCodesManager from "@/components/PromoCodesManager";
 import { PROMOTIONS_ENABLED } from "@/lib/promotions";
 import AdsManager from "@/components/AdsManager";
@@ -176,7 +177,11 @@ type TabName =
   | "payments"
   | "inventory-margins"
   | "ads"
-  | "promo-codes";
+  | "promo-codes"
+  | "referrals";
+
+const SHOW_REFERRALS_PREVIEW = process.env.NODE_ENV === "development"
+  && process.env.NEXT_PUBLIC_REFERRALS_PREVIEW_ENABLED === "true";
 
 const MASTER_PASSWORD = "@eeLixir26";
 
@@ -2607,6 +2612,7 @@ export default function MasterAdminClient() {
         icon: <InventoryIcon />,
       },
       {id: "ads", label: "Ads / Banners", icon: <SettingsIcon />},
+      ...(SHOW_REFERRALS_PREVIEW ? [{ id: "referrals" as const, label: "Referrals", icon: <PriceTagIcon /> }] : []),
       ...(PROMOTIONS_ENABLED ? [{ id: "promo-codes" as const, label: "Promo Codes", icon: <PriceTagIcon /> }] : []),
       {
         id: "settings",
@@ -2698,6 +2704,7 @@ export default function MasterAdminClient() {
         </div>
 
         {activeTab === "ads" && <AdsManager />}
+        {SHOW_REFERRALS_PREVIEW && activeTab === "referrals" && <ReferrersManager />}
         {PROMOTIONS_ENABLED && (
           <div hidden={activeTab !== "promo-codes"}>
             <PromoCodesManager />
