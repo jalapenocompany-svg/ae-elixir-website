@@ -1942,9 +1942,19 @@ Total: $${savedTotal.toFixed(2)}`
           {/* Drawer Header */}
           <div className="shrink-0 px-5 pb-4 pt-5">
             <div className="flex items-center justify-between border-b border-[#E6E0D8] pb-4">
-              <h2 className="text-2xl font-bold tracking-tight text-[#1F1A17]">
-                {checkoutOpen ? "Checkout" : "Your Cart"}
-              </h2>
+              <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-2 pr-2">
+                <h2 className="text-2xl font-bold tracking-tight text-[#1F1A17]">
+                  {checkoutOpen ? "Checkout" : "Your Cart"}
+                </h2>
+                {checkoutOpen && referredBy && (
+                  <>
+                    <span aria-hidden="true" className="text-[#B5A99C]">·</span>
+                    <span className="max-w-full break-words rounded-full border border-[#E6DDD2] bg-[#F3EEE8] px-3 py-1.5 text-xs font-semibold leading-4 text-[#6F6052]">
+                      Referred by: {referredBy}
+                    </span>
+                  </>
+                )}
+              </div>
 
               <button
                 type="button"
@@ -2458,11 +2468,6 @@ Total: $${savedTotal.toFixed(2)}`
                     Order Total
                   </p>
 
-                  {referredBy && (
-                    <p className="mb-3 rounded-xl bg-[#F3EEE8] px-3 py-2 text-sm font-semibold text-[#5F554C]">
-                      Referred by: {referredBy}
-                    </p>
-                  )}
                   <div className="space-y-2 text-sm text-[#6F655C]">
                     <div className="flex items-center justify-between">
                       <span>Subtotal</span>
