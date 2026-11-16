@@ -21,11 +21,11 @@ const paths = {
   edit: "m16 3 5 5-12 12-6 1 1-6L16 3ZM14 5l5 5",
   copy: "M9 9h11v11H9zM5 15H3V3h12v2",
   trash: "M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7M14 10v7",
-  link: "m10 13 4-4M8 16l-2 2a4 4 0 0 1-6-6l4-4M16 8l2-2a4 4 0 0 1 6 6l-4 4",
+  link: "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71",
 };
 
 function Icon({ name }: { name: keyof typeof paths }) {
-  return <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d={paths[name]} /></svg>;
+  return <svg aria-hidden="true" className="block h-4 w-4 shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d={paths[name]} /></svg>;
 }
 
 async function request(method: string, profile?: typeof empty, id?: string, signal?: AbortSignal) {
