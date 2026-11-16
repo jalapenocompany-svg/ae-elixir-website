@@ -199,7 +199,7 @@ const STAFF_ONLY_SHIPPING_NAMES = [
   "local-delivery-pickup",
 ];
 
-export default function ShopClient({ seller }: { seller?: string }) {
+export default function ShopClient({ seller, referredBy }: { seller?: string; referredBy?: string }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -2458,6 +2458,11 @@ Total: $${savedTotal.toFixed(2)}`
                     Order Total
                   </p>
 
+                  {referredBy && (
+                    <p className="mb-3 rounded-xl bg-[#F3EEE8] px-3 py-2 text-sm font-semibold text-[#5F554C]">
+                      Referred by: {referredBy}
+                    </p>
+                  )}
                   <div className="space-y-2 text-sm text-[#6F655C]">
                     <div className="flex items-center justify-between">
                       <span>Subtotal</span>
