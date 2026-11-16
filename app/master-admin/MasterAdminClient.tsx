@@ -2602,17 +2602,12 @@ export default function MasterAdminClient() {
         icon: <OrdersIcon />,
       },
       {
-        id: "earnings",
-        label: "Affiliates",
-        icon: <AffiliatesIcon />,
-      },
-      {
         id: "products",
         label: "Products",
         icon: <InventoryIcon />,
       },
       {id: "ads", label: "Ads / Banners", icon: <SettingsIcon />},
-      ...(SHOW_REFERRALS_PREVIEW ? [{ id: "referrals" as const, label: "Referrals", icon: <PriceTagIcon /> }] : []),
+      ...(SHOW_REFERRALS_PREVIEW ? [{ id: "referrals" as const, label: "Referrals", icon: <AffiliatesIcon /> }] : []),
       ...(PROMOTIONS_ENABLED ? [{ id: "promo-codes" as const, label: "Promo Codes", icon: <PriceTagIcon /> }] : []),
       {
         id: "settings",
