@@ -1,3 +1,4 @@
+import { resolveReferral } from "@/lib/referral-preview";
 import ShopClient from "./ShopClient";
 
 export default async function SellerPage({
@@ -7,5 +8,6 @@ export default async function SellerPage({
 }) {
   const { seller } = await params;
 
-  return <ShopClient seller={seller} />;
+  const referredBy = await resolveReferral(seller);
+  return referredBy ? <ShopClient referredBy={referredBy} /> : <ShopClient seller={seller} />;
 }
