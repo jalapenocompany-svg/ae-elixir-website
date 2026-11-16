@@ -1,4 +1,3 @@
-import { timingSafeEqual } from "node:crypto";
 import { adsDatabase, adsReply } from "@/lib/ads-server";
 import { findSellerCode, previewEnabled, referralCodePattern, reservedCodes } from "@/lib/referral-preview";
 
@@ -7,12 +6,14 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
 
 function authorize(request: Request) {
   if (!previewEnabled) return adsReply({ error: "Referral preview is disabled." }, 404);
-  const key = process.env.REFERRAL_ADMIN_KEY;
-  if (!key || key.length < 16) return adsReply({ error: "Configure the local referral admin key." }, 503);
-  const supplied = Buffer.from(request.headers.get("x-referral-admin-key") ?? "");
-  const expected = Buffer.from(key);
-  if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) {
-    return adsReply({ error: "Incorrect referral admin key." }, 401);
+  // This password-free API is available only in the explicitly enabled local development preview.
+  // The custom header prevents cross-origin form requests from invoking these operations.
+  if (request.headers.get("x-referral-preview") !== "true") {
+    return adsReply({ error: "Open Referrals from the local admin portal." }, 403);
+  }
+  const origin = request.headers.get("origin");
+  if (origin && origin !== new URL(request.url).origin) {
+    return adsReply({ error: "Use the same local site to manage referrers." }, 403);
   }
 }
 
