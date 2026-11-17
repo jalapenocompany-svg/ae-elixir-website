@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
+type RewardType = "none" | "percent" | "fixed";
+
 type Profile = {
   id: string;
   display_name: string;
@@ -9,8 +11,69 @@ type Profile = {
   code: string;
   enabled: boolean;
   user_id: string | null;
+  reward_type: RewardType;
+  reward_value: number;
+  minimum_order_cents: number;
 };
-const empty = { id: "", display_name: "", email: "", code: "", enabled: true };
+const empty = {
+  id: "", display_name: "", email: "", code: "", enabled: true,
+  reward_type: "none" as RewardType, rewardAmount: "", minimumOrder: "",
+};
+const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+
+function rewardLabel(profile: Profile) {
+  if (profile.reward_type === "none") return "No credit rule";
+  const amount = profile.reward_type === "percent"
+    ? (profile.reward_value / 100) + "%"
+    : currency.format(profile.reward_value / 100);
+  return profile.minimum_order_cents > 0
+    ? amount + " credit on orders of " + currency.format(profile.minimum_order_cents / 100) + "+"
+    : amount + " credit per referred order";
+}
+
+function ReferralOverview({ count }: { count: number | undefined }) {
+  const now = new Date();
+  const months = Array.from({ length: 5 }, (_, index) =>
+    new Date(now.getFullYear(), now.getMonth() + index - 4, 1)
+      .toLocaleString("en-US", { month: "short" })
+  );
+  const metrics = [
+    { label: "Referrers", value: count?.toLocaleString("en-US"), caption: "Total profiles" },
+    { label: "Referred orders", caption: "Awaiting tracking" },
+    { label: "Credits given", caption: "Awaiting tracking" },
+    { label: "Credits used", caption: "Awaiting tracking" },
+  ];
+
+  return (
+    <>
+      <h2 className="text-2xl font-bold tracking-tight">Referral overview</h2>
+      <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {metrics.map(({ label, value, caption }) => (
+          <div key={label} className="rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm sm:p-5">
+            <dt className="text-sm font-semibold text-[#6F655C]">{label}</dt>
+            <dd className="mt-2 text-2xl font-bold">{value ?? "—"}</dd>
+            <dd className="mt-1 text-xs text-[#7F756B]">{caption}</dd>
+          </div>
+        ))}
+      </dl>
+      <section className="rounded-[24px] border border-[#E6E0D8] bg-white p-5 shadow-sm">
+        <h3 className="text-lg font-bold">Referral sales</h3>
+        <p className="mt-1 text-sm text-[#6F655C]">Last 5 months</p>
+        <div className="relative mt-5 flex h-36 items-center justify-center rounded-2xl bg-[#FBFAF8] px-3 sm:h-48">
+          <div aria-hidden="true" className="absolute inset-0 grid grid-rows-4 px-3">
+            {months.slice(0, 4).map((month) => <div key={month} className="border-b border-[#E6E0D8]" />)}
+          </div>
+          <p className="relative rounded-xl border border-[#E6E0D8] bg-white px-4 py-2 text-center text-sm text-[#6F655C]">
+            Sales will appear once referral orders are tracked.
+          </p>
+        </div>
+        <div className="mt-2 grid grid-cols-5 text-center text-xs text-[#7F756B]">
+          {months.map((month) => <span key={month}>{month}</span>)}
+        </div>
+      </section>
+    </>
+  );
+}
 const input = "min-w-0 w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm text-[#5F554C] outline-none transition focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20";
 const buttonBase = "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold shadow-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A79B8E] disabled:cursor-not-allowed disabled:opacity-50";
 const button = buttonBase + " border-[#D8D1C8] bg-white text-[#5F554C] hover:bg-[#F6F3EF]";
@@ -32,7 +95,16 @@ async function request(method: string, profile?: typeof empty, id?: string, sign
   const response = await fetch("/api/admin/referrers" + (id ? "?id=" + encodeURIComponent(id) : ""), {
     method,
     headers: { "x-referral-preview": "true", "Content-Type": "application/json" },
-    body: profile ? JSON.stringify(profile.id ? profile : { ...profile, id: null }) : undefined,
+    body: profile ? JSON.stringify({
+      id: profile.id || null,
+      display_name: profile.display_name,
+      email: profile.email,
+      code: profile.code,
+      enabled: profile.enabled,
+      reward_type: profile.reward_type,
+      reward_value: profile.reward_type === "none" ? 0 : Math.round(Number(profile.rewardAmount) * 100),
+      minimum_order_cents: profile.reward_type === "none" ? 0 : Math.round(Number(profile.minimumOrder) * 100),
+    }) : undefined,
     signal,
     cache: "no-store",
   });
@@ -80,7 +152,11 @@ export default function ReferrersManager() {
   }
 
   function openEditor(profile?: Profile) {
-    setDraft(profile ?? empty);
+    setDraft(profile ? {
+      ...profile,
+      rewardAmount: profile.reward_type === "none" ? "" : String(profile.reward_value / 100),
+      minimumOrder: profile.minimum_order_cents ? String(profile.minimum_order_cents / 100) : "",
+    } : empty);
     setEditing(true);
     setNotice("");
   }
@@ -121,6 +197,7 @@ export default function ReferrersManager() {
 
   return (
     <section className="space-y-5 text-[#5F554C]">
+      <ReferralOverview count={profiles?.length} />
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-[24px] border border-[#E6E0D8] bg-white p-5 shadow-sm sm:p-6">
         <div>
           <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#A79B8E]">Referral links</p>
@@ -157,6 +234,34 @@ export default function ReferrersManager() {
                 onChange={(event) => setDraft({ ...draft, enabled: event.target.checked })} />
               Enable referral link
             </label>
+          </fieldset>
+          <fieldset disabled={busy} className="grid min-w-0 gap-4 rounded-2xl border border-[#E6E0D8] bg-white p-4 md:grid-cols-3">
+            <legend className="px-2 text-sm font-bold">Earning rule</legend>
+            <label className="grid gap-2 text-sm font-semibold">Reward type
+              <select className={input} value={draft.reward_type}
+                onChange={(event) => setDraft({
+                  ...draft, reward_type: event.target.value as RewardType, rewardAmount: "",
+                })}>
+                <option value="none">No credit</option>
+                <option value="percent">Percentage of order total</option>
+                <option value="fixed">Fixed credit per order</option>
+              </select>
+            </label>
+            {draft.reward_type !== "none" && (
+              <>
+                <label className="grid gap-2 text-sm font-semibold">
+                  {draft.reward_type === "percent" ? "Reward (%)" : "Credit amount ($)"}
+                  <input required type="number" inputMode="decimal" min="0.01" step="0.01"
+                    max={draft.reward_type === "percent" ? 100 : 9999999.99} className={input}
+                    value={draft.rewardAmount} onChange={(event) => setDraft({ ...draft, rewardAmount: event.target.value })} />
+                </label>
+                <label className="grid gap-2 text-sm font-semibold">Minimum order ($)
+                  <input type="number" inputMode="decimal" min="0" step="0.01" max="9999999.99" placeholder="No minimum"
+                    className={input} value={draft.minimumOrder}
+                    onChange={(event) => setDraft({ ...draft, minimumOrder: event.target.value })} />
+                </label>
+              </>
+            )}
           </fieldset>
           <div className="flex flex-wrap gap-3">
             <button className={primary} disabled={busy}>{busy ? "Saving…" : "Save referrer"}</button>
@@ -195,6 +300,7 @@ export default function ReferrersManager() {
                       </span>
                     </div>
                     <p className="mt-1 break-all text-sm text-[#7F756B]">{profile.email}</p>
+                    <p className="mt-1 text-sm text-[#6F655C]">{rewardLabel(profile)}</p>
                     <a href={link} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex max-w-full items-center gap-2 text-sm font-semibold text-[#8B7B6B] underline decoration-[#D8D1C8] underline-offset-4 hover:text-[#5F554C]">
                       <Icon name="link" /><span className="min-w-0 break-all">{link}</span>
                     </a>
