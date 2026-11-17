@@ -1942,19 +1942,9 @@ Total: $${savedTotal.toFixed(2)}`
           {/* Drawer Header */}
           <div className="shrink-0 px-5 pb-4 pt-5">
             <div className="flex items-center justify-between border-b border-[#E6E0D8] pb-4">
-              <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-2 pr-2">
-                <h2 className="text-2xl font-bold tracking-tight text-[#1F1A17]">
-                  {checkoutOpen ? "Checkout" : "Your Cart"}
-                </h2>
-                {checkoutOpen && referredBy && (
-                  <>
-                    <span aria-hidden="true" className="text-[#B5A99C]">·</span>
-                    <span className="max-w-full break-words rounded-full border border-[#E6DDD2] bg-[#F3EEE8] px-3 py-1.5 text-xs font-semibold leading-4 text-[#6F6052]">
-                      Referred by: {referredBy}
-                    </span>
-                  </>
-                )}
-              </div>
+              <h2 className="text-2xl font-bold tracking-tight text-[#1F1A17]">
+                {checkoutOpen ? "Checkout" : "Your Cart"}
+              </h2>
 
               <button
                 type="button"
@@ -2501,6 +2491,13 @@ Total: $${savedTotal.toFixed(2)}`
                       </div>
                     </div>
                   </div>
+                  {referredBy && (
+                    <div className="mt-3 flex justify-center">
+                      <span className="max-w-full break-words rounded-full border border-[#DED2C4] bg-[#EEE5DA] px-3 py-1.5 text-center text-xs font-semibold leading-4 text-[#514438]">
+                        Referred by: {referredBy}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <button
