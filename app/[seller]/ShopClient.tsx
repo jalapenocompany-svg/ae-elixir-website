@@ -199,7 +199,7 @@ const STAFF_ONLY_SHIPPING_NAMES = [
   "local-delivery-pickup",
 ];
 
-export default function ShopClient({ seller, referredBy }: { seller?: string; referredBy?: string }) {
+export default function ShopClient({ seller, referredBy, referralCode }: { seller?: string; referredBy?: string; referralCode?: string }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -904,6 +904,7 @@ export default function ShopClient({ seller, referredBy }: { seller?: string; re
       shipping_description: selectedShippingMethod?.description || "",
       shipping_price: shippingPrice,
       total: cartTotal,
+      ...(referralCode ? { referral_code: referralCode } : {}),
       ...(promotion.quote ? { promo_code: promotion.quote.code } : {}),
       ...(freeShipping ? { shipping_discount_amount: shippingDiscountAmount } : {}),
     };
