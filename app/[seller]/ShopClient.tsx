@@ -199,7 +199,7 @@ const STAFF_ONLY_SHIPPING_NAMES = [
   "local-delivery-pickup",
 ];
 
-export default function ShopClient({ seller }: { seller?: string }) {
+export default function ShopClient({ seller, referredBy, referralCode }: { seller?: string; referredBy?: string; referralCode?: string }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -904,6 +904,7 @@ export default function ShopClient({ seller }: { seller?: string }) {
       shipping_description: selectedShippingMethod?.description || "",
       shipping_price: shippingPrice,
       total: cartTotal,
+      ...(referralCode ? { referral_code: referralCode } : {}),
       ...(promotion.quote ? { promo_code: promotion.quote.code } : {}),
       ...(freeShipping ? { shipping_discount_amount: shippingDiscountAmount } : {}),
     };
@@ -2491,6 +2492,13 @@ Total: $${savedTotal.toFixed(2)}`
                       </div>
                     </div>
                   </div>
+                  {referredBy && (
+                    <div className="mt-3 flex justify-center">
+                      <span className="max-w-full break-words rounded-full border border-[#DED2C4] bg-[#EEE5DA] px-3 py-1.5 text-center text-xs font-semibold leading-4 text-[#514438]">
+                        Referred by: {referredBy}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <button

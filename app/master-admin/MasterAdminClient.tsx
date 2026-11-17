@@ -1,8 +1,10 @@
 "use client";
+import { REFERRALS_ENABLED } from "@/lib/referral-settings";
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { allocateOrderDiscount } from "@/lib/allocate-order-discount";
+import ReferrersManager from "@/components/ReferrersManager";
 import PromoCodesManager from "@/components/PromoCodesManager";
 import { PROMOTIONS_ENABLED } from "@/lib/promotions";
 import AdsManager from "@/components/AdsManager";
@@ -176,9 +178,11 @@ type TabName =
   | "payments"
   | "inventory-margins"
   | "ads"
-  | "promo-codes";
+  | "promo-codes"
+  | "referrals";
 
-const MASTER_PASSWORD = "@eeLixir26";
+
+
 
 const PRODUCT_CATEGORIES = [
   "GLP-1 / Weight Loss",
@@ -509,15 +513,21 @@ const ORDERS_PAGE_SIZE = 10;
 export default function MasterAdminClient() {
   const [password, setPassword] = useState("");
   const [loggedIn, setLoggedIn] = useState(false);
+  const [loginPending, setLoginPending] = useState(false);
   useEffect(() => {
-    const savedAdminSession = sessionStorage.getItem(
-      "ae_elixir_admin_logged_in"
-    );
-
-    if (savedAdminSession === "true") {
-      setLoggedIn(true);
-      loadData();
-    }
+    const controller = new AbortController();
+    fetch("/api/admin/session", { cache: "no-store", signal: controller.signal })
+      .then((response) => response.json())
+      .then((data) => {
+        if (controller.signal.aborted) return;
+        if (data.authenticated) {
+          sessionStorage.setItem("ae_elixir_admin_logged_in", "true");
+          setLoggedIn(true);
+          void loadData();
+        } else sessionStorage.removeItem("ae_elixir_admin_logged_in");
+        window.dispatchEvent(new Event("ae-admin-auth-change"));
+      }).catch(() => {});
+    return () => controller.abort();
   }, []);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [paymentDrafts, setPaymentDrafts] = useState<
@@ -796,25 +806,33 @@ export default function MasterAdminClient() {
   }
 
   async function handleLogin() {
-    if (password !== MASTER_PASSWORD) {
-      alert("Invalid password.");
-      return;
-    }
+    if (loginPending) return;
+    setLoginPending(true);
+    try {
+      const response = await fetch("/api/admin/session", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not sign in.");
+      sessionStorage.setItem("ae_elixir_admin_logged_in", "true");
+      window.dispatchEvent(new Event("ae-admin-auth-change"));
+      setLoggedIn(true);
+      setPassword("");
+      await loadData();
+    } catch (error) { alert(error instanceof Error ? error.message : "Could not sign in."); }
+    finally { setLoginPending(false); }
+  }
 
-    sessionStorage.setItem(
-      "ae_elixir_admin_logged_in",
-      "true"
-    );
-
-    window.dispatchEvent(
-      new Event("ae-admin-auth-change")
-    );
-
-    setLoggedIn(true);
-
-
-    setPassword("");
-    await loadData();
+  async function handleLogout() {
+    try {
+      const response = await fetch("/api/admin/session", { method: "DELETE" });
+      if (!response.ok) throw new Error("Could not sign out. Please try again.");
+      sessionStorage.removeItem("ae_elixir_admin_logged_in");
+      window.dispatchEvent(new Event("ae-admin-auth-change"));
+      setLoggedIn(false);
+      setActiveTab("dashboard");
+    } catch (error) { alert(error instanceof Error ? error.message : "Could not sign out."); }
   }
 
 
@@ -2597,16 +2615,12 @@ export default function MasterAdminClient() {
         icon: <OrdersIcon />,
       },
       {
-        id: "earnings",
-        label: "Affiliates",
-        icon: <AffiliatesIcon />,
-      },
-      {
         id: "products",
         label: "Products",
         icon: <InventoryIcon />,
       },
       {id: "ads", label: "Ads / Banners", icon: <SettingsIcon />},
+      ...(REFERRALS_ENABLED ? [{ id: "referrals" as const, label: "Referrals", icon: <AffiliatesIcon /> }] : []),
       ...(PROMOTIONS_ENABLED ? [{ id: "promo-codes" as const, label: "Promo Codes", icon: <PriceTagIcon /> }] : []),
       {
         id: "settings",
@@ -2660,9 +2674,10 @@ export default function MasterAdminClient() {
 
           <button
             onClick={handleLogin}
+            disabled={loginPending}
             className="w-full rounded-full bg-[#A79B8E] py-3 font-semibold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95"
           >
-            Login
+            {loginPending ? "Signing in…" : "Login"}
           </button>
         </div>
       </div>
@@ -2674,9 +2689,12 @@ export default function MasterAdminClient() {
       <SiteHeader />
 
       <main className="mx-auto w-full max-w-6xl px-5 py-6">
-        <div className="mb-5">
-          <p className="text-xs text-gray-500">Master Portal</p>
-          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs text-gray-500">Master Portal</p>
+            <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+          </div>
+          <button onClick={handleLogout} className="rounded-full border border-[#D8D1C8] bg-white px-4 py-2 text-sm font-semibold text-[#5F554C] shadow-sm">Sign out</button>
         </div>
 
         <div className="mb-6 border-b border-[#E6E0D8] pb-4">
@@ -2698,6 +2716,7 @@ export default function MasterAdminClient() {
         </div>
 
         {activeTab === "ads" && <AdsManager />}
+        {REFERRALS_ENABLED && activeTab === "referrals" && <ReferrersManager />}
         {PROMOTIONS_ENABLED && (
           <div hidden={activeTab !== "promo-codes"}>
             <PromoCodesManager />
