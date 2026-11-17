@@ -1,8 +1,8 @@
 import "server-only";
 import { adsDatabase } from "@/lib/ads-server";
 
-export const previewEnabled = process.env.NODE_ENV === "development"
-  && process.env.NEXT_PUBLIC_REFERRALS_PREVIEW_ENABLED === "true";
+import { REFERRALS_ENABLED } from "@/lib/referral-settings";
+export const previewEnabled = REFERRALS_ENABLED;
 
 export const referralCodePattern = /^[A-Z0-9][A-Z0-9-]{2,31}$/;
 export const reservedCodes = new Set([

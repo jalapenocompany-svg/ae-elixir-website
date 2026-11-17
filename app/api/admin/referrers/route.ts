@@ -1,3 +1,4 @@
+import { hasAdminSession, sameAdminOrigin } from "@/lib/admin-session";
 import { adsDatabase, adsReply } from "@/lib/ads-server";
 import { sendReferrerInvitation } from "@/lib/referral-invitations";
 import { findSellerCode, previewEnabled, referralCodePattern, reservedCodes } from "@/lib/referral-preview";
@@ -6,25 +7,11 @@ const columns = "id, display_name, email, code, enabled, user_id, reward_type, r
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function authorize(request: Request) {
-  if (!previewEnabled) return adsReply({ error: "Referral preview is disabled." }, 404);
-  // This password-free API is available only in the explicitly enabled local development preview.
-  // The custom header prevents cross-origin form requests from invoking these operations.
-  if (request.headers.get("x-referral-preview") !== "true") {
-    return adsReply({ error: "Open Referrals from the local admin portal." }, 403);
+  if (!previewEnabled) return adsReply({ error: "Referrals are disabled." }, 404);
+  if (!hasAdminSession(request)) {
+    return adsReply({ error: "Admin session expired. Sign out and sign in again." }, 401);
   }
-  const origin = request.headers.get("origin");
-  // Next.js can normalize request.url to localhost even when the browser uses a LAN address.
-  // Host retains the address and port the browser actually requested.
-  const host = request.headers.get("host") ?? new URL(request.url).host;
-  if (origin) {
-    try {
-      if (new URL(origin).host !== host.toLowerCase()) {
-        return adsReply({ error: "Use the same local site to manage referrers." }, 403);
-      }
-    } catch {
-      return adsReply({ error: "Invalid request origin." }, 403);
-    }
-  }
+  if (!sameAdminOrigin(request)) return adsReply({ error: "Use the same site to manage referrers." }, 403);
 }
 
 export async function GET(request: Request) {
@@ -32,13 +19,14 @@ export async function GET(request: Request) {
   if (denied) return denied;
   try {
     const db = adsDatabase();
-    const [profiles, overview, credits] = await Promise.all([
+    const [profiles, overview, credits, report] = await Promise.all([
       db.from("referrer_profiles").select(columns).order("display_name"),
       db.rpc("referral_sales_overview"),
       db.rpc("referral_credit_overview"),
+      db.rpc("referrer_admin_sales"),
     ]);
     if (profiles.error) throw profiles.error;
-    return adsReply({ profiles: profiles.data, overview: overview.error ? null : overview.data, credits: credits.error ? null : credits.data });
+    return adsReply({ profiles: profiles.data, overview: overview.error ? null : overview.data, credits: credits.error ? null : credits.data, report: report.error ? null : report.data });
   } catch {
     return adsReply({ error: "Could not load referrers. Check that the preview migration was applied." }, 500);
   }

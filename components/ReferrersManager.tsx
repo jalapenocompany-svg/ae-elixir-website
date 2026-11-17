@@ -23,6 +23,8 @@ const empty = {
 };
 const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
+type ProfileSales = { id: string; paidOrders: number; pendingOrders: number; salesTotal: number };
+
 type ReferralSales = { paidOrders: number; months: { month: string; total: number }[] };
 
 type CreditRequest = {
@@ -114,7 +116,7 @@ function Icon({ name }: { name: keyof typeof paths }) {
 async function request(method: string, profile?: typeof empty | CreditRequest, id?: string, signal?: AbortSignal) {
   const response = await fetch("/api/admin/referrers" + (id ? "?id=" + encodeURIComponent(id) : ""), {
     method,
-    headers: { "x-referral-preview": "true", "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json" },
     body: profile ? JSON.stringify("action" in profile ? profile : {
       id: profile.id || null,
       display_name: profile.display_name,
@@ -136,6 +138,7 @@ async function request(method: string, profile?: typeof empty | CreditRequest, i
 export default function ReferrersManager() {
   const [profiles, setProfiles] = useState<Profile[] | null>(null);
   const [sales, setSales] = useState<ReferralSales | null>(null);
+  const [report, setReport] = useState<ProfileSales[] | null>(null);
   const [credits, setCredits] = useState<ReferralCredits | null>(null);
   const [draft, setDraft] = useState(empty);
   const [voucherDraft, setVoucherDraft] = useState({ referrerId: "", amount: "", requestId: "" });
@@ -153,6 +156,7 @@ export default function ReferrersManager() {
         setProfiles(data.profiles);
         setSales(data.overview);
         setCredits(data.credits);
+        setReport(data.report ?? null);
       })
       .catch((error) => {
         if (!controller.signal.aborted) setNotice(error instanceof Error ? error.message : "Could not load referrers.");
@@ -243,6 +247,7 @@ export default function ReferrersManager() {
         setProfiles(data.profiles);
         setSales(data.overview);
         setCredits(data.credits);
+        setReport(data.report ?? null);
       } catch {
         setNotice("Credit returned. Reopen Referrals to refresh the balance.");
       }
@@ -264,6 +269,7 @@ export default function ReferrersManager() {
         setProfiles(data.profiles);
         setSales(data.overview);
         setCredits(data.credits);
+        setReport(data.report ?? null);
       } catch {
         setNotice("Code " + result.voucher.promo_code + " created. Reopen Referrals to refresh the balance.");
       }
@@ -361,6 +367,7 @@ export default function ReferrersManager() {
               setProfiles(data.profiles);
               setSales(data.overview);
         setCredits(data.credits);
+        setReport(data.report ?? null);
             })}>Try again</button>
           </div>
         )}
@@ -412,6 +419,13 @@ export default function ReferrersManager() {
                     </button>
                   </div>
                   <div id={"referrer-details-" + profile.id} hidden={!expanded} className="space-y-4">
+                    <dl className="grid grid-cols-3 gap-2 rounded-2xl bg-[#FBFAF8] p-3">
+                      {[
+                        { label: "Paid sales", value: report ? currency.format(report.find((item) => item.id === profile.id)?.salesTotal ?? 0) : "—" },
+                        { label: "Paid orders", value: report?.find((item) => item.id === profile.id)?.paidOrders ?? "—" },
+                        { label: "Pending", value: report?.find((item) => item.id === profile.id)?.pendingOrders ?? "—" },
+                      ].map((metric) => <div key={metric.label}><dt className="text-xs text-[#7F756B]">{metric.label}</dt><dd className="mt-1 break-words text-base font-bold">{metric.value}</dd></div>)}
+                    </dl>
                     <p className="text-xs text-[#7F756B]">{profile.user_id ? "Portal login linked" : profile.portal_invited_at ? "Invitation sent" : "Portal invitation pending"}</p>
 
                     <dl className="grid grid-cols-2 gap-3 border-y border-[#E6E0D8] py-4">
