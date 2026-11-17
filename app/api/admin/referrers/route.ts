@@ -112,16 +112,29 @@ export async function POST(request: Request) {
     if (seller.error) throw seller.error;
     if (seller.data) return adsReply({ error: "This code is already used by a seller." }, 409);
 
+    const existing = id
+      ? await db.from("referrer_profiles").select("user_id, email").eq("id", id).maybeSingle()
+      : null;
+    if (existing?.error) throw existing.error;
+    if (id && !existing?.data) return adsReply({ error: "Referrer not found." }, 404);
+    if (existing?.data?.user_id && email !== existing.data.email) {
+      return adsReply({ error: "This email is linked to the referrer's portal login." }, 409);
+    }
     const table = db.from("referrer_profiles");
     const values = {
       display_name, email, code, enabled,
       ...(hasRewardRule ? { reward_type, reward_value, minimum_order_cents } : {}),
     };
-    const query = id ? table.update(values).eq("id", id).is("user_id", null) : table.insert(values);
+    let query = id ? table.update(values).eq("id", id) : table.insert(values);
+    if (id) {
+      query = existing?.data?.user_id
+        ? query.eq("user_id", existing.data.user_id).eq("email", existing.data.email)
+        : query.is("user_id", null);
+    }
     const { data, error } = await query.select(columns).maybeSingle();
     if (error?.code === "23505") return adsReply({ error: "This email or code is already in use." }, 409);
     if (error) throw error;
-    if (!data) return adsReply({ error: "Referrer not found or already linked to an account." }, 409);
+    if (!data) return adsReply({ error: "This referrer changed. Reload Referrals and try again." }, 409);
     return adsReply({ profile: data }, id ? 200 : 201);
   } catch {
     return adsReply({ error: "Could not save the referrer." }, 500);
