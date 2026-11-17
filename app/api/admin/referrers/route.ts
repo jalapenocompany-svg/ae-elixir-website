@@ -30,9 +30,13 @@ export async function GET(request: Request) {
   const denied = authorize(request);
   if (denied) return denied;
   try {
-    const { data, error } = await adsDatabase().from("referrer_profiles").select(columns).order("display_name");
-    if (error) throw error;
-    return adsReply({ profiles: data });
+    const db = adsDatabase();
+    const [profiles, overview] = await Promise.all([
+      db.from("referrer_profiles").select(columns).order("display_name"),
+      db.rpc("referral_sales_overview"),
+    ]);
+    if (profiles.error) throw profiles.error;
+    return adsReply({ profiles: profiles.data, overview: overview.error ? null : overview.data });
   } catch {
     return adsReply({ error: "Could not load referrers. Check that the preview migration was applied." }, 500);
   }
