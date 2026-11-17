@@ -77,7 +77,7 @@ function ReferralOverview({ count, sales, credits }: {
         <h3 className="text-lg font-bold">Referral sales</h3>
         <p className="mt-1 text-sm text-[#6F655C]">Last 5 months · paid orders</p>
         {months.length ? (
-          <div className="mt-5">
+          <div className="mx-auto mt-5 w-full max-w-[560px]">
             <svg viewBox="0 0 400 170" className="h-auto w-full" role="img" aria-label="Monthly referral sales in dollars">
               {[0, 0.5, 1].map((ratio) => (
                 <g key={ratio}>
@@ -168,6 +168,7 @@ export default function ReferrersManager() {
   const [draft, setDraft] = useState(empty);
   const [voucherDraft, setVoucherDraft] = useState({ referrerId: "", amount: "", requestId: "" });
   const [editing, setEditing] = useState(false);
+  const [expandedReferrers, setExpandedReferrers] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("");
@@ -385,6 +386,7 @@ export default function ReferrersManager() {
         <ul className="grid gap-4 md:grid-cols-2">
           {profiles?.map((profile) => {
             const link = "/" + profile.code.toLowerCase();
+            const expanded = expandedReferrers.includes(profile.id);
             const initials = profile.display_name.trim().split(/\s+/).slice(0, 2).map((name) => name[0]).join("").toUpperCase();
             const balance = credits?.referrers.find((item) => item.id === profile.id);
             const vouchers = (credits?.vouchers ?? []).filter((item) => item.referrerId === profile.id);
@@ -406,87 +408,104 @@ export default function ReferrersManager() {
                       {profile.enabled ? "Enabled" : "Disabled"}
                     </span>
                   </div>
-                  <a href={link} target="_blank" rel="noopener noreferrer" className="inline-flex max-w-full items-center gap-2 rounded-full border border-[#E6E0D8] bg-[#FBFAF8] px-3 py-2 text-xs font-semibold text-[#796958] hover:bg-[#F3EEE8]">
-                    <Icon name="link" /><span className="min-w-0 break-all">{link}</span>
-                  </a>
-
-                  <dl className="grid grid-cols-2 gap-3 border-y border-[#E6E0D8] py-4">
-                    <div className="min-w-0">
-                      <dt className="text-xs text-[#7F756B]">Reward per order</dt>
-                      <dd className="mt-1 text-lg font-bold">{reward}</dd>
-                    </div>
-                    <div className="min-w-0">
-                      <dt className="text-xs text-[#7F756B]">Minimum order</dt>
-                      <dd className="mt-1 text-lg font-bold">{profile.minimum_order_cents > 0 ? currency.format(profile.minimum_order_cents / 100) : "No minimum"}</dd>
-                    </div>
-                  </dl>
-
-                  <div className="rounded-2xl border border-[#DDE6DD] bg-[#F1F5F0] p-4">
-                    <p className="text-xs font-semibold text-[#58705B]">Available credit</p>
-                    <p className="mt-1 break-words text-3xl font-bold tracking-tight text-[#38513D]">
-                      {available === undefined ? "—" : currency.format(available / 100)}
-                    </p>
-                    <dl className="mt-4 grid grid-cols-3 gap-2 border-t border-[#DDE6DD] pt-3 text-xs">
-                      <div><dt className="text-[#68766A]">Earned</dt><dd className="mt-1 break-words font-semibold text-[#38513D]">{earned === undefined ? "—" : currency.format(earned / 100)}</dd></div>
-                      <div><dt className="text-[#68766A]">Reserved</dt><dd className="mt-1 break-words font-semibold text-[#38513D]">{balance?.reservedCents === undefined ? "—" : currency.format(balance.reservedCents / 100)}</dd></div>
-                      <div><dt className="text-[#68766A]">Used</dt><dd className="mt-1 break-words font-semibold text-[#38513D]">{balance?.usedCents === undefined ? "—" : currency.format(balance.usedCents / 100)}</dd></div>
-                    </dl>
+                  <div className="flex items-center justify-between gap-3">
+                    <a href={link} target="_blank" rel="noopener noreferrer" className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-full border border-[#E6E0D8] bg-[#FBFAF8] px-3 py-2 text-xs font-semibold text-[#796958] hover:bg-[#F3EEE8]">
+                      <Icon name="link" /><span className="min-w-0 break-all">{link}</span>
+                    </a>
+                    <button type="button"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#E6E0D8] bg-[#FBFAF8] text-[#796958] transition hover:bg-[#F3EEE8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A79B8E]"
+                      aria-expanded={expanded}
+                      aria-controls={"referrer-details-" + profile.id}
+                      aria-label={(expanded ? "Collapse" : "Expand") + " details for " + profile.display_name}
+                      onClick={() => setExpandedReferrers((current) => current.includes(profile.id)
+                        ? current.filter((id) => id !== profile.id)
+                        : [...current, profile.id])}>
+                      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+                        strokeLinecap="round" strokeLinejoin="round" className={"transition-transform " + (expanded ? "rotate-180" : "")}>
+                        <path d="m6 9 6 6 6-6" />
+                      </svg>
+                    </button>
                   </div>
+                  <div id={"referrer-details-" + profile.id} hidden={!expanded} className="space-y-4">
 
-                  {voucherDraft.referrerId === profile.id && (
-                    <form onSubmit={createVoucher} className="space-y-3 rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] p-4">
-                      <label className="grid gap-2 text-sm font-semibold">Discount code amount ($)
-                        <input required type="number" inputMode="decimal" min="0.01" step="0.01"
-                          max={(available ?? 0) / 100} className={input} value={voucherDraft.amount} disabled={busy}
-                          onChange={(event) => setVoucherDraft({ ...voucherDraft, amount: event.target.value, requestId: crypto.randomUUID() })} />
-                      </label>
-                      <p className="text-xs leading-5 text-[#7F756B]">One use. Minimum merchandise subtotal equals the code amount.</p>
-                      <div className="flex flex-wrap gap-2">
-                        <button className={primary} disabled={busy}>{busy ? "Creating…" : "Create code"}</button>
-                        <button type="button" className={button} disabled={busy} onClick={() => setVoucherDraft({ referrerId: "", amount: "", requestId: "" })}>Cancel</button>
+                    <dl className="grid grid-cols-2 gap-3 border-y border-[#E6E0D8] py-4">
+                      <div className="min-w-0">
+                        <dt className="text-xs text-[#7F756B]">Reward per order</dt>
+                        <dd className="mt-1 text-lg font-bold">{reward}</dd>
                       </div>
-                    </form>
-                  )}
+                      <div className="min-w-0">
+                        <dt className="text-xs text-[#7F756B]">Minimum order</dt>
+                        <dd className="mt-1 text-lg font-bold">{profile.minimum_order_cents > 0 ? currency.format(profile.minimum_order_cents / 100) : "No minimum"}</dd>
+                      </div>
+                    </dl>
 
-                  <button type="button" className={primary + " w-full"} disabled={busy || !profile.enabled || available === undefined || available < 1}
-                    onClick={() => { setNotice(""); setVoucherDraft({ referrerId: profile.id, amount: "", requestId: crypto.randomUUID() }); }}>
-                    <Icon name="add" /> Create discount code
-                  </button>
-                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_44px] gap-2">
-                    <button type="button" className={compactButton} disabled={busy || !profile.enabled}
-                      aria-label={"Copy referral link for " + profile.display_name} onClick={() => void copy(window.location.origin + link, "Referral link copied for " + profile.display_name + ".")}>
-                      <Icon name="copy" /> Copy
+                    <div className="rounded-2xl border border-[#DDE6DD] bg-[#F1F5F0] p-4">
+                      <p className="text-xs font-semibold text-[#58705B]">Available credit</p>
+                      <p className="mt-1 break-words text-3xl font-bold tracking-tight text-[#38513D]">
+                        {available === undefined ? "—" : currency.format(available / 100)}
+                      </p>
+                      <dl className="mt-4 grid grid-cols-3 gap-2 border-t border-[#DDE6DD] pt-3 text-xs">
+                        <div><dt className="text-[#68766A]">Earned</dt><dd className="mt-1 break-words font-semibold text-[#38513D]">{earned === undefined ? "—" : currency.format(earned / 100)}</dd></div>
+                        <div><dt className="text-[#68766A]">Reserved</dt><dd className="mt-1 break-words font-semibold text-[#38513D]">{balance?.reservedCents === undefined ? "—" : currency.format(balance.reservedCents / 100)}</dd></div>
+                        <div><dt className="text-[#68766A]">Used</dt><dd className="mt-1 break-words font-semibold text-[#38513D]">{balance?.usedCents === undefined ? "—" : currency.format(balance.usedCents / 100)}</dd></div>
+                      </dl>
+                    </div>
+
+                    {voucherDraft.referrerId === profile.id && (
+                      <form onSubmit={createVoucher} className="space-y-3 rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] p-4">
+                        <label className="grid gap-2 text-sm font-semibold">Discount code amount ($)
+                          <input required type="number" inputMode="decimal" min="0.01" step="0.01"
+                            max={(available ?? 0) / 100} className={input} value={voucherDraft.amount} disabled={busy}
+                            onChange={(event) => setVoucherDraft({ ...voucherDraft, amount: event.target.value, requestId: crypto.randomUUID() })} />
+                        </label>
+                        <p className="text-xs leading-5 text-[#7F756B]">One use. Minimum merchandise subtotal equals the code amount.</p>
+                        <div className="flex flex-wrap gap-2">
+                          <button className={primary} disabled={busy}>{busy ? "Creating…" : "Create code"}</button>
+                          <button type="button" className={button} disabled={busy} onClick={() => setVoucherDraft({ referrerId: "", amount: "", requestId: "" })}>Cancel</button>
+                        </div>
+                      </form>
+                    )}
+
+                    <button type="button" className={primary + " w-full"} disabled={busy || !profile.enabled || available === undefined || available < 1}
+                      onClick={() => { setNotice(""); setVoucherDraft({ referrerId: profile.id, amount: "", requestId: crypto.randomUUID() }); }}>
+                      <Icon name="add" /> Create discount code
                     </button>
-                    <button type="button" className={compactButton} disabled={busy || !!profile.user_id} aria-label={"Edit " + profile.display_name} onClick={() => openEditor(profile)}>
-                      <Icon name="edit" /> Edit
-                    </button>
-                    <button type="button" className={danger} disabled={busy || !!profile.user_id} onClick={() => remove(profile)}
-                      title={"Delete " + profile.display_name} aria-label={"Delete " + profile.display_name}><Icon name="trash" /></button>
+                    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_44px] gap-2">
+                      <button type="button" className={compactButton} disabled={busy || !profile.enabled}
+                        aria-label={"Copy referral link for " + profile.display_name} onClick={() => void copy(window.location.origin + link, "Referral link copied for " + profile.display_name + ".")}>
+                        <Icon name="copy" /> Copy
+                      </button>
+                      <button type="button" className={compactButton} disabled={busy || !!profile.user_id} aria-label={"Edit " + profile.display_name} onClick={() => openEditor(profile)}>
+                        <Icon name="edit" /> Edit
+                      </button>
+                      <button type="button" className={danger} disabled={busy || !!profile.user_id} onClick={() => remove(profile)}
+                        title={"Delete " + profile.display_name} aria-label={"Delete " + profile.display_name}><Icon name="trash" /></button>
+                    </div>
+                    {vouchers.length > 0 && (
+                      <details className="border-t border-[#E6E0D8] pt-3">
+                        <summary className="cursor-pointer py-2 text-sm font-semibold">Discount codes ({vouchers.length})</summary>
+                        <ul className="mt-2 space-y-2">
+                          {vouchers.map((voucher) => (
+                            <li key={voucher.id} className="rounded-xl border border-[#E6E0D8] bg-[#FBFAF8] p-3">
+                              <div className="flex items-center justify-between gap-2 text-xs">
+                                <span className="font-semibold">{currency.format(voucher.amountCents / 100)}</span>
+                                <span className="text-[#7F756B]">{voucher.status === "released" ? "Returned" : voucher.status === "issued" ? "Ready to use" : voucher.paid ? "Used" : "Applied to order"}</span>
+                              </div>
+                              <div className="mt-2 flex min-w-0 items-center gap-2">
+                                <code className="min-w-0 flex-1 break-all text-xs text-[#5F554C]">{voucher.code}</code>
+                                <button type="button" className={button + " shrink-0 px-3"} aria-label={"Copy discount code " + voucher.code}
+                                  onClick={() => void copy(voucher.code, "Discount code copied.")}><Icon name="copy" /></button>
+                              </div>
+                              {voucher.status === "issued" && (
+                                <button type="button" className="mt-2 min-h-11 text-xs font-semibold text-[#796958] underline underline-offset-4 disabled:opacity-50"
+                                  disabled={busy} onClick={() => returnVoucher(voucher)}>Return credit</button>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
                   </div>
-                  {vouchers.length > 0 && (
-                    <details className="border-t border-[#E6E0D8] pt-3">
-                      <summary className="cursor-pointer py-2 text-sm font-semibold">Discount codes ({vouchers.length})</summary>
-                      <ul className="mt-2 space-y-2">
-                        {vouchers.map((voucher) => (
-                          <li key={voucher.id} className="rounded-xl border border-[#E6E0D8] bg-[#FBFAF8] p-3">
-                            <div className="flex items-center justify-between gap-2 text-xs">
-                              <span className="font-semibold">{currency.format(voucher.amountCents / 100)}</span>
-                              <span className="text-[#7F756B]">{voucher.status === "released" ? "Returned" : voucher.status === "issued" ? "Ready to use" : voucher.paid ? "Used" : "Applied to order"}</span>
-                            </div>
-                            <div className="mt-2 flex min-w-0 items-center gap-2">
-                              <code className="min-w-0 flex-1 break-all text-xs text-[#5F554C]">{voucher.code}</code>
-                              <button type="button" className={button + " shrink-0 px-3"} aria-label={"Copy discount code " + voucher.code}
-                                onClick={() => void copy(voucher.code, "Discount code copied.")}><Icon name="copy" /></button>
-                            </div>
-                            {voucher.status === "issued" && (
-                              <button type="button" className="mt-2 min-h-11 text-xs font-semibold text-[#796958] underline underline-offset-4 disabled:opacity-50"
-                                disabled={busy} onClick={() => returnVoucher(voucher)}>Return credit</button>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    </details>
-                  )}
                 </div>
               </li>
             );
