@@ -222,11 +222,11 @@ export default function ReferrerPortal() {
   const titles = { sign_in: "Referrals Portal", reset: "Reset your password", password: "Set your password" };
 
   return (
-    <div className={"min-h-screen text-[#5F554C] " + (showAuthForm ? "bg-gray-50" : "bg-[#F8F9F8]")}>
-      {!showAuthForm && <SiteHeader />}
+    <div className={"flex min-h-[calc(100dvh-220px)] flex-col text-[#5F554C] " + (showAuthForm ? "bg-gray-50" : "bg-[#F8F9F8]")}>
+      <SiteHeader />
       <div className={showAuthForm
-        ? "mx-auto flex min-h-[calc(100dvh-220px)] max-w-6xl flex-col justify-center px-5 py-8"
-        : "mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8"}>
+        ? "mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center px-5 py-8"
+        : "mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8"}>
         {!showAuthForm && <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-wide text-[#A79B8E]">Referrals Portal</p>
