@@ -21,21 +21,30 @@ const empty = {
 };
 const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
-function rewardLabel(profile: Profile) {
-  if (profile.reward_type === "none") return "No credit rule";
-  const amount = profile.reward_type === "percent"
-    ? (profile.reward_value / 100) + "%"
-    : currency.format(profile.reward_value / 100);
-  return profile.minimum_order_cents > 0
-    ? amount + " credit on orders of " + currency.format(profile.minimum_order_cents / 100) + "+"
-    : amount + " credit per referred order";
-}
-
 type ReferralSales = { paidOrders: number; months: { month: string; total: number }[] };
 
+type CreditRequest = {
+  action: "issue_credit";
+  requestId: string;
+  referrerId: string;
+  amountCents: number;
+} | { action: "return_credit"; voucherId: string };
+type CreditVoucher = {
+  id: string;
+  referrerId: string;
+  code: string;
+  amountCents: number;
+  status: "issued" | "spent" | "released";
+  paid: boolean;
+};
 type ReferralCredits = {
   earnedCents: number;
-  referrers: { id: string; earnedCents: number }[];
+  usedCents?: number;
+  referrers: {
+    id: string; earnedCents: number;
+    availableCents?: number; reservedCents?: number; usedCents?: number;
+  }[];
+  vouchers?: CreditVoucher[];
 };
 
 function ReferralOverview({ count, sales, credits }: {
@@ -47,10 +56,10 @@ function ReferralOverview({ count, sales, credits }: {
     { label: "Referrers", value: count, caption: "Total profiles" },
     { label: "Referred orders", value: sales?.paidOrders, caption: "Paid orders" },
     { label: "Credits given", value: credits ? currency.format(credits.earnedCents / 100) : undefined, caption: "Earned on paid orders" },
-    { label: "Credits used", caption: "Awaiting credit tracking" },
+    { label: "Credits used", value: credits?.usedCents === undefined ? undefined : currency.format(credits.usedCents / 100), caption: "Redeemed on paid orders" },
   ];
   const months = sales?.months ?? [];
-  const max = Math.max(1, ...months.map(({ total }) => total));
+  const max = Math.max(100, ...months.map(({ total }) => total));
 
   return (
     <>
@@ -68,19 +77,42 @@ function ReferralOverview({ count, sales, credits }: {
         <h3 className="text-lg font-bold">Referral sales</h3>
         <p className="mt-1 text-sm text-[#6F655C]">Last 5 months · paid orders</p>
         {months.length ? (
-          <ul className="mt-5 grid grid-cols-5 gap-2 text-center sm:gap-4">
-            {months.map(({ month, total }) => (
-              <li key={month} className="min-w-0">
-                <div aria-hidden="true" className="flex h-28 items-end justify-center border-b border-[#E6E0D8] bg-[#FBFAF8] sm:h-40">
-                  <div className="w-2/3 max-w-16 rounded-t-lg bg-[#A79B8E]" style={{ height: (100 * total / max) + "%" }} />
-                </div>
-                <span className="mt-2 block text-xs text-[#7F756B]">
-                  {new Date(month + "-01T00:00:00Z").toLocaleString("en-US", { month: "short", timeZone: "UTC" })}
-                </span>
-                <span className="block break-words text-xs font-semibold">{currency.format(total)}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="mt-5">
+            <svg viewBox="0 0 400 170" className="h-auto w-full" role="img" aria-label="Monthly referral sales in dollars">
+              {[0, 0.5, 1].map((ratio) => (
+                <g key={ratio}>
+                  <line x1="42" x2="384" y1={142 - ratio * 120} y2={142 - ratio * 120} stroke="#E6E0D8" />
+                  <text x="0" y={146 - ratio * 120} fontSize="11" fill="#7F756B">
+                    {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 0 }).format(max * ratio)}
+                  </text>
+                </g>
+              ))}
+              <path d={
+                "M 42 142 " + months.map(({ total }, index) =>
+                  "L " + (42 + index * 342 / Math.max(1, months.length - 1)) + " " + (142 - total / max * 120)
+                ).join(" ") + " L 384 142 Z"
+              } fill="#F3EEE8" />
+              <polyline points={months.map(({ total }, index) =>
+                (42 + index * 342 / Math.max(1, months.length - 1)) + "," + (142 - total / max * 120)
+              ).join(" ")} fill="none" stroke="#A79B8E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              {months.map(({ month, total }, index) => (
+                <circle key={month} cx={42 + index * 342 / Math.max(1, months.length - 1)} cy={142 - total / max * 120}
+                  r="4" fill="#A79B8E" stroke="white" strokeWidth="2">
+                  <title>{month + " · " + currency.format(total)}</title>
+                </circle>
+              ))}
+            </svg>
+            <ul className="grid grid-cols-5 gap-1 text-center">
+              {months.map(({ month, total }) => (
+                <li key={month} className="min-w-0">
+                  <span className="block text-xs text-[#7F756B]">
+                    {new Date(month + "-01T00:00:00Z").toLocaleString("en-US", { month: "short", timeZone: "UTC" })}
+                  </span>
+                  <span className="mt-1 block break-words text-xs font-semibold">{currency.format(total)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         ) : (
           <p className="mt-5 rounded-2xl bg-[#FBFAF8] p-5 text-sm text-[#6F655C]">Referral sales are unavailable.</p>
         )}
@@ -90,10 +122,11 @@ function ReferralOverview({ count, sales, credits }: {
 }
 
 const input = "min-w-0 w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm text-[#5F554C] outline-none transition focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20";
-const buttonBase = "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold shadow-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A79B8E] disabled:cursor-not-allowed disabled:opacity-50";
-const button = buttonBase + " border-[#D8D1C8] bg-white text-[#5F554C] hover:bg-[#F6F3EF]";
-const primary = buttonBase + " border-[#A79B8E] bg-[#A79B8E] text-white hover:bg-[#958879]";
-const danger = buttonBase + " border-[#E8D7D1] bg-white text-[#A75C50] hover:bg-[#FCF4F1]";
+const buttonBase = "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border py-2 text-sm font-semibold shadow-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A79B8E] disabled:cursor-not-allowed disabled:opacity-50";
+const button = buttonBase + " px-4 border-[#D8D1C8] bg-white text-[#5F554C] hover:bg-[#F6F3EF]";
+const primary = buttonBase + " px-4 border-[#A79B8E] bg-[#A79B8E] text-white hover:bg-[#958879]";
+const danger = buttonBase + " px-0 border-[#E8D7D1] bg-white text-[#A75C50] hover:bg-[#FCF4F1]";
+const compactButton = buttonBase + " px-2 border-[#D8D1C8] bg-white text-[#5F554C] hover:bg-[#F6F3EF]";
 const paths = {
   add: "M12 5v14M5 12h14",
   edit: "m16 3 5 5-12 12-6 1 1-6L16 3ZM14 5l5 5",
@@ -106,11 +139,11 @@ function Icon({ name }: { name: keyof typeof paths }) {
   return <svg aria-hidden="true" className="block h-4 w-4 shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d={paths[name]} /></svg>;
 }
 
-async function request(method: string, profile?: typeof empty, id?: string, signal?: AbortSignal) {
+async function request(method: string, profile?: typeof empty | CreditRequest, id?: string, signal?: AbortSignal) {
   const response = await fetch("/api/admin/referrers" + (id ? "?id=" + encodeURIComponent(id) : ""), {
     method,
     headers: { "x-referral-preview": "true", "Content-Type": "application/json" },
-    body: profile ? JSON.stringify({
+    body: profile ? JSON.stringify("action" in profile ? profile : {
       id: profile.id || null,
       display_name: profile.display_name,
       email: profile.email,
@@ -133,6 +166,7 @@ export default function ReferrersManager() {
   const [sales, setSales] = useState<ReferralSales | null>(null);
   const [credits, setCredits] = useState<ReferralCredits | null>(null);
   const [draft, setDraft] = useState(empty);
+  const [voucherDraft, setVoucherDraft] = useState({ referrerId: "", amount: "", requestId: "" });
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -207,13 +241,50 @@ export default function ReferrersManager() {
     });
   }
 
-  async function copyLink(profile: Profile) {
+  async function copy(value: string, message: string) {
     try {
-      await navigator.clipboard.writeText(window.location.origin + "/" + profile.code.toLowerCase());
-      setNotice("Referral link copied for " + profile.display_name + ".");
+      await navigator.clipboard.writeText(value);
+      setNotice(message);
     } catch {
-      setNotice("Could not copy the link. You can copy it directly from the referral row.");
+      setNotice("Could not copy. Select the displayed text to copy it manually.");
     }
+  }
+
+  function returnVoucher(voucher: CreditVoucher) {
+    if (!window.confirm("Cancel this unused code and return its reserved credit to the referrer?")) return;
+    void perform(async () => {
+      await request("POST", { action: "return_credit", voucherId: voucher.id });
+      setNotice("Unused code canceled and credit returned.");
+      try {
+        const data = await request("GET");
+        setProfiles(data.profiles);
+        setSales(data.overview);
+        setCredits(data.credits);
+      } catch {
+        setNotice("Credit returned. Reopen Referrals to refresh the balance.");
+      }
+    });
+  }
+
+  function createVoucher(event: FormEvent) {
+    event.preventDefault();
+    void perform(async () => {
+      const amountCents = Math.round(Number(voucherDraft.amount) * 100);
+      const result = await request("POST", {
+        action: "issue_credit", requestId: voucherDraft.requestId,
+        referrerId: voucherDraft.referrerId, amountCents,
+      });
+      setVoucherDraft({ referrerId: "", amount: "", requestId: "" });
+      setNotice("Created discount code " + result.voucher.promo_code + ".");
+      try {
+        const data = await request("GET");
+        setProfiles(data.profiles);
+        setSales(data.overview);
+        setCredits(data.credits);
+      } catch {
+        setNotice("Code " + result.voucher.promo_code + " created. Reopen Referrals to refresh the balance.");
+      }
+    });
   }
 
   return (
@@ -295,7 +366,7 @@ export default function ReferrersManager() {
       )}
 
       {notice && <p role="status" className="rounded-2xl border border-[#E6E0D8] bg-[#F6F3EF] px-4 py-3 text-sm">{notice}</p>}
-      <div className="overflow-hidden rounded-[24px] border border-[#E6E0D8] bg-white shadow-sm" aria-busy={loading || busy}>
+      <div aria-busy={loading || busy}>
         {loading && <p role="status" className="p-6 text-sm text-[#7F756B]">Loading referrers…</p>}
         {!loading && profiles === null && (
           <div className="p-6">
@@ -311,37 +382,111 @@ export default function ReferrersManager() {
           <h3 className="font-semibold">Your first referral link starts here</h3>
           <p className="mt-2 text-sm text-[#7F756B]">Add a referrer to create their personal link.</p>
         </div>}
-        <ul className="divide-y divide-[#E6E0D8]">
+        <ul className="grid gap-4 md:grid-cols-2">
           {profiles?.map((profile) => {
             const link = "/" + profile.code.toLowerCase();
             const initials = profile.display_name.trim().split(/\s+/).slice(0, 2).map((name) => name[0]).join("").toUpperCase();
+            const balance = credits?.referrers.find((item) => item.id === profile.id);
+            const vouchers = (credits?.vouchers ?? []).filter((item) => item.referrerId === profile.id);
+            const available = balance?.availableCents;
+            const earned = balance?.earnedCents ?? (credits ? 0 : undefined);
+            const reward = profile.reward_type === "none" ? "Not set"
+              : profile.reward_type === "percent" ? (profile.reward_value / 100) + "%"
+              : currency.format(profile.reward_value / 100);
             return (
-              <li key={profile.id} className="flex flex-col gap-4 p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex min-w-0 items-start gap-3">
-                  <div aria-hidden="true" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#E6DDD2] bg-[#F3EEE8] text-sm font-bold text-[#8B7B6B]">{initials}</div>
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="break-words font-bold">{profile.display_name}</h3>
-                      <span className={"rounded-full px-2.5 py-1 text-[11px] font-semibold " + (profile.enabled ? "bg-[#EDF3EE] text-[#48634E]" : "bg-[#F1EEEA] text-[#7F756B]")}>
-                        {profile.enabled ? "Enabled" : "Disabled"}
-                      </span>
+              <li key={profile.id} className="min-w-0 self-start overflow-hidden rounded-[24px] border border-[#E6E0D8] bg-white shadow-sm">
+                <div className="space-y-4 p-4 sm:p-5">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div aria-hidden="true" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#E1D6C9] bg-[#F3EEE8] text-sm font-bold text-[#796958]">{initials}</div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="break-words text-base font-bold leading-6">{profile.display_name}</h3>
+                      <p className="mt-0.5 break-all text-xs leading-5 text-[#7F756B]">{profile.email}</p>
                     </div>
-                    <p className="mt-1 break-all text-sm text-[#7F756B]">{profile.email}</p>
-                    <p className="mt-1 text-sm text-[#6F655C]">{rewardLabel(profile)}</p>
-                    <p className="mt-2 text-sm font-semibold text-[#48634E]">
-                      Earned credit · {credits ? currency.format(
-                        (credits.referrers.find((balance) => balance.id === profile.id)?.earnedCents ?? 0) / 100
-                      ) : "Unavailable"}
-                    </p>
-                    <a href={link} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex max-w-full items-center gap-2 text-sm font-semibold text-[#8B7B6B] underline decoration-[#D8D1C8] underline-offset-4 hover:text-[#5F554C]">
-                      <Icon name="link" /><span className="min-w-0 break-all">{link}</span>
-                    </a>
+                    <span className={"shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold " + (profile.enabled ? "bg-[#EDF3EE] text-[#48634E]" : "bg-[#F1EEEA] text-[#7F756B]")}>
+                      {profile.enabled ? "Enabled" : "Disabled"}
+                    </span>
                   </div>
-                </div>
-                <div className="flex flex-wrap gap-2 lg:shrink-0">
-                  <button type="button" className={button} disabled={busy || !profile.enabled} onClick={() => void copyLink(profile)} aria-label={"Copy link for " + profile.display_name}><Icon name="copy" /> Copy link</button>
-                  <button type="button" className={button} disabled={busy || !!profile.user_id} onClick={() => openEditor(profile)} aria-label={"Edit " + profile.display_name}><Icon name="edit" /> Edit</button>
-                  <button type="button" className={danger} disabled={busy || !!profile.user_id} onClick={() => remove(profile)} aria-label={"Delete " + profile.display_name}><Icon name="trash" /> Delete</button>
+                  <a href={link} target="_blank" rel="noopener noreferrer" className="inline-flex max-w-full items-center gap-2 rounded-full border border-[#E6E0D8] bg-[#FBFAF8] px-3 py-2 text-xs font-semibold text-[#796958] hover:bg-[#F3EEE8]">
+                    <Icon name="link" /><span className="min-w-0 break-all">{link}</span>
+                  </a>
+
+                  <dl className="grid grid-cols-2 gap-3 border-y border-[#E6E0D8] py-4">
+                    <div className="min-w-0">
+                      <dt className="text-xs text-[#7F756B]">Reward per order</dt>
+                      <dd className="mt-1 text-lg font-bold">{reward}</dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-xs text-[#7F756B]">Minimum order</dt>
+                      <dd className="mt-1 text-lg font-bold">{profile.minimum_order_cents > 0 ? currency.format(profile.minimum_order_cents / 100) : "No minimum"}</dd>
+                    </div>
+                  </dl>
+
+                  <div className="rounded-2xl border border-[#DDE6DD] bg-[#F1F5F0] p-4">
+                    <p className="text-xs font-semibold text-[#58705B]">Available credit</p>
+                    <p className="mt-1 break-words text-3xl font-bold tracking-tight text-[#38513D]">
+                      {available === undefined ? "—" : currency.format(available / 100)}
+                    </p>
+                    <dl className="mt-4 grid grid-cols-3 gap-2 border-t border-[#DDE6DD] pt-3 text-xs">
+                      <div><dt className="text-[#68766A]">Earned</dt><dd className="mt-1 break-words font-semibold text-[#38513D]">{earned === undefined ? "—" : currency.format(earned / 100)}</dd></div>
+                      <div><dt className="text-[#68766A]">Reserved</dt><dd className="mt-1 break-words font-semibold text-[#38513D]">{balance?.reservedCents === undefined ? "—" : currency.format(balance.reservedCents / 100)}</dd></div>
+                      <div><dt className="text-[#68766A]">Used</dt><dd className="mt-1 break-words font-semibold text-[#38513D]">{balance?.usedCents === undefined ? "—" : currency.format(balance.usedCents / 100)}</dd></div>
+                    </dl>
+                  </div>
+
+                  {voucherDraft.referrerId === profile.id && (
+                    <form onSubmit={createVoucher} className="space-y-3 rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] p-4">
+                      <label className="grid gap-2 text-sm font-semibold">Discount code amount ($)
+                        <input required type="number" inputMode="decimal" min="0.01" step="0.01"
+                          max={(available ?? 0) / 100} className={input} value={voucherDraft.amount} disabled={busy}
+                          onChange={(event) => setVoucherDraft({ ...voucherDraft, amount: event.target.value, requestId: crypto.randomUUID() })} />
+                      </label>
+                      <p className="text-xs leading-5 text-[#7F756B]">One use. Minimum merchandise subtotal equals the code amount.</p>
+                      <div className="flex flex-wrap gap-2">
+                        <button className={primary} disabled={busy}>{busy ? "Creating…" : "Create code"}</button>
+                        <button type="button" className={button} disabled={busy} onClick={() => setVoucherDraft({ referrerId: "", amount: "", requestId: "" })}>Cancel</button>
+                      </div>
+                    </form>
+                  )}
+
+                  <button type="button" className={primary + " w-full"} disabled={busy || !profile.enabled || available === undefined || available < 1}
+                    onClick={() => { setNotice(""); setVoucherDraft({ referrerId: profile.id, amount: "", requestId: crypto.randomUUID() }); }}>
+                    <Icon name="add" /> Create discount code
+                  </button>
+                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_44px] gap-2">
+                    <button type="button" className={compactButton} disabled={busy || !profile.enabled}
+                      aria-label={"Copy referral link for " + profile.display_name} onClick={() => void copy(window.location.origin + link, "Referral link copied for " + profile.display_name + ".")}>
+                      <Icon name="copy" /> Copy
+                    </button>
+                    <button type="button" className={compactButton} disabled={busy || !!profile.user_id} aria-label={"Edit " + profile.display_name} onClick={() => openEditor(profile)}>
+                      <Icon name="edit" /> Edit
+                    </button>
+                    <button type="button" className={danger} disabled={busy || !!profile.user_id} onClick={() => remove(profile)}
+                      title={"Delete " + profile.display_name} aria-label={"Delete " + profile.display_name}><Icon name="trash" /></button>
+                  </div>
+                  {vouchers.length > 0 && (
+                    <details className="border-t border-[#E6E0D8] pt-3">
+                      <summary className="cursor-pointer py-2 text-sm font-semibold">Discount codes ({vouchers.length})</summary>
+                      <ul className="mt-2 space-y-2">
+                        {vouchers.map((voucher) => (
+                          <li key={voucher.id} className="rounded-xl border border-[#E6E0D8] bg-[#FBFAF8] p-3">
+                            <div className="flex items-center justify-between gap-2 text-xs">
+                              <span className="font-semibold">{currency.format(voucher.amountCents / 100)}</span>
+                              <span className="text-[#7F756B]">{voucher.status === "released" ? "Returned" : voucher.status === "issued" ? "Ready to use" : voucher.paid ? "Used" : "Applied to order"}</span>
+                            </div>
+                            <div className="mt-2 flex min-w-0 items-center gap-2">
+                              <code className="min-w-0 flex-1 break-all text-xs text-[#5F554C]">{voucher.code}</code>
+                              <button type="button" className={button + " shrink-0 px-3"} aria-label={"Copy discount code " + voucher.code}
+                                onClick={() => void copy(voucher.code, "Discount code copied.")}><Icon name="copy" /></button>
+                            </div>
+                            {voucher.status === "issued" && (
+                              <button type="button" className="mt-2 min-h-11 text-xs font-semibold text-[#796958] underline underline-offset-4 disabled:opacity-50"
+                                disabled={busy} onClick={() => returnVoucher(voucher)}>Return credit</button>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
                 </div>
               </li>
             );
