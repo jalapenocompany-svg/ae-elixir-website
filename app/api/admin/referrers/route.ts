@@ -47,6 +47,38 @@ export async function POST(request: Request) {
   const denied = authorize(request);
   if (denied) return denied;
   const body = await request.json().catch(() => null);
+  if (body?.action === "return_credit") {
+    if (typeof body.voucherId !== "string" || !uuidPattern.test(body.voucherId)) {
+      return adsReply({ error: "Choose a valid credit code." }, 400);
+    }
+    try {
+      const { data, error } = await adsDatabase().rpc("return_referral_credit_voucher", {
+        p_voucher_id: body.voucherId,
+      });
+      if (error?.code === "P0001") return adsReply({ error: error.message }, 400);
+      if (error) throw error;
+      return adsReply({ voucher: data });
+    } catch {
+      return adsReply({ error: "Could not return this credit code. Try again." }, 500);
+    }
+  }
+  if (body?.action === "issue_credit") {
+    if (typeof body.requestId !== "string" || !uuidPattern.test(body.requestId) ||
+      typeof body.referrerId !== "string" || !uuidPattern.test(body.referrerId) ||
+      !Number.isSafeInteger(body.amountCents) || body.amountCents < 1 || body.amountCents > 999999999) {
+      return adsReply({ error: "Enter a valid referrer and credit amount." }, 400);
+    }
+    try {
+      const { data, error } = await adsDatabase().rpc("issue_referral_credit_voucher", {
+        p_request_id: body.requestId, p_referrer_id: body.referrerId, p_amount_cents: body.amountCents,
+      });
+      if (error?.code === "P0001") return adsReply({ error: error.message }, 400);
+      if (error) throw error;
+      return adsReply({ voucher: data }, 201);
+    } catch {
+      return adsReply({ error: "Could not create the credit code. Retry with the same amount." }, 500);
+    }
+  }
   if (!body || typeof body !== "object" || (body.id != null &&
     (typeof body.id !== "string" || !uuidPattern.test(body.id)))) {
     return adsReply({ error: "Invalid referrer request." }, 400);
