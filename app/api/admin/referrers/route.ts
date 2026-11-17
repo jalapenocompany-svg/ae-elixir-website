@@ -1,7 +1,8 @@
 import { adsDatabase, adsReply } from "@/lib/ads-server";
+import { sendReferrerInvitation } from "@/lib/referral-invitations";
 import { findSellerCode, previewEnabled, referralCodePattern, reservedCodes } from "@/lib/referral-preview";
 
-const columns = "id, display_name, email, code, enabled, user_id, reward_type, reward_value, minimum_order_cents";
+const columns = "id, display_name, email, code, enabled, user_id, reward_type, reward_value, minimum_order_cents, portal_invited_at";
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function authorize(request: Request) {
@@ -47,6 +48,17 @@ export async function POST(request: Request) {
   const denied = authorize(request);
   if (denied) return denied;
   const body = await request.json().catch(() => null);
+  if (body?.action === "invite") {
+    if (typeof body.referrerId !== "string" || !uuidPattern.test(body.referrerId)) {
+      return adsReply({ error: "Choose a valid referrer." }, 400);
+    }
+    try {
+      const origin = request.headers.get("origin") || new URL(request.url).origin;
+      return adsReply(await sendReferrerInvitation(body.referrerId, origin));
+    } catch (error) {
+      return adsReply({ error: error instanceof Error ? error.message : "Could not send the invitation." }, 500);
+    }
+  }
   if (body?.action === "return_credit") {
     if (typeof body.voucherId !== "string" || !uuidPattern.test(body.voucherId)) {
       return adsReply({ error: "Choose a valid credit code." }, 400);
