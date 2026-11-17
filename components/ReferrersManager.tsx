@@ -33,11 +33,20 @@ function rewardLabel(profile: Profile) {
 
 type ReferralSales = { paidOrders: number; months: { month: string; total: number }[] };
 
-function ReferralOverview({ count, sales }: { count: number | undefined; sales: ReferralSales | null }) {
+type ReferralCredits = {
+  earnedCents: number;
+  referrers: { id: string; earnedCents: number }[];
+};
+
+function ReferralOverview({ count, sales, credits }: {
+  count: number | undefined;
+  sales: ReferralSales | null;
+  credits: ReferralCredits | null;
+}) {
   const metrics = [
     { label: "Referrers", value: count, caption: "Total profiles" },
     { label: "Referred orders", value: sales?.paidOrders, caption: "Paid orders" },
-    { label: "Credits given", caption: "Awaiting credit tracking" },
+    { label: "Credits given", value: credits ? currency.format(credits.earnedCents / 100) : undefined, caption: "Earned on paid orders" },
     { label: "Credits used", caption: "Awaiting credit tracking" },
   ];
   const months = sales?.months ?? [];
@@ -50,7 +59,7 @@ function ReferralOverview({ count, sales }: { count: number | undefined; sales: 
         {metrics.map(({ label, value, caption }) => (
           <div key={label} className="rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm sm:p-5">
             <dt className="text-sm font-semibold text-[#6F655C]">{label}</dt>
-            <dd className="mt-2 text-2xl font-bold">{value?.toLocaleString("en-US") ?? "—"}</dd>
+            <dd className="mt-2 text-2xl font-bold">{(typeof value === "number" ? value.toLocaleString("en-US") : value) ?? "—"}</dd>
             <dd className="mt-1 text-xs text-[#7F756B]">{caption}</dd>
           </div>
         ))}
@@ -122,6 +131,7 @@ async function request(method: string, profile?: typeof empty, id?: string, sign
 export default function ReferrersManager() {
   const [profiles, setProfiles] = useState<Profile[] | null>(null);
   const [sales, setSales] = useState<ReferralSales | null>(null);
+  const [credits, setCredits] = useState<ReferralCredits | null>(null);
   const [draft, setDraft] = useState(empty);
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -135,6 +145,7 @@ export default function ReferrersManager() {
       .then((data) => {
         setProfiles(data.profiles);
         setSales(data.overview);
+        setCredits(data.credits);
       })
       .catch((error) => {
         if (!controller.signal.aborted) setNotice(error instanceof Error ? error.message : "Could not load referrers.");
@@ -207,7 +218,7 @@ export default function ReferrersManager() {
 
   return (
     <section className="space-y-5 text-[#5F554C]">
-      <ReferralOverview count={profiles?.length} sales={sales} />
+      <ReferralOverview count={profiles?.length} sales={sales} credits={credits} />
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-[24px] border border-[#E6E0D8] bg-white p-5 shadow-sm sm:p-6">
         <div>
           <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#A79B8E]">Referral links</p>
@@ -273,6 +284,9 @@ export default function ReferrersManager() {
               </>
             )}
           </fieldset>
+          <p className="text-xs leading-5 text-[#7F756B]">
+            Rewards use the order total after discounts, including shipping. Rule changes apply to new orders.
+          </p>
           <div className="flex flex-wrap gap-3">
             <button className={primary} disabled={busy}>{busy ? "Saving…" : "Save referrer"}</button>
             <button type="button" className={button} disabled={busy} onClick={() => { setEditing(false); setDraft(empty); }}>Cancel</button>
@@ -289,6 +303,7 @@ export default function ReferrersManager() {
               const data = await request("GET");
               setProfiles(data.profiles);
               setSales(data.overview);
+        setCredits(data.credits);
             })}>Try again</button>
           </div>
         )}
@@ -313,6 +328,11 @@ export default function ReferrersManager() {
                     </div>
                     <p className="mt-1 break-all text-sm text-[#7F756B]">{profile.email}</p>
                     <p className="mt-1 text-sm text-[#6F655C]">{rewardLabel(profile)}</p>
+                    <p className="mt-2 text-sm font-semibold text-[#48634E]">
+                      Earned credit · {credits ? currency.format(
+                        (credits.referrers.find((balance) => balance.id === profile.id)?.earnedCents ?? 0) / 100
+                      ) : "Unavailable"}
+                    </p>
                     <a href={link} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex max-w-full items-center gap-2 text-sm font-semibold text-[#8B7B6B] underline decoration-[#D8D1C8] underline-offset-4 hover:text-[#5F554C]">
                       <Icon name="link" /><span className="min-w-0 break-all">{link}</span>
                     </a>
