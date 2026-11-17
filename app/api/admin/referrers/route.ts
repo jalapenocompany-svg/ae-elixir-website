@@ -1,7 +1,7 @@
 import { adsDatabase, adsReply } from "@/lib/ads-server";
 import { findSellerCode, previewEnabled, referralCodePattern, reservedCodes } from "@/lib/referral-preview";
 
-const columns = "id, display_name, email, code, enabled, user_id";
+const columns = "id, display_name, email, code, enabled, user_id, reward_type, reward_value, minimum_order_cents";
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function authorize(request: Request) {
@@ -57,6 +57,18 @@ export async function POST(request: Request) {
     return adsReply({ error: "Enter a name, valid email, and a code of 3–32 letters, digits or hyphens." }, 400);
   }
 
+  const { reward_type, reward_value, minimum_order_cents } = body;
+  const hasRewardRule = ["reward_type", "reward_value", "minimum_order_cents"].some((field) => field in body);
+  if (hasRewardRule && (
+    !["none", "percent", "fixed"].includes(reward_type) ||
+    !Number.isSafeInteger(reward_value) || !Number.isSafeInteger(minimum_order_cents) ||
+    minimum_order_cents < 0 || minimum_order_cents > 999999999 ||
+    (reward_type === "none" ? reward_value !== 0 || minimum_order_cents !== 0 :
+      reward_value < 1 || reward_value > (reward_type === "percent" ? 10000 : 999999999))
+  )) {
+    return adsReply({ error: "Enter a valid reward and minimum order. A percentage must be between 0.01% and 100%." }, 400);
+  }
+
   try {
     const db = adsDatabase();
     const seller = await findSellerCode(db, code);
@@ -64,7 +76,10 @@ export async function POST(request: Request) {
     if (seller.data) return adsReply({ error: "This code is already used by a seller." }, 409);
 
     const table = db.from("referrer_profiles");
-    const values = { display_name, email, code, enabled };
+    const values = {
+      display_name, email, code, enabled,
+      ...(hasRewardRule ? { reward_type, reward_value, minimum_order_cents } : {}),
+    };
     const query = id ? table.update(values).eq("id", id).is("user_id", null) : table.insert(values);
     const { data, error } = await query.select(columns).maybeSingle();
     if (error?.code === "23505") return adsReply({ error: "This email or code is already in use." }, 409);
