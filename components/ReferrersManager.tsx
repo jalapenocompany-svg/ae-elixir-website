@@ -47,6 +47,68 @@ type ReferralCredits = {
   vouchers?: CreditVoucher[];
 };
 
+function ReferralSalesGraph({ months, desktop = false }: {
+  months: ReferralSales["months"];
+  desktop?: boolean;
+}) {
+  const width = desktop ? 1080 : 400;
+  const left = 44;
+  const plotWidth = width - left - 12;
+  const baseline = 148;
+  const max = Math.max(100, ...months.map(({ total }) => total));
+  const points = months.map(({ month, total }, index) => ({
+    month,
+    total,
+    x: left + (index + 0.5) * plotWidth / months.length,
+    y: baseline - total / max * 128,
+  }));
+  const line = points.map(({ x, y }) => x + "," + y).join(" ");
+  const area = "M " + points[0].x + " " + baseline + " "
+    + points.map(({ x, y }) => "L " + x + " " + y).join(" ")
+    + " L " + points[points.length - 1].x + " " + baseline + " Z";
+
+  return (
+    <div>
+      <p className="mt-1 text-sm text-[#6F655C]">Last {months.length} months · paid orders</p>
+      <svg viewBox={"0 0 " + width + " 170"} className="mt-5 h-auto w-full" role="img"
+        aria-label={"Referral sales over the last " + months.length + " months in dollars"}>
+        {[0, 0.5, 1].map((ratio) => (
+          <g key={ratio}>
+            <line x1={left} x2={width - 12} y1={baseline - ratio * 128} y2={baseline - ratio * 128} stroke="#E6E0D8" />
+            <text x="0" y={baseline + 4 - ratio * 128} fontSize="11" fill="#7F756B">
+              {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 0 }).format(max * ratio)}
+            </text>
+          </g>
+        ))}
+        <path d={area} fill="#F3EEE8" />
+        <polyline points={line} fill="none" stroke="#A79B8E" strokeWidth="2.5"
+          vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
+        {points.map(({ month, total, x, y }) => (
+          <circle key={month} cx={x} cy={y} r="4" fill="#A79B8E" stroke="white" strokeWidth="2">
+            <title>{month + " · " + currency.format(total)}</title>
+          </circle>
+        ))}
+      </svg>
+      <ul className="grid gap-1 text-center" style={{
+        gridTemplateColumns: "repeat(" + months.length + ", minmax(0, 1fr))",
+        marginLeft: (left / width * 100) + "%",
+        marginRight: (12 / width * 100) + "%",
+      }}>
+        {months.map(({ month, total }) => (
+          <li key={month} className="min-w-0">
+            <span className="block text-xs text-[#7F756B]">
+              {new Date(month + "-01T00:00:00Z").toLocaleString("en-US", {
+                month: "short", ...(desktop ? { year: "2-digit" as const } : {}), timeZone: "UTC",
+              })}
+            </span>
+            <span className="mt-1 block break-words text-xs font-semibold">{currency.format(total)}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function ReferralOverview({ count, sales, credits }: {
   count: number | undefined;
   sales: ReferralSales | null;
@@ -59,7 +121,6 @@ function ReferralOverview({ count, sales, credits }: {
     { label: "Credits used", value: credits?.usedCents === undefined ? undefined : currency.format(credits.usedCents / 100), caption: "Redeemed on paid orders" },
   ];
   const months = sales?.months ?? [];
-  const max = Math.max(100, ...months.map(({ total }) => total));
 
   return (
     <>
@@ -75,44 +136,15 @@ function ReferralOverview({ count, sales, credits }: {
       </dl>
       <section className="rounded-[24px] border border-[#E6E0D8] bg-white p-5 shadow-sm">
         <h3 className="text-lg font-bold">Referral sales</h3>
-        <p className="mt-1 text-sm text-[#6F655C]">Last 5 months · paid orders</p>
         {months.length ? (
-          <div className="mx-auto mt-5 w-full max-w-[560px]">
-            <svg viewBox="0 0 400 170" className="h-auto w-full" role="img" aria-label="Monthly referral sales in dollars">
-              {[0, 0.5, 1].map((ratio) => (
-                <g key={ratio}>
-                  <line x1="42" x2="384" y1={142 - ratio * 120} y2={142 - ratio * 120} stroke="#E6E0D8" />
-                  <text x="0" y={146 - ratio * 120} fontSize="11" fill="#7F756B">
-                    {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 0 }).format(max * ratio)}
-                  </text>
-                </g>
-              ))}
-              <path d={
-                "M 42 142 " + months.map(({ total }, index) =>
-                  "L " + (42 + index * 342 / Math.max(1, months.length - 1)) + " " + (142 - total / max * 120)
-                ).join(" ") + " L 384 142 Z"
-              } fill="#F3EEE8" />
-              <polyline points={months.map(({ total }, index) =>
-                (42 + index * 342 / Math.max(1, months.length - 1)) + "," + (142 - total / max * 120)
-              ).join(" ")} fill="none" stroke="#A79B8E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-              {months.map(({ month, total }, index) => (
-                <circle key={month} cx={42 + index * 342 / Math.max(1, months.length - 1)} cy={142 - total / max * 120}
-                  r="4" fill="#A79B8E" stroke="white" strokeWidth="2">
-                  <title>{month + " · " + currency.format(total)}</title>
-                </circle>
-              ))}
-            </svg>
-            <ul className="grid grid-cols-5 gap-1 text-center">
-              {months.map(({ month, total }) => (
-                <li key={month} className="min-w-0">
-                  <span className="block text-xs text-[#7F756B]">
-                    {new Date(month + "-01T00:00:00Z").toLocaleString("en-US", { month: "short", timeZone: "UTC" })}
-                  </span>
-                  <span className="mt-1 block break-words text-xs font-semibold">{currency.format(total)}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <>
+            <div className="lg:hidden">
+              <ReferralSalesGraph months={months.slice(-5)} />
+            </div>
+            <div className="hidden lg:block">
+              <ReferralSalesGraph months={months.slice(-12)} desktop />
+            </div>
+          </>
         ) : (
           <p className="mt-5 rounded-2xl bg-[#FBFAF8] p-5 text-sm text-[#6F655C]">Referral sales are unavailable.</p>
         )}
