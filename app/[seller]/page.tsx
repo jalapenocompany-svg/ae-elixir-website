@@ -9,5 +9,5 @@ export default async function SellerPage({
   const { seller } = await params;
 
   const referredBy = await resolveReferral(seller);
-  return referredBy ? <ShopClient referredBy={referredBy} /> : <ShopClient seller={seller} />;
+  return referredBy ? <ShopClient referredBy={referredBy} referralCode={seller.toUpperCase()} /> : <ShopClient seller={seller} />;
 }
