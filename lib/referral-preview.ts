@@ -8,7 +8,7 @@ export const referralCodePattern = /^[A-Z0-9][A-Z0-9-]{2,31}$/;
 export const reservedCodes = new Set([
   "AEELIXIR", "ADMIN", "API", "MASTER-ADMIN", "ORDER-LOOKUP", "STRIPE-SANDBOX",
   "LEGAL-DISCLAIMER", "PEPTIDE-CALCULATOR", "RESEARCH-USE-ONLY",
-  "RETURN-POLICY", "SHIPPING-POLICY", "TEST", "REFERRALS",
+  "RETURN-POLICY", "SHIPPING-POLICY", "TEST", "REFERRALS", "REFERRER-PORTAL",
 ]);
 
 export function findSellerCode(db: ReturnType<typeof adsDatabase>, code: string) {
