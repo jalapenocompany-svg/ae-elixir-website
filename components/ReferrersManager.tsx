@@ -12,6 +12,7 @@ type Profile = {
   code: string;
   enabled: boolean;
   user_id: string | null;
+  portal_invited_at?: string | null;
   reward_type: RewardType;
   reward_value: number;
   minimum_order_cents: number;
@@ -29,7 +30,7 @@ type CreditRequest = {
   requestId: string;
   referrerId: string;
   amountCents: number;
-} | { action: "return_credit"; voucherId: string };
+} | { action: "return_credit"; voucherId: string } | { action: "invite"; referrerId: string };
 type CreditVoucher = {
   id: string;
   referrerId: string;
@@ -222,6 +223,16 @@ export default function ReferrersManager() {
     }
   }
 
+  function invite(profile: Profile) {
+    if (!window.confirm("Send a portal password link to " + profile.email + "?")) return;
+    void perform(async () => {
+      await request("POST", { action: "invite", referrerId: profile.id });
+      setProfiles((current) => (current ?? []).map((item) =>
+        item.id === profile.id ? { ...item, portal_invited_at: new Date().toISOString() } : item));
+      setNotice("Portal password link sent to " + profile.email + ".");
+    });
+  }
+
   function returnVoucher(voucher: CreditVoucher) {
     if (!window.confirm("Cancel this unused code and return its reserved credit to the referrer?")) return;
     void perform(async () => {
@@ -401,7 +412,7 @@ export default function ReferrersManager() {
                     </button>
                   </div>
                   <div id={"referrer-details-" + profile.id} hidden={!expanded} className="space-y-4">
-                    <p className="text-xs text-[#7F756B]">{profile.user_id ? "Portal login linked" : "Portal login pending"}</p>
+                    <p className="text-xs text-[#7F756B]">{profile.user_id ? "Portal login linked" : profile.portal_invited_at ? "Invitation sent" : "Portal invitation pending"}</p>
 
                     <dl className="grid grid-cols-2 gap-3 border-y border-[#E6E0D8] py-4">
                       <div className="min-w-0">
@@ -441,6 +452,9 @@ export default function ReferrersManager() {
                       </form>
                     )}
 
+                    <button type="button" className={button + " w-full"} disabled={busy || !profile.enabled} onClick={() => invite(profile)}>
+                      {profile.user_id ? "Send password link" : profile.portal_invited_at ? "Resend invitation" : "Send invitation"}
+                    </button>
                     <button type="button" className={primary + " w-full"} disabled={busy || !profile.enabled || available === undefined || available < 1}
                       onClick={() => { setNotice(""); setVoucherDraft({ referrerId: profile.id, amount: "", requestId: crypto.randomUUID() }); }}>
                       <Icon name="add" /> Create discount code
