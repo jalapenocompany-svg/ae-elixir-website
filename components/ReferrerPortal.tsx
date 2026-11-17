@@ -8,14 +8,15 @@ import { referrerAuth } from "@/lib/referrer-auth-client";
 
 type PortalData = {
   profile: { name: string; email: string; code: string; rewardType: "none" | "percent" | "fixed"; rewardValue: number; minimumOrderCents: number };
-  sales: { paidOrders: number; total: number; months: { month: string; total: number }[] };
+  sales: { pendingOrders?: number; paidOrders: number; total: number; months: { month: string; total: number }[] };
   credits: { earnedCents: number; availableCents: number; reservedCents: number; usedCents: number };
   vouchers: { id: string; code: string; amountCents: number; status: "issued" | "spent" | "released"; paid: boolean; createdAt: string }[];
   recentSales: { id: string; createdAt: string; total: number; creditCents: number }[];
 };
 type Action = { action: "issue_credit"; requestId: string; amountCents: number }
   | { action: "return_credit"; voucherId: string };
-type AuthMode = "sign_in" | "register" | "reset" | "password";
+type AuthMode = "sign_in" | "reset" | "password";
+type InvitationToken = { hash: string; type: "invite" | "recovery" };
 
 const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const card = "rounded-[24px] border border-[#E6E0D8] bg-white p-5 shadow-sm sm:p-6";
@@ -46,6 +47,7 @@ export default function ReferrerPortal() {
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [mode, setMode] = useState<AuthMode>("sign_in");
+  const [invitationToken, setInvitationToken] = useState<InvitationToken | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [data, setData] = useState<PortalData | null>(null);
@@ -59,6 +61,13 @@ export default function ReferrerPortal() {
 
   useEffect(() => {
     let active = true;
+    const params = new URLSearchParams(window.location.search);
+    const hash = params.get("token_hash");
+    const tokenType = params.get("type");
+    if (hash && hash.length <= 512 && (tokenType === "invite" || tokenType === "recovery")) {
+      setInvitationToken({ hash, type: tokenType });
+      setMode("password");
+    }
     function applySession(next: Session | null) {
       if (!active) return;
       if (activeUser.current !== next?.user.id) {
@@ -136,16 +145,21 @@ export default function ReferrerPortal() {
     try {
       const loginEmail = email.trim().toLowerCase();
       const redirect = window.location.origin + "/referrer-portal";
-      if (mode === "register") {
-        const result = await referrerAuth.auth.signUp({ email: loginEmail, password, options: { emailRedirectTo: redirect } });
-        if (result.error) throw result.error;
-        setMode("sign_in");
-        setNotice(result.data.session ? "Account created." : "Check your email to confirm your account, then sign in with this email and password.");
-      } else if (mode === "reset") {
+      if (mode === "reset") {
         const result = await referrerAuth.auth.resetPasswordForEmail(loginEmail, { redirectTo: redirect + "?mode=recovery" });
         if (result.error) throw result.error;
         setNotice("If this email has an account, a password reset link will arrive shortly. Open it in this browser.");
       } else if (mode === "password") {
+        if (invitationToken) {
+          const verified = await referrerAuth.auth.verifyOtp({ token_hash: invitationToken.hash, type: invitationToken.type });
+          if (verified.error) throw verified.error;
+          setInvitationToken(null);
+          const setupUrl = new URL(window.location.href);
+          setupUrl.searchParams.delete("token_hash");
+          setupUrl.searchParams.delete("type");
+          setupUrl.searchParams.set("mode", "recovery");
+          window.history.replaceState({}, "", setupUrl);
+        }
         const result = await referrerAuth.auth.updateUser({ password });
         if (result.error) throw result.error;
         const url = new URL(window.location.href);
@@ -204,32 +218,40 @@ export default function ReferrerPortal() {
   }
 
   const signedIn = !!session;
-  const showAuthForm = !signedIn || mode === "password";
-  const titles = { sign_in: "Welcome back", register: "Create your login", reset: "Reset your password", password: "Choose a new password" };
+  const showAuthForm = !signedIn || mode === "password" || !!invitationToken;
+  const titles = { sign_in: "Referrals Portal", reset: "Reset your password", password: "Set your password" };
 
   return (
-    <div className="min-h-screen bg-[#F8F9F8] text-[#5F554C]">
-      <SiteHeader />
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+    <div className={"min-h-screen text-[#5F554C] " + (showAuthForm ? "bg-gray-50" : "bg-[#F8F9F8]")}>
+      {!showAuthForm && <SiteHeader />}
+      <div className={showAuthForm
+        ? "mx-auto flex min-h-[calc(100dvh-220px)] max-w-6xl flex-col justify-center px-5 py-8"
+        : "mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8"}>
+        {!showAuthForm && <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#A79B8E]">Referrer portal</p>
-            <h1 className="mt-1 break-words text-2xl font-bold tracking-tight">
-              {data && signedIn ? data.profile.name : "Your referrals, all in one place"}
-            </h1>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#A79B8E]">Referrals Portal</p>
+            <h1 className="mt-1 break-words text-2xl font-bold tracking-tight">{data?.profile.name || "Your dashboard"}</h1>
           </div>
           {signedIn && <div className="flex gap-2">
             <button type="button" className={button} disabled={busy || loading} onClick={() => void refresh()}>{loading ? "Refreshing…" : "Refresh"}</button>
             <button type="button" className={button} disabled={busy} onClick={() => void signOut()}>Sign out</button>
           </div>}
-        </div>
+        </div>}
 
-        {notice && <p role="status" className="mb-5 break-words rounded-2xl border border-[#E6E0D8] bg-[#F3EEE8] px-4 py-3 text-sm leading-6">{notice}</p>}
-        {!authReady ? <p role="status" className={card}>Loading your account…</p> : showAuthForm ? (
-          <section className={card + " mx-auto max-w-md"}>
-            <h2 className="text-xl font-bold">{titles[mode]}</h2>
-            <p className="mt-2 text-sm leading-6 text-[#7F756B]">Use the email registered on your AE Elixir referral profile.</p>
-            <form onSubmit={authenticate} className="mt-5 space-y-4">
+        {!showAuthForm && notice && <p role="status" className="mb-5 break-words rounded-2xl border border-[#E6E0D8] bg-[#F3EEE8] px-4 py-3 text-sm leading-6">{notice}</p>}
+        {!authReady ? <p role="status" className={card + " mx-auto w-full max-w-sm"}>Loading your account…</p> : showAuthForm ? (
+          <section className={card + " mx-auto w-full max-w-sm"}>
+            <div className="mb-5 flex flex-col items-center text-center">
+              <img src="/logo-icon.png" alt="AE Elixir" className="mb-3 h-16 w-16 object-contain" />
+              <h1 className="text-2xl font-bold">{titles[mode]}</h1>
+              <p className="mt-1 text-sm text-[#6F655C]">
+                {mode === "password" ? "Choose a password to access your dashboard."
+                  : mode === "reset" ? "Enter your email to receive a reset link."
+                  : "Sign in to your referral dashboard."}
+              </p>
+            </div>
+            {notice && <p role="status" className="mb-4 break-words rounded-xl bg-[#F3EEE8] px-3 py-2 text-sm leading-6">{notice}</p>}
+            <form onSubmit={authenticate} className="space-y-4">
               {mode !== "password" && <label className="grid gap-2 text-sm font-semibold">Email
                 <input type="email" required autoComplete="email" maxLength={254} className={input} value={email} disabled={busy} onChange={(event) => setEmail(event.target.value)} />
               </label>}
@@ -240,17 +262,23 @@ export default function ReferrerPortal() {
                 {mode !== "sign_in" && <span className="text-xs font-normal text-[#7F756B]">At least 9 characters.</span>}
               </label>}
               <button className={primary + " w-full"} disabled={busy}>
-                {busy ? "Please wait…" : mode === "register" ? "Create account" : mode === "reset" ? "Send reset link" : mode === "password" ? "Save password" : "Sign in"}
+                {busy ? "Please wait…" : mode === "reset" ? "Send reset link" : mode === "password" ? "Save password" : "Sign in"}
               </button>
             </form>
-            {mode !== "password" && <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-1">
-              {(mode === "sign_in" ? ["register", "reset"] as const : ["sign_in"] as const).map((choice) => (
-                <button key={choice} type="button" className="min-h-11 text-sm font-semibold text-[#796958] underline underline-offset-4"
-                  disabled={busy} onClick={() => { setMode(choice); setNotice(""); setPassword(""); }}>
-                  {choice === "register" ? "Create account" : choice === "reset" ? "Forgot password?" : "Back to sign in"}
-                </button>
-              ))}
-            </div>}
+            <div className="mt-4 text-center">
+              <button type="button" className="min-h-11 text-sm font-semibold text-[#796958] underline underline-offset-4" disabled={busy}
+                onClick={() => {
+                  setMode(mode === "sign_in" ? "reset" : "sign_in");
+                  setNotice("");
+                  setPassword("");
+                  setInvitationToken(null);
+                  const url = new URL(window.location.href);
+                  ["mode", "token_hash", "type", "code"].forEach((key) => url.searchParams.delete(key));
+                  window.history.replaceState({}, "", url);
+                }}>
+                {mode === "sign_in" ? "Forgot password?" : "Back to sign in"}
+              </button>
+            </div>
           </section>
         ) : loading && !data ? <p role="status" className={card}>Loading your dashboard…</p> : !data ? (
           <section className={card}>
@@ -260,14 +288,15 @@ export default function ReferrerPortal() {
           </section>
         ) : (
           <div className="space-y-5">
-            <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <dl className="grid grid-cols-2 gap-3 lg:grid-cols-5">
               {[
                 ["Paid orders", data.sales.paidOrders.toLocaleString("en-US")],
+                ["Pending orders", data.sales.pendingOrders?.toLocaleString("en-US") ?? "—"],
                 ["Referral sales", currency.format(data.sales.total)],
                 ["Credit earned", currency.format(data.credits.earnedCents / 100)],
                 ["Credit used", currency.format(data.credits.usedCents / 100)],
               ].map(([label, value]) => (
-                <div key={label} className={card + " min-w-0"}>
+                <div key={label} className={card + " min-w-0 last:col-span-2 lg:last:col-span-1"}>
                   <dt className="text-xs font-semibold text-[#7F756B]">{label}</dt>
                   <dd className="mt-2 break-words text-2xl font-bold">{value}</dd>
                 </div>
