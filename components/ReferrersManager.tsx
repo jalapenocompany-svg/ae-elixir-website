@@ -31,18 +31,17 @@ function rewardLabel(profile: Profile) {
     : amount + " credit per referred order";
 }
 
-function ReferralOverview({ count }: { count: number | undefined }) {
-  const now = new Date();
-  const months = Array.from({ length: 5 }, (_, index) =>
-    new Date(now.getFullYear(), now.getMonth() + index - 4, 1)
-      .toLocaleString("en-US", { month: "short" })
-  );
+type ReferralSales = { paidOrders: number; months: { month: string; total: number }[] };
+
+function ReferralOverview({ count, sales }: { count: number | undefined; sales: ReferralSales | null }) {
   const metrics = [
-    { label: "Referrers", value: count?.toLocaleString("en-US"), caption: "Total profiles" },
-    { label: "Referred orders", caption: "Awaiting tracking" },
-    { label: "Credits given", caption: "Awaiting tracking" },
-    { label: "Credits used", caption: "Awaiting tracking" },
+    { label: "Referrers", value: count, caption: "Total profiles" },
+    { label: "Referred orders", value: sales?.paidOrders, caption: "Paid orders" },
+    { label: "Credits given", caption: "Awaiting credit tracking" },
+    { label: "Credits used", caption: "Awaiting credit tracking" },
   ];
+  const months = sales?.months ?? [];
+  const max = Math.max(1, ...months.map(({ total }) => total));
 
   return (
     <>
@@ -51,29 +50,36 @@ function ReferralOverview({ count }: { count: number | undefined }) {
         {metrics.map(({ label, value, caption }) => (
           <div key={label} className="rounded-[24px] border border-[#E6E0D8] bg-white p-4 shadow-sm sm:p-5">
             <dt className="text-sm font-semibold text-[#6F655C]">{label}</dt>
-            <dd className="mt-2 text-2xl font-bold">{value ?? "—"}</dd>
+            <dd className="mt-2 text-2xl font-bold">{value?.toLocaleString("en-US") ?? "—"}</dd>
             <dd className="mt-1 text-xs text-[#7F756B]">{caption}</dd>
           </div>
         ))}
       </dl>
       <section className="rounded-[24px] border border-[#E6E0D8] bg-white p-5 shadow-sm">
         <h3 className="text-lg font-bold">Referral sales</h3>
-        <p className="mt-1 text-sm text-[#6F655C]">Last 5 months</p>
-        <div className="relative mt-5 flex h-36 items-center justify-center rounded-2xl bg-[#FBFAF8] px-3 sm:h-48">
-          <div aria-hidden="true" className="absolute inset-0 grid grid-rows-4 px-3">
-            {months.slice(0, 4).map((month) => <div key={month} className="border-b border-[#E6E0D8]" />)}
-          </div>
-          <p className="relative rounded-xl border border-[#E6E0D8] bg-white px-4 py-2 text-center text-sm text-[#6F655C]">
-            Sales will appear once referral orders are tracked.
-          </p>
-        </div>
-        <div className="mt-2 grid grid-cols-5 text-center text-xs text-[#7F756B]">
-          {months.map((month) => <span key={month}>{month}</span>)}
-        </div>
+        <p className="mt-1 text-sm text-[#6F655C]">Last 5 months · paid orders</p>
+        {months.length ? (
+          <ul className="mt-5 grid grid-cols-5 gap-2 text-center sm:gap-4">
+            {months.map(({ month, total }) => (
+              <li key={month} className="min-w-0">
+                <div aria-hidden="true" className="flex h-28 items-end justify-center border-b border-[#E6E0D8] bg-[#FBFAF8] sm:h-40">
+                  <div className="w-2/3 max-w-16 rounded-t-lg bg-[#A79B8E]" style={{ height: (100 * total / max) + "%" }} />
+                </div>
+                <span className="mt-2 block text-xs text-[#7F756B]">
+                  {new Date(month + "-01T00:00:00Z").toLocaleString("en-US", { month: "short", timeZone: "UTC" })}
+                </span>
+                <span className="block break-words text-xs font-semibold">{currency.format(total)}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-5 rounded-2xl bg-[#FBFAF8] p-5 text-sm text-[#6F655C]">Referral sales are unavailable.</p>
+        )}
       </section>
     </>
   );
 }
+
 const input = "min-w-0 w-full rounded-2xl border border-[#D8D1C8] bg-white px-4 py-3 text-sm text-[#5F554C] outline-none transition focus:border-[#A79B8E] focus:ring-2 focus:ring-[#A79B8E]/20";
 const buttonBase = "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold shadow-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A79B8E] disabled:cursor-not-allowed disabled:opacity-50";
 const button = buttonBase + " border-[#D8D1C8] bg-white text-[#5F554C] hover:bg-[#F6F3EF]";
@@ -115,6 +121,7 @@ async function request(method: string, profile?: typeof empty, id?: string, sign
 
 export default function ReferrersManager() {
   const [profiles, setProfiles] = useState<Profile[] | null>(null);
+  const [sales, setSales] = useState<ReferralSales | null>(null);
   const [draft, setDraft] = useState(empty);
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -125,7 +132,10 @@ export default function ReferrersManager() {
   useEffect(() => {
     const controller = new AbortController();
     request("GET", undefined, undefined, controller.signal)
-      .then((data) => setProfiles(data.profiles))
+      .then((data) => {
+        setProfiles(data.profiles);
+        setSales(data.overview);
+      })
       .catch((error) => {
         if (!controller.signal.aborted) setNotice(error instanceof Error ? error.message : "Could not load referrers.");
       })
@@ -197,7 +207,7 @@ export default function ReferrersManager() {
 
   return (
     <section className="space-y-5 text-[#5F554C]">
-      <ReferralOverview count={profiles?.length} />
+      <ReferralOverview count={profiles?.length} sales={sales} />
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-[24px] border border-[#E6E0D8] bg-white p-5 shadow-sm sm:p-6">
         <div>
           <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#A79B8E]">Referral links</p>
@@ -276,7 +286,9 @@ export default function ReferrersManager() {
         {!loading && profiles === null && (
           <div className="p-6">
             <button type="button" disabled={busy} className={button} onClick={() => void perform(async () => {
-              setProfiles((await request("GET")).profiles);
+              const data = await request("GET");
+              setProfiles(data.profiles);
+              setSales(data.overview);
             })}>Try again</button>
           </div>
         )}
