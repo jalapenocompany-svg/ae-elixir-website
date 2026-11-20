@@ -1,0 +1,14 @@
+const ts=require("typescript"),vm=require("node:vm"),fs=require("node:fs"),assert=require("node:assert/strict");
+const context={exports:{},require,URLSearchParams,Date,Intl,Error};
+vm.runInNewContext(ts.transpileModule(fs.readFileSync("lib/referral-report.ts","utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,context);
+const {parseReportQuery,reportCsv}=context.exports;
+const parse=s=>parseReportQuery(new URLSearchParams(s));
+assert.equal(parse('start=2026-11-17&end=2026-11-17').p_start,'2026-11-17');
+for(const query of ['start=2026-02-30','start=bad','start=2026-11-18&end=2026-11-17','referrer=abc','page=-1','page=1.2','page=100001','view=unknown','status=bad','format=xml'])assert.throws(()=>parse(query));
+assert.equal(parse('view=codes&status=paid&format=csv').p_status,'all');
+assert.equal(parse('format=csv').p_export,true);
+const csv=reportCsv([{id:'order-id',created_at:'2026-11-18T04:59:59Z',display_name:'=HYPERLINK("bad")',referral_code:'SAFE',total:20,discount_amount:30,earned_cents:0,promo_code:'COMMA,"CODE"',redeems_credit:true}],'orders');
+assert(csv.startsWith('\uFEFF'));assert(csv.includes('Nov 17, 2026'));assert(csv.includes('=HYPERLINK'));assert(csv.includes('"\'=HYPERLINK'));
+assert(csv.includes('COMMA,""CODE""'));assert(csv.includes('"20.00"'));assert(csv.includes('"0.00"'));assert(csv.includes('"Yes"'));
+assert.equal(reportCsv([],'codes').split('\r\n').length,1);
+console.log('PASS report input validation, CSV quotes/formula safety, exact money, Eastern dates, empty export and credit filters.');

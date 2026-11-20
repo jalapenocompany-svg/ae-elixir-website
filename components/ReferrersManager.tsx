@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import ReferralSalesGraph from "@/components/ReferralSalesChart";
+import ReferralReport from "@/components/ReferralReport";
 
 type RewardType = "none" | "percent" | "fixed";
 
@@ -136,6 +137,7 @@ async function request(method: string, profile?: typeof empty | CreditRequest, i
 }
 
 export default function ReferrersManager() {
+  const [section, setSection] = useState<"referrers" | "report">("referrers");
   const [profiles, setProfiles] = useState<Profile[] | null>(null);
   const [sales, setSales] = useState<ReferralSales | null>(null);
   const [report, setReport] = useState<ProfileSales[] | null>(null);
@@ -278,8 +280,14 @@ export default function ReferrersManager() {
 
   const linkedLogin = !!profiles?.find((profile) => profile.id === draft.id)?.user_id;
 
+  const navigation = <div className="mb-5 flex gap-2 rounded-[24px] border border-[#E6E0D8] bg-white p-2 shadow-sm" aria-label="Referral section">
+    {(["referrers","report"] as const).map(value => <button key={value} type="button" onClick={() => setSection(value)} aria-pressed={section === value}
+      className={"min-h-11 flex-1 rounded-full px-4 py-2 text-sm font-semibold transition " + (section === value ? "bg-[#A79B8E] text-white shadow-sm" : "text-[#6F655C] hover:bg-[#F6F3EF]")}>{value === "referrers" ? "Overview & referrers" : "Reports"}</button>)}
+  </div>;
+  if (section === "report") return <section className="text-[#5F554C]">{navigation}<ReferralReport profiles={profiles ?? []} /></section>;
   return (
     <section className="space-y-5 text-[#5F554C]">
+      {navigation}
       <ReferralOverview count={profiles?.length} sales={sales} credits={credits} />
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-[24px] border border-[#E6E0D8] bg-white p-5 shadow-sm sm:p-6">
         <div>
