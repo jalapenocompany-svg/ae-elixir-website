@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 
@@ -13,15 +12,10 @@ type FooterSettings = {
   footer_text: string | null;
 };
 
-const ADMIN_SESSION_KEY = "ae_elixir_admin_logged_in";
-const ADMIN_AUTH_EVENT = "ae-admin-auth-change";
 const SITE_SETTINGS_EVENT = "ae-site-settings-updated";
 
 export default function SiteFooter() {
-  const pathname = usePathname();
-
   const [settings, setSettings] = useState<FooterSettings | null>(null);
-  const [showFooter, setShowFooter] = useState(false);
 
   async function loadSettings() {
     const { data, error } = await supabase
@@ -51,36 +45,6 @@ export default function SiteFooter() {
       window.removeEventListener(SITE_SETTINGS_EVENT, loadSettings);
     };
   }, []);
-
-  useEffect(() => {
-    function updateFooterVisibility() {
-      const isMasterAdminPage =
-        pathname === "/master-admin" ||
-        pathname.startsWith("/master-admin/");
-
-      if (!isMasterAdminPage) {
-        setShowFooter(true);
-        return;
-      }
-
-      const adminLoggedIn =
-        sessionStorage.getItem(ADMIN_SESSION_KEY) === "true";
-
-      setShowFooter(adminLoggedIn);
-    }
-
-    updateFooterVisibility();
-
-    window.addEventListener(ADMIN_AUTH_EVENT, updateFooterVisibility);
-
-    return () => {
-      window.removeEventListener(ADMIN_AUTH_EVENT, updateFooterVisibility);
-    };
-  }, [pathname]);
-
-  if (!showFooter) {
-    return null;
-  }
 
   const cleanWhatsApp = (settings?.whatsapp_number || "").replace(/\D/g, "");
   const contactEmail = (settings?.contact_email || "").trim();

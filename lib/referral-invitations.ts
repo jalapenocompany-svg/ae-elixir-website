@@ -19,7 +19,9 @@ export async function sendReferrerInvitation(referrerId: string, origin: string)
   if (profile.error) throw new Error("Could not load this referrer.");
   if (!profile.data?.enabled) throw new Error("Enable this referrer before sending an invitation.");
 
-  const destination = new URL("/referrer-portal", origin);
+  const portalUrl = new URL("/referrer-portal", origin).toString();
+  const safePortalUrl = escapeHtml(portalUrl);
+  const destination = new URL(portalUrl);
   if (!["http:", "https:"].includes(destination.protocol)) throw new Error("Use a valid website address.");
   let link = await db.auth.admin.generateLink({
     type: profile.data.user_id ? "recovery" : "invite",
@@ -49,7 +51,8 @@ export async function sendReferrerInvitation(referrerId: string, origin: string)
     to: profile.data.email,
     subject: "Your AE Elixir Referrals Portal access",
     text: "Hello " + profile.data.display_name + ",\n\nAE Elixir has invited you to the Referrals Portal. Set your password here:\n"
-      + destination.toString() + "\n\nYou can view your referral sales, earned credit, and discount codes after signing in.",
+      + destination.toString() + "\n\nYour portal sign-in page (save for future visits):\n" + portalUrl
+      + "\n\nYou can view your referral sales, earned credit, and discount codes after signing in.",
     html: `<!doctype html>
 <html>
   <body style="margin:0;padding:0;">
@@ -68,6 +71,7 @@ export async function sendReferrerInvitation(referrerId: string, origin: string)
           <div style="background:#F6F3EF;border:1px solid #E6E0D8;border-radius:18px;padding:18px;margin-top:18px;">
             <p style="margin:0;color:#5F554C;font-size:14px;font-weight:bold;">Your portal access</p>
             <p style="margin:8px 0 0;color:#6F655C;font-size:14px;line-height:1.6;">Sign in using ${escapeHtml(profile.data.email)} after choosing your password.</p>
+            <p style="margin:12px 0 0;color:#6F655C;font-size:13px;line-height:1.6;">Save this link for future visits:<br /><a href="${safePortalUrl}" style="color:#5F554C;font-weight:bold;text-decoration:underline;word-break:break-all;">${safePortalUrl}</a></p>
           </div>
           <div style="margin-top:26px;text-align:center;">
             <a href="${safeLink}" style="display:inline-block;min-width:190px;padding:14px 24px;color:#ffffff;background:#A79B8E;border-radius:999px;text-decoration:none;font-size:14px;font-weight:bold;">Set Your Password</a>
