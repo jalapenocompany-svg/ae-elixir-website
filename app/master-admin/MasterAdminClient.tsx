@@ -2641,7 +2641,9 @@ export default function MasterAdminClient() {
 
   if (!loggedIn) {
     return (
-      <div className="flex min-h-[calc(100dvh-220px)] items-center justify-center bg-gray-50 px-5 py-8 text-black">
+      <div className="flex min-h-[calc(100dvh-220px)] flex-col bg-gray-50 text-black">
+        <SiteHeader />
+        <div className="flex flex-1 items-center justify-center px-5 py-8">
         <div className="w-full max-w-sm rounded-[24px] border border-[#E6E0D8] bg-white p-6 shadow-sm">
           <div className="mb-5 flex flex-col items-center text-center">
             <img
@@ -2679,6 +2681,7 @@ export default function MasterAdminClient() {
           >
             {loginPending ? "Signing in…" : "Login"}
           </button>
+        </div>
         </div>
       </div>
     );
