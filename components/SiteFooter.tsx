@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
+import ContactLinks from "@/components/ContactLinks";
 
 type FooterSettings = {
   site_name: string;
   contact_email: string | null;
   whatsapp_number: string | null;
   tiktok_url: string | null;
+  tiktok_profile_url?: string | null;
   footer_text: string | null;
 };
 
@@ -18,13 +20,20 @@ export default function SiteFooter() {
   const [settings, setSettings] = useState<FooterSettings | null>(null);
 
   async function loadSettings() {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("site_settings")
       .select(
-        "site_name, contact_email, whatsapp_number, tiktok_url, footer_text"
+        "site_name, contact_email, whatsapp_number, tiktok_url, tiktok_profile_url, footer_text"
       )
       .limit(1)
       .single();
+
+    if (error && ["42703", "PGRST204"].includes(error.code)) {
+      const legacy = await supabase.from("site_settings")
+        .select("site_name, contact_email, whatsapp_number, tiktok_url, footer_text").limit(1).single();
+      data = legacy.data ? { ...legacy.data, tiktok_profile_url: null } : null;
+      error = legacy.error;
+    }
 
     if (error) {
       console.error("FOOTER SETTINGS LOAD ERROR:", error);
@@ -53,94 +62,20 @@ export default function SiteFooter() {
   const hasWhatsApp = cleanWhatsApp.length > 0;
   const hasEmail = contactEmail.length > 0;
   const hasInstagram = instagramUrl.length > 0;
+  const tiktokUrl = (settings?.tiktok_profile_url || "").trim();
+  const hasTikTok = tiktokUrl.length > 0;
 
   return (
     <footer className="border-t border-gray-100 px-6 py-10">
       <div className="mx-auto max-w-xl text-center">
-        {(hasWhatsApp || hasEmail || hasInstagram) && (
+        {(hasWhatsApp || hasEmail || hasInstagram || hasTikTok) && (
           <>
             <p className="mb-4 text-sm font-semibold text-gray-400">
               Contact Us
             </p>
 
-            <div className="mb-6 flex justify-center gap-5">
-              {hasWhatsApp && (
-                <a
-                  href={`https://wa.me/${cleanWhatsApp}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Contact us on WhatsApp"
-                  className="flex h-12 w-12 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
-                >
-                  <svg
-                    className="h-5 w-5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M5 19l1.2-3.6A7.7 7.7 0 1 1 9 18.2L5 19Z"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    />
-                  </svg>
-                </a>
-              )}
-
-              {hasEmail && (
-                <a
-                  href={`mailto:${contactEmail}`}
-                  aria-label="Email us"
-                  className="flex h-12 w-12 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
-                >
-                  <svg
-                    className="h-5 w-5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M4 6h16v12H4V6Z"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    />
-                    <path
-                      d="M4 7l8 6 8-6"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    />
-                  </svg>
-                </a>
-              )}
-
-              {hasInstagram && (
-                <a
-                  href={instagramUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Visit our Instagram"
-                  className="flex h-12 w-12 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
-                >
-                  <svg
-                    className="h-5 w-5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    aria-hidden="true"
-                  >
-                    <rect
-                      x="3"
-                      y="3"
-                      width="18"
-                      height="18"
-                      rx="5"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    />
-                    <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2" />
-                    <circle cx="17.4" cy="6.6" r="1" fill="currentColor" />
-                  </svg>
-                </a>
-              )}
+            <div className="mb-6">
+              <ContactLinks email={contactEmail} whatsapp={cleanWhatsApp} instagram={instagramUrl} tiktok={tiktokUrl} centered />
             </div>
           </>
         )}

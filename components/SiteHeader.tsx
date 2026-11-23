@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import ContactLinks from "@/components/ContactLinks";
 
 type SiteHeaderProps = {
   seller?: string;
@@ -18,6 +19,7 @@ type HeaderSettings = {
   contact_email: string | null;
   whatsapp_number: string | null;
   tiktok_url: string | null;
+  tiktok_profile_url?: string | null;
 };
 
 export default function SiteHeader({
@@ -34,11 +36,18 @@ export default function SiteHeader({
 
   useEffect(() => {
     async function loadSettings() {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from("site_settings")
-        .select("site_name, logo_url, contact_email, whatsapp_number, tiktok_url")
+        .select("site_name, logo_url, contact_email, whatsapp_number, tiktok_url, tiktok_profile_url")
         .limit(1)
         .single();
+
+      if (error && ["42703", "PGRST204"].includes(error.code)) {
+        const legacy = await supabase.from("site_settings")
+          .select("site_name, logo_url, contact_email, whatsapp_number, tiktok_url").limit(1).single();
+        data = legacy.data ? { ...legacy.data, tiktok_profile_url: null } : null;
+        error = legacy.error;
+      }
 
       if (error) {
         console.error("HEADER SETTINGS ERROR:", error);
@@ -49,6 +58,8 @@ export default function SiteHeader({
     }
 
     loadSettings();
+    window.addEventListener("ae-site-settings-updated", loadSettings);
+    return () => window.removeEventListener("ae-site-settings-updated", loadSettings);
   }, []);
 
   const shopUrl = "/";
@@ -57,9 +68,9 @@ export default function SiteHeader({
   const menuLogoUrl = "/color-logo.png";
   const contactEmail = settings?.contact_email || "";
   const whatsappNumber = settings?.whatsapp_number || "";
-  const tiktokUrl = settings?.tiktok_url || "";
+  const instagramUrl = settings?.tiktok_url || "";
+  const tiktokUrl = settings?.tiktok_profile_url || "";
 
-  const cleanWhatsApp = whatsappNumber.replace(/\D/g, "");
 
   return (
     <>
@@ -228,58 +239,12 @@ export default function SiteHeader({
           </nav>
 
           {/* Bottom Contact */}
-          <div className="mt-auto border-t border-gray-100 pt-6">
-            <p className="mb-4 text-sm font-semibold text-gray-400">Contact Us</p>
-
-            <div className="flex items-center gap-4">
-              <a
-                href={cleanWhatsApp ? `https://wa.me/${cleanWhatsApp}` : "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-12 w-12 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
-                title="WhatsApp"
-              >
-                <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M5 19l1.2-3.6A7.7 7.7 0 1 1 9 18.2L5 19Z"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M9.5 8.5c.4 2.5 2 4 4 4.5l1.2-1.2 2 1c.3.2.4.5.3.8-.4 1.1-1.3 1.8-2.6 1.8-3.2 0-6.8-3.4-6.8-6.8 0-1.2.7-2.2 1.8-2.6.3-.1.6 0 .8.3l1 2-1.7 1.2Z"
-                    stroke="currentColor"
-                    strokeWidth="1.7"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </a>
-
-              <a
-                href={contactEmail ? `mailto:${contactEmail}` : "#"}
-                className="flex h-12 w-12 items-center justify-center rounded-full border border-[#D8D1C8] bg-[#EEEAE4] text-[#A79B8E] shadow-sm transition-all hover:bg-[#E6E0D8] active:scale-95"
-                title="Email"
-              >
-                <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M4 6h16v12H4V6Z"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M4 7l8 6 8-6"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </a>
-
-
+          {(contactEmail || whatsappNumber || instagramUrl || tiktokUrl) && (
+            <div className="mt-auto border-t border-gray-100 pt-6">
+              <p className="mb-4 text-sm font-semibold text-gray-400">Contact Us</p>
+              <ContactLinks email={contactEmail} whatsapp={whatsappNumber} instagram={instagramUrl} tiktok={tiktokUrl} />
             </div>
-          </div>
+          )}
         </div>
       </div>
 
