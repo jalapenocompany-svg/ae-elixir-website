@@ -106,7 +106,8 @@ type SiteSettings = {
   email_logo_url: string | null;
   contact_email: string | null;
   whatsapp_number: string | null;
-  tiktok_url: string | null;
+  tiktok_url: string | null; // Legacy Instagram setting.
+  tiktok_profile_url?: string | null;
   footer_text: string | null;
   reseller_mode_enabled: boolean;
   show_reference_code: boolean;
@@ -1446,6 +1447,21 @@ export default function MasterAdminClient() {
 
     if (Object.keys(updates).length === 0) {
       return;
+    }
+
+    if ("tiktok_profile_url" in updates) {
+      const value = updates.tiktok_profile_url?.trim() || "";
+      if (value) {
+        try {
+          const url = new URL(value);
+          if (url.protocol !== "https:" || !(url.hostname === "tiktok.com" || url.hostname.endsWith(".tiktok.com")))
+            throw new Error("Invalid TikTok URL");
+          updates.tiktok_profile_url = url.toString();
+        } catch {
+          alert("Enter a full TikTok link, such as https://www.tiktok.com/@yourname, or leave it blank.");
+          return;
+        }
+      } else updates.tiktok_profile_url = null;
     }
 
     const { data, error } = await supabase
@@ -5127,6 +5143,17 @@ export default function MasterAdminClient() {
                     onChange={(e) =>
                       updateSiteSettingsDraft({ tiktok_url: e.target.value })
                     }
+                  />
+                </label>
+
+                <label className="text-xs text-gray-500">
+                  TikTok URL
+                  <input
+                    type="url"
+                    placeholder="https://www.tiktok.com/@yourname"
+                    className="mt-1 w-full rounded-xl border p-3 text-black"
+                    value={siteSettingsDraft.tiktok_profile_url ?? siteSettings.tiktok_profile_url ?? ""}
+                    onChange={(e) => updateSiteSettingsDraft({ tiktok_profile_url: e.target.value })}
                   />
                 </label>
 
