@@ -1,4 +1,6 @@
 "use client";
+import CheckoutAcknowledgment from "@/components/CheckoutAcknowledgment";
+import { CHECKOUT_ACK_VERSION } from "@/lib/checkout-acknowledgment";
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
@@ -813,7 +815,10 @@ export default function ShopClient({ seller, referredBy, referralCode }: { selle
   }
 
 
+  const [checkoutAcknowledged, setCheckoutAcknowledged] = useState(false);
+
   function openOrderReviewModal() {
+    setCheckoutAcknowledged(false);
     if (!promotion.ready) {
       alert(promotion.error || "Please wait while your order total is verified.");
       return;
@@ -860,6 +865,7 @@ export default function ShopClient({ seller, referredBy, referralCode }: { selle
 
   async function handleOrderSubmit() {
     if (isSubmitting || !promotion.ready) return;
+    if (!checkoutAcknowledged) { alert("Please review and confirm the required acknowledgments."); return; }
     if (freeShipping && shippingDiscountAmount <= 0) {
       alert(freeShippingMessage);
       return;
@@ -891,6 +897,7 @@ export default function ShopClient({ seller, referredBy, referralCode }: { selle
     });
 
     const orderPayload = {
+      checkout_acknowledgment: { version: CHECKOUT_ACK_VERSION, payment: true, supplies: true, eligibility: true },
       seller_code: validSellerCode || defaultSellerCode,
       customer_name: form.fullName,
       customer_address: customerAddress,
@@ -1012,6 +1019,7 @@ Total: $${savedTotal.toFixed(2)}`
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          orderId: data.id,
           orderNumber: shortOrderNumber,
           customerName: form.fullName,
           customerEmail: form.email,
@@ -2755,6 +2763,7 @@ Total: $${savedTotal.toFixed(2)}`
               {promotion.enabled && !promotion.ready && <p role="status" className="mb-3 text-sm text-red-700">
                 {promotion.error || "Verifying your order total…"} {promotion.error && "Return to edit to update or remove the code."}
               </p>}
+              <CheckoutAcknowledgment accepted={checkoutAcknowledged} onAccept={() => setCheckoutAcknowledged(true)} />
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
@@ -2771,7 +2780,7 @@ Total: $${savedTotal.toFixed(2)}`
                     setShowOrderReviewModal(false);
                     handleOrderSubmit();
                   }}
-                  disabled={isSubmitting || !promotion.ready}
+                  disabled={isSubmitting || !promotion.ready || !checkoutAcknowledged}
                   className="rounded-full bg-[#A79B8E] px-3 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#978D82] active:scale-95 disabled:opacity-50"
                 >
                   {isSubmitting ? "Saving..." : "Place Order"}

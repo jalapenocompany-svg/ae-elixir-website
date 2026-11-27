@@ -1,0 +1,5 @@
+Run supabase/migrations/202611270001_checkout_acknowledgment.sql before testing. This adds a nullable JSON column and a trigger; it does not rewrite old orders. Legacy clients may omit the field during rollout. Updated checkout requires all three confirmations; supplied records receive canonical text and a server timestamp and become immutable. Normal status/payment updates remain allowed.
+Test locally: no submission until all three checks and confirmation; Back/Escape do not confirm; reopening review requires fresh acknowledgment; order email reads the saved record by full ID/email/short order number; old orders receive no acknowledgment claim.
+Confirm existing unpaid-order cancellation automation is enabled: this feature describes the existing 48-hour policy and does not enable or change that automation.
+Policy links use existing Legal Disclaimer and Research Use Only pages. This records a customer's assertion, not independently verified age or proof of reading.
+No payment integration is added. Apply SQL and test the branch locally before merging.
