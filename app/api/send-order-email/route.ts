@@ -1,3 +1,4 @@
+import { adsDatabase } from "@/lib/ads-server";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -133,6 +134,7 @@ function getPaymentInstructions({
 export async function POST(req: Request) {
   try {
     const {
+      orderId,
       orderNumber,
       customerName,
       customerEmail,
@@ -170,6 +172,24 @@ export async function POST(req: Request) {
       process.env.NEXT_PUBLIC_SITE_URL ||
       "https://ae-elixir-website.vercel.app";
 
+
+    let acknowledgmentHtml = "", acknowledgmentText = "";
+    if (orderId) {
+      if (typeof orderId !== "string" || !/^[0-9a-f-]{36}$/i.test(orderId)) return Response.json({ error: "Invalid order ID." }, { status: 400 });
+      const { data: savedOrder, error: recordError } = await adsDatabase().from("orders")
+        .select("customer_email, checkout_acknowledgment").eq("id",orderId).single();
+      if (recordError || !savedOrder || savedOrder.customer_email?.trim().toLowerCase() !== String(customerEmail).trim().toLowerCase()
+        || orderId.slice(0,8).toUpperCase() !== String(orderNumber).toUpperCase())
+        return Response.json({ error: "Could not verify the order acknowledgment." }, { status: 400 });
+      const ack = savedOrder.checkout_acknowledgment;
+      if (ack?.accepted_at && Array.isArray(ack.statements)) {
+        const escape = (value: string) => value.replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]!));
+        acknowledgmentHtml = '<div style="margin-top:20px;padding:18px;border:1px solid #E6E0D8;border-radius:18px;background:#F6F3EF;color:#5F554C;font-size:13px;line-height:1.6"><h3 style="margin:0 0 10px;font-size:16px">Your checkout acknowledgments</h3>'
+          + ack.statements.map((text: string) => '<p style="margin:10px 0">✓ ' + escape(text) + '</p>').join("")
+          + '<p style="font-size:11px;margin-bottom:0">Recorded: ' + escape(ack.accepted_at) + ' · Version: ' + escape(ack.version) + '</p></div>';
+        acknowledgmentText = "\nYour checkout acknowledgments:\n" + ack.statements.map((text: string) => "[Acknowledged] " + text).join("\n") + "\nRecorded: " + ack.accepted_at + " · Version: " + ack.version + "\n";
+      }
+    }
 
     const heroImage = `${siteUrl}/order-received.png`;
     const logoUrl = `${siteUrl}/email-logo.png`;
@@ -426,6 +446,7 @@ ${discountHtml}
             </table>
 
             ${paymentHtml}
+            ${acknowledgmentHtml}
 
             <div style="margin-top:26px;text-align:center;">
               <a
@@ -497,6 +518,7 @@ ${paymentAccountValue ? `Payment info: ${paymentAccountValue}` : ""}
 ${paymentInstructions || "Complete your payment using the selected method."}
 Include your order number: #${orderNumber}
 
+${acknowledgmentText}
 View your order:
 ${trackingUrl}
 
