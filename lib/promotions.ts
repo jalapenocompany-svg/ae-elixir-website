@@ -9,6 +9,7 @@ export type PromoQuote = {
   discount_amount: number;
   discount_type?: PromoDiscountType;
   eligible_shipping_method?: string | null;
+  includes_free_shipping?: boolean;
 };
 
 export type PromoCode = {
@@ -17,6 +18,7 @@ export type PromoCode = {
   percent_off: number | null;
   fixed_amount: number | null;
   eligible_shipping_method: string | null;
+  includes_free_shipping: boolean;
   minimum_subtotal: number;
   enabled: boolean;
   starts_at: string | null;
@@ -24,3 +26,9 @@ export type PromoCode = {
   max_uses: number | null;
   uses: number;
 };
+
+export function promotionSavingsLabel(discount: number, shippingDiscount: number) {
+  return shippingDiscount > 0
+    ? (discount > 0 ? "Discount + free shipping" : "Free shipping")
+    : "Discount";
+}

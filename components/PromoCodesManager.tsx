@@ -5,7 +5,7 @@ import type { PromoCode, PromoDiscountType } from "@/lib/promotions";
 
 const inputClass = "w-full rounded-xl border border-[#E6E0D8] px-3 py-2";
 const buttonClass = "rounded-full bg-[#473C33] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50";
-const newDraft = { code: "", type: "percentage" as PromoDiscountType, amount: "", shippingMethod: "", minimum: "0", limit: "", start: "", end: "", enabled: false };
+const newDraft = { code: "", type: "percentage" as PromoDiscountType, amount: "", shippingMethod: "", includesFreeShipping: false, minimum: "0", limit: "", start: "", end: "", enabled: false };
 
 function localDateTime(value: string | null) {
   if (!value) return "";
@@ -55,6 +55,7 @@ export default function PromoCodesManager() {
     setDraft({
       code: code.code, type: code.discount_type || "percentage",
       shippingMethod: code.eligible_shipping_method || "",
+      includesFreeShipping: code.includes_free_shipping ?? false,
       amount: String(code.fixed_amount ?? code.percent_off ?? ""), minimum: String(code.minimum_subtotal),
       limit: code.max_uses === null ? "" : String(code.max_uses),
       start: localDateTime(code.starts_at), end: localDateTime(code.ends_at), enabled: code.enabled,
@@ -78,7 +79,8 @@ export default function PromoCodesManager() {
           discount_type: draft.type,
           percent_off: draft.type === "percentage" ? Number(draft.amount) : null,
           fixed_amount: draft.type === "fixed" ? Number(draft.amount) : null,
-          eligible_shipping_method: draft.type === "free_shipping" ? draft.shippingMethod || null : null,
+          includes_free_shipping: draft.type !== "free_shipping" && draft.includesFreeShipping,
+          eligible_shipping_method: draft.type === "free_shipping" || draft.includesFreeShipping ? draft.shippingMethod || null : null,
           minimum_subtotal: Number(draft.minimum),
           max_uses: draft.limit ? Number(draft.limit) : null,
           starts_at: draft.start ? new Date(draft.start).toISOString() : null,
@@ -142,7 +144,10 @@ export default function PromoCodesManager() {
                           ? `Free shipping (${shippingMethods.find((method) => method.name === code.eligible_shipping_method)?.display_label ?? code.eligible_shipping_method})`
                           : "Free shipping (any paid method)")
                         : code.discount_type === "fixed" ? `$${Number(code.fixed_amount).toFixed(2)} off`
-                        : `${code.percent_off}% off`} · ${Number(code.minimum_subtotal).toFixed(2)} minimum · {code.uses}{code.max_uses ? ` / ${code.max_uses}` : ""} uses
+                        : `${code.percent_off}% off`}{code.discount_type !== "free_shipping" && code.includes_free_shipping
+                        ? ` + free shipping (${code.eligible_shipping_method
+                          ? shippingMethods.find((method) => method.name === code.eligible_shipping_method)?.display_label ?? code.eligible_shipping_method
+                          : "any paid method"})` : ""} · ${Number(code.minimum_subtotal).toFixed(2)} minimum · {code.uses}{code.max_uses ? ` / ${code.max_uses}` : ""} uses
                     </p>
                     {(code.starts_at || code.ends_at) && (
                       <p className="mt-1 text-xs text-[#6F655C]">
@@ -169,24 +174,12 @@ export default function PromoCodesManager() {
               </label>
               <label className="text-sm">Discount type
                 <select className={inputClass} value={draft.type}
-                  onChange={(event) => setDraft({ ...draft, type: event.target.value as PromoDiscountType, amount: "", shippingMethod: "" })}>
+                  onChange={(event) => setDraft({ ...draft, type: event.target.value as PromoDiscountType, amount: "", shippingMethod: "", includesFreeShipping: false })}>
                   <option value="percentage">Percentage off</option>
                   <option value="fixed">Fixed amount off</option>
                   <option value="free_shipping">Free shipping</option>
                 </select>
               </label>
-              {draft.type === "free_shipping" && (
-                <label className="text-sm">Eligible shipping method
-                  <select className={inputClass} value={draft.shippingMethod}
-                    onChange={(event) => setDraft({ ...draft, shippingMethod: event.target.value })}>
-                    <option value="">Any paid shipping method</option>
-                    {draft.shippingMethod && !shippingMethods.some((method) => method.name === draft.shippingMethod) && (
-                      <option value={draft.shippingMethod} disabled>{draft.shippingMethod} (unavailable)</option>
-                    )}
-                    {shippingMethods.map((method) => <option key={method.name} value={method.name}>{method.display_label}</option>)}
-                  </select>
-                </label>
-              )}
               {draft.type !== "free_shipping" && (
                 <label className="text-sm">{draft.type === "fixed" ? "Amount off ($)" : "Percent off"}
                   <input className={inputClass} required type="number" min="0.01"
@@ -198,6 +191,27 @@ export default function PromoCodesManager() {
                 <input className={inputClass} required type="number" min="0" step="0.01" value={draft.minimum}
                   onChange={(event) => setDraft({ ...draft, minimum: event.target.value })} />
               </label>
+              {draft.type !== "free_shipping" && (
+                <label className="flex items-start gap-3 rounded-2xl border border-[#E6E0D8] bg-[#FBFAF8] p-4 text-sm sm:col-span-2">
+                  <input type="checkbox" className="mt-1 h-4 w-4 accent-[#5F554C]" checked={draft.includesFreeShipping}
+                    onChange={(event) => setDraft({ ...draft, includesFreeShipping: event.target.checked, shippingMethod: "" })} />
+                  <span><span className="font-semibold">Include free shipping</span>
+                    <span className="mt-1 block text-xs leading-5 text-[#6F655C]">Apply both benefits with this one code. Choose the covered shipping method below.</span>
+                  </span>
+                </label>
+              )}
+              {(draft.type === "free_shipping" || draft.includesFreeShipping) && (
+                <label className="text-sm sm:col-span-2">Eligible shipping method
+                  <select className={inputClass} value={draft.shippingMethod}
+                    onChange={(event) => setDraft({ ...draft, shippingMethod: event.target.value })}>
+                    <option value="">Any paid shipping method</option>
+                    {draft.shippingMethod && !shippingMethods.some((method) => method.name === draft.shippingMethod) && (
+                      <option value={draft.shippingMethod} disabled>{draft.shippingMethod} (unavailable)</option>
+                    )}
+                    {shippingMethods.map((method) => <option key={method.name} value={method.name}>{method.display_label}</option>)}
+                  </select>
+                </label>
+              )}
               <label className="text-sm">Usage limit (optional)
                 <input className={inputClass} type="number" min="1" step="1" value={draft.limit}
                   onChange={(event) => setDraft({ ...draft, limit: event.target.value })} />

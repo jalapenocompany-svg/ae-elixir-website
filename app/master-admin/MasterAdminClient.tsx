@@ -1,4 +1,6 @@
 "use client";
+
+import { promotionSavingsLabel } from "@/lib/promotions";
 import { REFERRALS_ENABLED } from "@/lib/referral-settings";
 
 import { useEffect, useMemo, useState } from "react";
@@ -2417,9 +2419,10 @@ export default function MasterAdminClient() {
       order.created_at,
       order.promo_code || "",
       orderPromoSavings(order).toFixed(2),
+      Number(order.discount_amount || 0).toFixed(2),
       Number(order.shipping_discount_amount || 0).toFixed(2),
     ]);
-    downloadReportCsv("promo-discounts", ["Order", "Order Date", "Promo Code", "Total Discount", "Shipping Discount"], rows);
+    downloadReportCsv("promo-discounts", ["Order", "Order Date", "Promo Code", "Total Discount", "Merchandise Discount", "Shipping Discount"], rows);
   }
 
   function downloadReportCsv(report: string, headers: string[], rows: (string | number)[][]) {
@@ -3064,7 +3067,7 @@ export default function MasterAdminClient() {
                         : ""}
                     </p>
                     {orderPromoSavings(order) > 0 && <p className="text-green-700">
-                      <b>{Number(order.shipping_discount_amount) > 0 ? "Free shipping" : "Promotion"}:</b> {order.promo_code} · −{formatCurrency(orderPromoSavings(order))}
+                      <b>{promotionSavingsLabel(Number(order.discount_amount || 0), Number(order.shipping_discount_amount || 0))}:</b> {order.promo_code} · −{formatCurrency(orderPromoSavings(order))}
                     </p>}
                   </div>
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { promotionSavingsLabel } from "@/lib/promotions";
+
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import SiteHeader from "@/components/SiteHeader";
@@ -268,7 +270,7 @@ export default function LookupClient() {
           {(Number(order.discount_amount || 0) > 0 || Number(order.shipping_discount_amount || 0) > 0) && <div className="mb-4 space-y-2 border-b border-[#E6E0D8] pb-4 text-sm text-[#6F655C]">
             <p className="flex justify-between"><span>Merchandise</span><span>${Number(order.subtotal || 0).toFixed(2)}</span></p>
             <p className="flex justify-between gap-3 text-green-700">
-              <span>{Number(order.shipping_discount_amount) > 0 ? "Free shipping" : "Discount"} · {order.promo_code}</span>
+              <span>{promotionSavingsLabel(Number(order.discount_amount || 0), Number(order.shipping_discount_amount || 0))} · {order.promo_code}</span>
               <span>−${(Number(order.discount_amount || 0) + Number(order.shipping_discount_amount || 0)).toFixed(2)}</span>
             </p>
             <p className="flex justify-between"><span>Shipping</span><span>${Number(order.shipping_price || 0).toFixed(2)}</span></p>

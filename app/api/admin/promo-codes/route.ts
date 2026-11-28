@@ -47,10 +47,15 @@ export async function POST(request: Request) {
   }
 
   const { code, discount_type = "percentage", percent_off = null, fixed_amount = null, minimum_subtotal, max_uses, enabled, starts_at, ends_at } = promo;
+  const includesFreeShipping = promo.includes_free_shipping ?? false;
+  if (typeof includesFreeShipping !== "boolean") {
+    return adsReply({ error: "Choose whether this code includes free shipping." }, 400);
+  }
+  const hasShippingBenefit = discount_type === "free_shipping" || includesFreeShipping;
   const eligibleMethod = promo.eligible_shipping_method;
-  if (eligibleMethod != null && (discount_type !== "free_shipping"
+  if (eligibleMethod != null && (!hasShippingBenefit
     || typeof eligibleMethod !== "string" || !eligibleMethod.trim())) {
-    return adsReply({ error: "Choose a paid shipping method for the free-shipping code." }, 400);
+    return adsReply({ error: "Choose a paid shipping method for the shipping benefit." }, 400);
   }
 
   const validDate = (value: unknown) => value === null
@@ -75,7 +80,8 @@ export async function POST(request: Request) {
 
   const values = {
     discount_type, percent_off, fixed_amount, minimum_subtotal, max_uses, enabled, starts_at, ends_at,
-    ...(discount_type === "free_shipping" && eligibleMethod === undefined
+    includes_free_shipping: includesFreeShipping,
+    ...(hasShippingBenefit && eligibleMethod === undefined
       ? {} : { eligible_shipping_method: eligibleMethod ?? null }),
   };
   try {

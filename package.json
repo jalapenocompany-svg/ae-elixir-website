@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:promotions": "node --test tests/promotions-email.test.mjs tests/promotions-admin.test.mjs tests/combined-promotions-db.cjs"
   },
   "dependencies": {
     "@next/third-parties": "^16.2.6",
@@ -19,6 +20,7 @@
     "resend": "^6.12.2"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.15",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

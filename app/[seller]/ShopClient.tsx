@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import SiteHeader from "@/components/SiteHeader";
 import AgeGate from "@/components/AgeGate";
 import StorefrontAds from "@/components/StorefrontAds";
+import { promotionSavingsLabel } from "@/lib/promotions";
 import { useCheckoutPromotion } from "@/lib/useCheckoutPromotion";
 
 type Product = {
@@ -230,7 +231,7 @@ export default function ShopClient({ seller, referredBy, referralCode }: { selle
   const [showEmailReminder, setShowEmailReminder] = useState(false);
   const [whatsAppUrl, setWhatsAppUrl] = useState("");
   const [orderNumber, setOrderNumber] = useState("");
-  const [submittedDiscount, setSubmittedDiscount] = useState<{ code: string; amount: number; total: number; freeShipping: boolean } | null>(null);
+  const [submittedDiscount, setSubmittedDiscount] = useState<{ code: string; amount: number; total: number; label: string } | null>(null);
   const [submittedPaymentMethod, setSubmittedPaymentMethod] =
     useState<PaymentMethod | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -295,7 +296,7 @@ export default function ShopClient({ seller, referredBy, referralCode }: { selle
   const promotion = useCheckoutPromotion(cart);
   const checkoutSubtotal = promotion.quote?.subtotal ?? cartSubtotal;
   const discountAmount = promotion.quote?.discount_amount ?? 0;
-  const freeShipping = promotion.quote?.discount_type === "free_shipping";
+  const freeShipping = promotion.quote?.discount_type === "free_shipping" || promotion.quote?.includes_free_shipping === true;
   const eligibleShippingMethod = promotion.quote?.eligible_shipping_method;
   const shippingMethodMatches = !eligibleShippingMethod || selectedShippingMethod?.name === eligibleShippingMethod;
   const eligibleShippingLabel = shippingMethods.find((method) => method.name === eligibleShippingMethod)?.display_label
@@ -956,12 +957,12 @@ export default function ShopClient({ seller, referredBy, referralCode }: { selle
     const savedPromoCode: string | null = data.promo_code || null;
     const savedItems = orderItemsWithMargins;
     const savedSavings = savedDiscountAmount + savedShippingDiscount;
-    const savingsLabel = savedShippingDiscount > 0 ? "Free shipping" : "Discount";
+    const savingsLabel = promotionSavingsLabel(savedDiscountAmount, savedShippingDiscount);
     const discountText = savedSavings > 0
       ? `\n${savingsLabel} (${savedPromoCode}): -$${savedSavings.toFixed(2)}` : "";
     const shortOrderNumber = data.id.slice(0, 8).toUpperCase();
     setOrderNumber(shortOrderNumber);
-    setSubmittedDiscount(savedPromoCode ? { code: savedPromoCode, amount: savedSavings, total: savedTotal, freeShipping: savedShippingDiscount > 0 } : null);
+    setSubmittedDiscount(savedPromoCode ? { code: savedPromoCode, amount: savedSavings, total: savedTotal, label: savingsLabel } : null);
     setSubmittedPaymentMethod(selectedPaymentMethod || null);
 
     const itemsText = cart
@@ -2810,7 +2811,7 @@ Total: $${savedTotal.toFixed(2)}`
                 </p>
                 {submittedDiscount && (
                   <div className="mt-2 text-sm font-bold">
-                    <p className="text-green-700">{submittedDiscount.freeShipping ? "Free shipping" : "Discount"} ({submittedDiscount.code}) · −${submittedDiscount.amount.toFixed(2)}</p>
+                    <p className="text-green-700">{submittedDiscount.label} ({submittedDiscount.code}) · −${submittedDiscount.amount.toFixed(2)}</p>
                     <p>Order total · ${submittedDiscount.total.toFixed(2)}</p>
                   </div>
                 )}
