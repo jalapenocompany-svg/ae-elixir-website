@@ -1,3 +1,4 @@
+import { promotionSavingsLabel } from "@/lib/promotions";
 import { adsDatabase } from "@/lib/ads-server";
 import { Resend } from "resend";
 
@@ -215,21 +216,27 @@ export async function POST(req: Request) {
     const safeDiscountAmount = Number(discountAmount || 0);
     const safeShippingDiscount = Number(shippingDiscountAmount || 0);
     const savings = safeDiscountAmount + safeShippingDiscount;
-    const discountLabel = safeShippingDiscount > 0 ? "Free shipping" : "Discount";
+    const discountLabel = promotionSavingsLabel(safeDiscountAmount, safeShippingDiscount);
     const safePromoCode = String(promoCode || "").trim().toUpperCase();
-    if (!Number.isFinite(safeDiscountAmount) || safeDiscountAmount < 0 || safeDiscountAmount > safeSubtotal
+    if (![safeSubtotal, safeShippingPrice, safeTotal].every(Number.isFinite)
+      || safeSubtotal < 0 || safeShippingPrice < 0 || safeTotal < 0
+      || !Number.isFinite(safeDiscountAmount) || safeDiscountAmount < 0 || safeDiscountAmount > safeSubtotal
       || !Number.isFinite(safeShippingDiscount) || safeShippingDiscount < 0
-      || (safeShippingDiscount > 0 && (safeDiscountAmount !== 0 || safeShippingDiscount !== safeShippingPrice))
+      || (safeShippingDiscount > 0 && safeShippingDiscount !== safeShippingPrice)
       || (safePromoCode && !/^[A-Z0-9][A-Z0-9_-]{1,31}$/.test(safePromoCode))
       || (savings > 0 && (!safePromoCode || Math.abs(safeSubtotal + safeShippingPrice - savings - safeTotal) > 0.011))) {
       return Response.json({ error: "Invalid promotion totals." }, { status: 400 });
     }
-    const discountText = savings > 0 ? `${discountLabel} (${safePromoCode}): -$${savings.toFixed(2)}\n` : "";
+    const discountRows = [
+      ...(safeDiscountAmount > 0 ? [{ label: "Discount", amount: safeDiscountAmount }] : []),
+      ...(safeShippingDiscount > 0 ? [{ label: "Free shipping", amount: safeShippingDiscount }] : []),
+    ];
+    const discountText = discountRows.map(({ label, amount }) => `${label} (${safePromoCode}): -$${amount.toFixed(2)}\n`).join("");
     const discountColor = "#166534";
-    const discountHtml = savings > 0 ? `<tr>
-      <td style="padding:8px;color:${discountColor};font-size:14px;">${discountLabel} (${safePromoCode})</td>
-      <td style="padding:8px;text-align:right;color:${discountColor};font-size:14px;font-weight:bold;white-space:nowrap;">−$${savings.toFixed(2)}</td>
-    </tr>` : "";
+    const discountHtml = discountRows.map(({ label, amount }) => `<tr>
+      <td style="padding:8px;color:${discountColor};font-size:14px;">${label} (${safePromoCode})</td>
+      <td style="padding:8px;text-align:right;color:${discountColor};font-size:14px;font-weight:bold;white-space:nowrap;">−$${amount.toFixed(2)}</td>
+    </tr>`).join("");
     const paymentHtml = getPaymentInstructions({
       paymentMethod,
       paymentMethodLabel,
